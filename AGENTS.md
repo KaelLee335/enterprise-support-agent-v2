@@ -33,7 +33,7 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 
 - User chose a new public repository. Suggested name: `enterprise-support-agent-v2`.
 - Before publishing, perform a final tracked-file and credential/runtime-data review. `.env`, databases, WAL, vector store, virtualenv, test cache, and egg-info are ignored according to the user's screenshot checks; `.env.example` remains included.
-- Public GitHub delivery is in progress for a new repository named `enterprise-support-agent-v2`. Do not reuse another repository. Keep credentials and local runtime data out of commits. The initial local commit may be prepared before the remote URL is available.
+- Public repository `https://github.com/KaelLee335/enterprise-support-agent-v2` has been created empty. Local initial commit `e68a1cea3bc6f31cb7704c709f6273aae900ee04` uses a GitHub noreply author email. Add it as origin and push `main`; keep credentials and local runtime data out of commits.
 
 ## Active work and priorities
 

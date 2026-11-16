@@ -31,4 +31,4 @@
 - 用户已选择新建公开仓库。
 - 建议仓库名：`enterprise-support-agent-v2`；说明：`Code-first enterprise after-sales support agent demo with FastAPI, LangGraph, and RAG.`
 - 发布前仍需再次检查将提交的文件，尤其扫描误放入源文件/评估报告的 Key、数据库和本机配置。
-- 用户已选择新建空白公开仓库 `enterprise-support-agent-v2`。本地文件忽略规则和令牌格式扫描已核查；等待远端 URL 后推送。未写入凭据。
+- 空白公开仓库已创建：[KaelLee335/enterprise-support-agent-v2](https://github.com/KaelLee335/enterprise-support-agent-v2)。本地文件忽略规则和令牌格式扫描已核查，初始本地提交已创建；作者使用 GitHub noreply 地址。下一步配置 origin、推送并核对远端。未写入凭据。

@@ -36,7 +36,7 @@
 
 - 用户已选择新建公开仓库，建议名称 `enterprise-support-agent-v2`。
 - 发布前需要再次确认待提交清单与凭据扫描；尚未创建远端或提交代码。
-- 已选择创建新的公开仓库 `enterprise-support-agent-v2`。首次提交内容已完成忽略规则检查和本地令牌格式扫描；等待空白远端仓库 URL 后推送。不要将本机 `.env`、数据库或向量库纳入版本控制。
+- 空白公开仓库已创建：[KaelLee335/enterprise-support-agent-v2](https://github.com/KaelLee335/enterprise-support-agent-v2)。本地初始提交 `e68a1cea3bc6f31cb7704c709f6273aae900ee04` 已完成，采用 GitHub noreply 作者邮箱；尚待配置 origin、推送并检查远端内容。`.env`、数据库和向量库不在提交中。
 
 ## 主要记录入口
 

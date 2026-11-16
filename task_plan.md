@@ -39,7 +39,9 @@
 
 - [x] 用户选择新建公开仓库。
 - [ ] 发布前最终密钥/运行数据检查并审阅首次提交文件清单。
-- [ ] 在 GitHub 创建空白公开仓库 `enterprise-support-agent-v2` 并取得 URL；随后添加 origin 并推送初始提交。
+- [x] 完成公开前忽略规则、文件清单、令牌格式和 `.env.example` 检查；创建本地初始提交 `e68a1cea3bc6f31cb7704c709f6273aae900ee04`，作者使用 GitHub noreply 地址。
+- [x] 在 GitHub 创建空白公开仓库 `https://github.com/KaelLee335/enterprise-support-agent-v2`，未初始化额外文件。
+- [ ] 添加 origin 并推送 `main`，核对公开仓库内容和 README 展示。
 - [ ] 验证远端默认分支和 README 展示；提供仓库链接。
 
 ## 错误记录
