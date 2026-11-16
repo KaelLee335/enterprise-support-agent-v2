@@ -28,11 +28,11 @@
 |---|---|---|
 | Python 包结构、类型注解、异常处理、配置和环境变量 | 已实现/有证据 | `src/support_agent/` 包、TypedDict/Pydantic 类型、`config.py`、API/节点异常安全返回。 |
 | Pydantic 请求/响应验证、GET/POST、HTTP 状态、Swagger/接口说明 | 已实现/有证据 | `src/support_agent/schemas.py`、`src/support_agent/main.py`、`tests/test_api.py::test_health_and_swagger_routes` 与 body validation；`docs/demo_runbook.md`。 |
-| FastAPI 依赖注入基础 | 部分实现 | `Header(...)` 由 FastAPI 注入租户 Header；没有 `Depends` 风格的可复用认证/服务依赖。对当前单机 Demo 足够，教学点仍可在阶段 11 说明。 |
+| FastAPI 依赖注入基础 | 已实现/有证据 | `auth.py` 的 `require_demo_identity` 由 `Depends()` 注入 Bearer 身份；`main.py` 的业务路由据此取得可信 user/tenant。测试覆盖缺 token、无效 token 和伪造 `X-Tenant-ID`。 |
 | 必要 async/await | 部分实现 | 应用 lifespan/middleware 使用异步接口，业务路由是同步函数；尚无异步业务调用链或 I/O 对照练习。 |
 | SQLite、租户/订单表、主外键、索引、参数化查询和初始化 | 已实现/有证据 | `src/support_agent/db.py` 建有 `tenants`、`orders`、外键和租户索引；订单查询用参数化 `WHERE order_id = ? AND tenant_id = ?`。 |
-| JOIN、事务、UPDATE/DELETE 原理与安全边界实践 | 部分实现/未作为功能使用 | 现有业务只需订单查询和幂等 seed 插入；没有 JOIN、订单 UPDATE/DELETE 路径，也没有专门的 SQL 事务学习记录。不能为学习项引入无必要业务写操作。 |
-| 用户身份表或 Agent 任务表 | 部分实现（本地模拟身份与最小执行记录已新增，待本机回归） | Bearer demo token 映射固定用户/租户；`demo_users` 和 `agent_runs` 存于 SQLite，执行记录不保存原始问题；非生产认证。实现位置 `src/support_agent/auth.py`、`src/support_agent/db.py`、`src/support_agent/main.py`。 |
+| JOIN、事务、UPDATE/DELETE 原理与安全边界实践 | 部分实现/未作为功能使用 | 现有业务只需订单查询和幂等 seed 插入；没有 JOIN、订单 UPDATE/DELETE 路径，也运行记录的插入/更新使用 SQLite 事务上下文；订单业务仍只读。JOIN/订单 UPDATE/DELETE 不属于必要功能，继续不添加。 |
+| 用户身份表或 Agent 任务表 | Demo 实现并验收；非生产认证 | Bearer demo token 映射固定用户/租户；`demo_users` 和 `agent_runs` 存于 SQLite，执行记录不保存原始问题。51 项 pytest 与 WSL 11 项验收由用户截图报告通过。实现位置 `src/support_agent/auth.py`、`src/support_agent/db.py`、`src/support_agent/main.py`。 |
 
 ## LangChain、RAG 与 LangGraph
 
@@ -40,13 +40,13 @@
 |---|---|---|
 | LangChain Chat Model、Prompt、Document、Splitter、Embeddings、Vector Store、Retriever | 已实现/有证据 | `src/support_agent/rag/answer.py`、`policies.py`、`retrieval.py`、`index.py`；索引/检索有本机测试与真实评估记录。 |
 | LCEL 与 Output Parser | 已实现/有证据 | `answer.py` 使用 `ANSWER_PROMPT | chat_model | StrOutputParser()`；`docs/interview_kit.md` 已有组件职责说明。 |
-| LangChain Tool 定义/调用 | 部分实现 | 业务“工具调用”是确定性 LangGraph 节点/普通 Python 服务函数，代码没有 `@tool`、`bind_tools` 或模型工具选择。安全路由刻意不用 LLM 决定授权；阶段 11 应先比较“显式 LangChain Tool”和当前节点函数的职责，不能为了技术覆盖强行添加。 |
+| LangChain Tool 定义/调用 | 部分实现 | 业务“工具调用”是确定性 LangGraph 节点/普通 Python 服务函数，代码没有 `@tool`、`bind_tools` 或模型工具选择。安全路由刻意不用 LLM 决定授权；学习材料解释该边界，不为了技术覆盖强行添加 Tool。 |
 | RAG 完整链路：加载、分块、Embedding、Chroma、检索、上下文、生成、引用检查 | 已实现/有证据 | `src/support_agent/rag/`；12 个政策源一源一块；36 条有证据标签的检索评估、14 条 Top-4/Top-8 人工审阅和约束层评估均有记录。 |
 | 无可靠证据时拒答，防止引用伪造 | 已实现/有证据 | 空召回不调模型的测试、检索/生成错误安全答复、引用编号校验、`answer_constraints.py`、WSL policy QA 验收。引用 ID 有效不等于语义必然正确。 |
 | 语义 grounding/最终回答事实正确性自动评估 | 部分实现 | 有 14 条逐例人工审阅和规则约束评估；同模型 LLM judge 被明确标为探索性且存在误判。尚无独立裁判或成熟事实级自动指标。 |
 | State、Node、Edge、条件路由、checkpoint、interrupt/resume、单 Agent 执行轨迹 | 已实现/有证据 | `src/support_agent/agent/state.py`、`graph.py`、`nodes.py`；`docs/langgraph_design.md`；审批跨应用重启恢复测试与 WSL 验收。 |
-| Tool 权限、身份与租户授权 | 部分实现 | 本地演示身份固定映射租户，后端 SQL 强制租户条件；公开 Demo token 不是生产认证，审批接口也没有真实审批人 RBAC。新增 API 待本地回归。 |
-| LangChain/LangGraph 架构理解由用户参与 | 尚未完成 | 代码和讲解材料已存在；用户参与式学习/设计确认尚未开始。已排入阶段 11，顺序 LangChain → LangGraph。 |
+| Tool 权限、身份与租户授权 | Demo 范围已验收；生产 RBAC 不适用 | 本地演示身份固定映射租户，后端 SQL 强制租户条件；用户报告身份边界测试及 WSL 11 项验收通过。公开 Demo token 不是生产认证，审批接口没有真实审批人 RBAC。 |
+| LangChain/LangGraph 学习材料 | 已完成 | `docs/learning/` 含 LangChain、LangGraph、RAG、SQL、FastAPI 五章；中文材料链接实际代码，包含流程图、示例、重点和自测题。互动问答由用户安排后再开展。 |
 
 ## 评估、追踪与故障注入
 
@@ -61,9 +61,9 @@
 | 故障：工具 not_found | 部分实现 | 代码及 Agent 离线评估区分 `found/not_found`，但未找到明确的 API 端到端 not_found 故障注入用例。 |
 | 故障：错误分支/提示注入/隐私索取 | 已实现/有证据 | 路由/API 单测与 WSL 11 项断言验收覆盖多类恶意/异常输入。 |
 | 故障：数据库连接失败 | 已实现/有证据 | `tests/test_api.py::test_order_database_failure_returns_safe_error`。 |
-| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；真实聊天模型超时、限流和重试没有完整演练。 |
-| 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常应用重启恢复和重复审批冲突有测试；损坏文件、缺字段或恢复异常没有专门注入验证。 |
-| 故障：Docker 环境变量缺失 | 未验证 | 单测确认缺少 SiliconFlow Key 时构造 Embedding 会报错；没有找到 Compose 缺变量的启动/健康验收。 |
+| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；Chat Model timeout/429 与 checkpoint 损坏仍待注入测试。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常应用重启恢复和重复审批冲突有测试；损坏文件仍待隔离注入，见 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：Docker 环境变量缺失 | 部分覆盖 | 单测确认缺少 SiliconFlow Key 时构造 Embedding 会报错；Compose 缺变量的启动/健康行为仍未端到端验证，已列入 `docs/troubleshooting/fault_cases.md`。 |
 | 延迟基线、P50/P95 | 未实现 | 有单次节点时延日志；`docs/evaluation_and_observability.md` 记录尚无稳定统计基线。 |
 
 ## Docker、交付物与学习机制
@@ -71,11 +71,11 @@
 | 要求 | 状态 | 证据与边界 |
 |---|---|---|
 | Dockerfile、Compose、环境配置、数据持久化和 WSL 部署 | 已实现/有证据 | `Dockerfile`、`compose.yaml`、README；D 盘数据 bind mount 与 11 项容器验收由用户实测。 |
-| 从 GitHub 干净克隆复现 | 未验证 | 当前已做 WSL 工作副本重建和公开发布；尚未从远端全新 clone 独立复现。排在阶段 13。 |
+| 从 GitHub 干净克隆复现 | 未验证 | WSL 工作副本重建不等同于全新 clone。阶段 13 从远端隔离克隆后复现。 |
 | 架构图与流程图 | 部分实现 | `docs/project_story.md`、`docs/langgraph_design.md` 含 Mermaid 图；仓库中未发现独立 PNG/SVG 图像资产。Mermaid 可作为源码图，不代表已交付渲染图。 |
 | 演示记录/运行证据 | 部分实现 | `docs/demo_runbook.md`、项目状态和 WSL 实测文字记录完整；没有发现整理进仓库的正式演示截图/视频包。 |
 | Bad Case 分析、架构取舍、面试包 | 已实现/有证据 | `docs/rag_answer_manual_review.md`、`docs/evaluation_and_observability.md`、`docs/project_story.md`、`docs/interview_kit.md`（含 3/10 分钟讲解、20 问、5 个故障案例）。材料未来仍需阶段 14 按最新代码复核。 |
-| 让用户参与核心设计并在故障后定位/复盘 | 尚未完成 | 用户已指定学习顺序 LangChain → LangGraph → RAG → SQL → FastAPI，并要求每次先做架构介绍和设计引导。互动学习循环与受控故障判断尚未开始，排入阶段 11/12。 |
+| 自主开发与代码学习 | 学习材料已完成；互动练习待用户参与 | 新提示词由 Codex 主导设计和实现、用户通过代码学习。五章学习材料已发布；在用户安排学习时间后可进行复盘，不作为功能验收阻塞。 |
 
 ## 建议后续顺序
 
