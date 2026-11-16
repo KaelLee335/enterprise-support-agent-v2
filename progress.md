@@ -184,3 +184,11 @@
 - 公开 README、案例库、追踪矩阵、task plan、project status、AGENTS、progress、findings 已通过 GitHub 文档更新反映当前阶段；文档变更未修改业务运行代码。
 - 阶段 13 干净克隆静态预检：GitHub tree 包含五章学习手册和故障库；未包含 .env、数据库、向量库或虚拟环境。
 - 当前本会话本机执行器仍返回 `setup refresh had errors`，因此不能替用户克隆/安装/运行。下一步需在 D 盘隔离目录完成 README 复现；不覆盖现有项目、密钥、数据或 WSL 服务。
+
+
+# 2026-11-16 — 干净克隆测试结果
+
+- 用户提供截图：D 盘克隆 GitHub HEAD 9caa363；创建新 venv、安装依赖成功；全量 pytest 53 passed in 18.39s，exit 0。包括原 51 项和两条阶段 12 回归。此为用户报告，本会话未复跑。
+- 安装阶段发现全局 TUNA pip simple 对 pip User-Agent 返回 403；临时指定 Aliyun mirror 安装成功。README 已加单次镜像覆盖说明；Dockerfile 暂未更改，未来 Dockerfile 修改时再换源或做回退。
+- 阶段 13 尚缺 clean clone 中的 API 进程 smoke：health 200 和 Authorization Bearer 查询虚构订单 1001。本会话尝试执行时仍报 setup refresh errors，因此需要用户在克隆目录启动并验证。
+- 无 WSL/Docker 操作；未运行索引，没有发生新的云端调用。
