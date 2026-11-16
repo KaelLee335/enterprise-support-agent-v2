@@ -208,3 +208,11 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 阶段 12 按用户明确验收关闭；未覆盖的 checkpoint 文件损坏及 Compose 配置错误继续标记未验证，不能因 2 条通过而扩大结论。
 - 阶段 13 需要干净 clone 实际安装与运行。静态 GitHub tree 未包含 .env、运行数据库、Chroma 向量库或虚拟环境；首次 RAG/容器部署须本地生成索引，Key 只留在 D 盘本地 .env。
 - 当前 Codex 本地执行器无法启动；克隆、pytest 和 HTTP smoke test 等本地结果需要用户在隔离 D 盘目录运行后提供。WSL/Docker 不需参与此阶段。
+
+
+## 2026-11-16：干净克隆与包镜像
+
+- 用户截图报告公开 main 9caa363 干净克隆，Python venv 与依赖安装成功，53 项 pytest 全通过，18.39 秒。此为用户现场结果；未在当前会话重跑。
+- 全局 pip.ini 的 TUNA simple endpoint 返回 HTTP 403（pip User-Agent）；本次临时添加 Aliyun 镜像选项后安装成功。README 已记录一次性 pip mirror override，避免要求改全局配置。
+- Dockerfile 仍使用 TUNA；仅在之后必要的 Dockerfile 改动中切换 Aliyun 或实现双源回退。本轮没有重建容器。
+- 干净克隆还需跑 health 和带 Bearer 的 /orders/1001 smoke，才能完整确认首次运行路径。当前本地执行工具失败，等待用户在 clone 中执行。
