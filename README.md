@@ -63,7 +63,7 @@ RAG 答案层增加了可审计的政策约束规则，详细人工复核和 Top
 
 ## 项目架构与讲解
 
-系统架构和指标摘要见 [`docs/project_story.md`](docs/project_story.md)；完整 3/10 分钟讲稿、20 个技术问题与 5 个故障案例见 [`docs/interview_kit.md`](docs/interview_kit.md)。
+系统架构和指标摘要见 [`docs/project_story.md`](docs/project_story.md)；完整 3/10 分钟讲稿、20 个技术问题与 5 个故障案例见 [`docs/interview_kit.md`](docs/interview_kit.md)。中文代码学习手册见 [`docs/learning/README.md`](docs/learning/README.md)，12 类故障案例见 [`docs/troubleshooting/fault_cases.md`](docs/troubleshooting/fault_cases.md)。
 
 当前已完成/待推进事项见 [`docs/project_status.md`](docs/project_status.md)；项目代理接续说明与约束见根目录 [`AGENTS.md`](AGENTS.md)。
 
