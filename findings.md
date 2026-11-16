@@ -148,5 +148,13 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 现有设计明确 `X-Tenant-ID` 只是演示租户范围参数，不是身份认证；订单查询通过 order ID 与 tenant ID 同时过滤。对照原始“用户身份/数据范围/工具权限”要求，应标记为 Demo 层租户隔离已实现、真实身份认证未实现，不能混为一项。
 - 面试材料记录 SQLite 当前有 `tenants` 和 `orders` 表，没有 `users` 表或持久化 Agent 任务日志表；状态/轨迹目前分布在 SQLite checkpoint 与结构化日志。该差异需要纳入阶段 10 追踪，不自动增加新表。
 - 原始要求的故障注入清单覆盖模型/数据库/Tool/Checkpoint/RAG/路由/Docker 配置等多个层次。当前测试文件已包含部分 Agent、RAG、API、DB 与日志测试，但完整清单的逐项证据尚未建立；阶段 10 应逐条核验而不是宣称全覆盖。
-- 以上是对现有文档与文件名的初步检查，不是完整合规审计；阶段 10 完成前不得据此报告全量差距结论。
+- 以上是阶段 10 正式逐项审计前的初步检查，不单独作为完整差距结论；后续完整审计见下节和 `docs/requirement_traceability.md`。
+
+## 阶段 10 完整审计结论（2026-11-16）
+
+- 完成了原始要求到仓库实现的逐项追踪，完整矩阵和故障注入清单见 `docs/requirement_traceability.md`。本阶段只读；未运行 pytest、WSL/Docker 验收或云端模型调用。
+- 已证实的强边界：租户条件在订单查询 SQL 中强制，跨租户测试存在；`X-Tenant-ID` 仍不是用户认证；审批仍为 demo-only 状态转换。
+- 重要部分实现项：业务节点是普通 Python/LangGraph Node，并非 LangChain `@tool`/`bind_tools`；Tool not_found 有离线评估但无直接 API E2E 用例；模型超时/限流、checkpoint 损坏和 Compose 缺 Key 仍缺独立故障演练。
+- SQL 目前围绕 tenants/orders、seed 插入和只读查询；没有 users/agent-run 表，也没有 JOIN、订单 UPDATE/DELETE 业务路径。这是学习目标与当前轻量 Demo 的差距，不建议未经讨论添加无用写操作。
+- 首先建议的用户学习主题是 LangChain：现有 RAG 生成链为 PromptTemplate → Chat Model → StrOutputParser；外层业务流程由 LangGraph 管理。设计是否需要形式化 Tool API，需在用户提出思路后讨论，不预设改造。
 

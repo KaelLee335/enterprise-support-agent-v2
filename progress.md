@@ -8,6 +8,8 @@
 - 初步核实已存在 Mermaid LangGraph 路由图和面试材料；租户 Header 非身份认证、没有 users 表；故障注入完整覆盖状态待逐项确认。这些都写入 `findings.md`，最终状态以阶段 10 的逐项证据为准。
 - 用户确定阶段 11 学习顺序为 LangChain、LangGraph、RAG、SQL、FastAPI，并要求每次进入主题前先由 Codex 介绍现有架构和设计问题、引导用户给思路；用户负责核心构想与学习，Codex 在设计对齐后协助实现。已加入路线图和接续说明。
 - 按新提示词更新公开介绍：README 项目定位、项目故事/协作方式、面试包中的 3 分钟自我介绍；GitHub About 描述已更新为端到端 Python Agent 工程学习项目，并明确模拟数据/Demo 边界。实际实现指标未改写，阶段 10 需求追踪尚未开始。
+- 阶段 10 原始要求追踪完成，产物 `docs/requirement_traceability.md`：覆盖定位与 V1 复用、固定案例、Python/FastAPI/SQL、LangChain/RAG/LangGraph、身份/租户权限、评估/追踪、逐项故障注入、Docker、交付物和学习机制。严格区分已实现、部分实现、未实现和未验证；本轮只读，没有运行测试、改业务代码或调用模型。
+- 阶段 11 已开启第一个主题 LangChain。已向用户介绍当前链路边界：RAG 生成链 `PromptTemplate → Chat Model → StrOutputParser`；LangGraph 管理业务状态分支；当前订单节点不是 LangChain `@tool`。待用户先提出设计思路，再决定解释/改造，不会为了技术栈清单自动新增工具封装。
 
 ### 2026-11-16：整理项目总路线及阶段 10 计划
 
