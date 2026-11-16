@@ -23,7 +23,7 @@
 
 ## 尚未完成 / 后续计划
 
-1. 阶段 0–11 已完成。用户截图报告演示 Bearer 身份/租户隔离、最小运行记录、51 项 pytest 和 WSL 11/11 验收通过。阶段 12 仍在收尾：12 类故障库已建立；新增 not_found 与假模型 timeout 两条测试尚未运行，checkpoint 损坏/Compose 缺 Key 的边界仍待验证。
+1. 阶段 0–11 已完成。用户截图报告演示 Bearer 身份/租户隔离、最小运行记录、51 项 pytest 和 WSL 11/11 验收通过。阶段 12 已按用户报告验收：两条新增 not_found 与假模型 timeout 测试通过（2/2）；12 类故障库已建立。Checkpoint 损坏/Compose 缺 Key 仍记录为未验证边界。
 2. 阶段 11 学习手册已完成并推送：LangChain、LangGraph、RAG、SQL、FastAPI 五章位于 `docs/learning/`；每章包括代码入口、数据流图、示例、重点和自测题。
 3. 阶段 12 先补随机订单 not_found、Chat Model timeout/429、checkpoint 损坏及 Compose 缺 Key 的隔离测试；这些不在已有 51 项通过结果中冒充已覆盖。随后阶段 13 从公开 GitHub 做干净克隆，验证 README 首次安装/运行流程。
 4. 阶段 14：核对架构、流程、指标、演示记录和面试材料与实现一致；之后完成最终交接。
