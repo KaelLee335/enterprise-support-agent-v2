@@ -1,6 +1,8 @@
-# Enterprise Support Agent V2 — LangGraph Edition
+# Enterprise Support Agent V2 — Python Agent Engineering
 
-代码级企业售后 Agent 学习项目。FastAPI、SQLite、SiliconFlow RAG、单轮 LangGraph、审批暂停/恢复、结构化追踪和异常路由安全规则均已在 WSL Docker 验收。
+这是我从 Dify 低代码 Agent 开发转向 Python 代码级 Agent 工程的学习项目。我用一个企业售后场景，把用户请求、FastAPI、SQLite、LangChain RAG、LangGraph 状态编排、评估追踪和 Docker 部署连成一条可运行、可检查的工程链路。
+
+项目重视真实理解与工程取舍，不堆叠技术：核心架构问题由我参与思考和决策，Codex 协助常规实现、调试和验证。当前是使用模拟数据的本地演示项目，不是生产客服系统；它不执行真实退款、改址或删除操作。
 
 ## 本地运行
 
