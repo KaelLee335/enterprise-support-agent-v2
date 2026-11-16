@@ -38,11 +38,11 @@
 ## 阶段 8：GitHub 公开交付（待连接）
 
 - [x] 用户选择新建公开仓库。
-- [ ] 发布前最终密钥/运行数据检查并审阅首次提交文件清单。
+- [x] 发布前最终密钥/运行数据检查并审阅首次提交文件清单。
 - [x] 完成公开前忽略规则、文件清单、令牌格式和 `.env.example` 检查；创建本地初始提交 `e68a1cea3bc6f31cb7704c709f6273aae900ee04`，作者使用 GitHub noreply 地址。
 - [x] 在 GitHub 创建空白公开仓库 `https://github.com/KaelLee335/enterprise-support-agent-v2`，未初始化额外文件。
-- [ ] 添加 origin 并推送 `main`，核对公开仓库内容和 README 展示。
-- [ ] 验证远端默认分支和 README 展示；提供仓库链接。
+- [x] 添加 origin、推送 `main` 并核对远端仓库可见性、文件树和 README/source/tests 内容。
+- [x] 验证远端默认分支、README/source/tests 展示并提供仓库链接。
 
 ## 错误记录
 
@@ -53,3 +53,11 @@
 | 首次环境安装命令返回后 pytest 模块短暂不可用 | 直接运行 `python -m pytest` | 重新核验虚拟环境并完成 editable 安装后测试可运行 |
 | LangChain 依赖安装期间 Windows `openai` 文件被占用 | 并发安装尝试导致虚拟环境安装互相冲突 | 识别并停止本轮启动的残留安装进程，单独顺序完成安装；最终依赖安装成功，RAG 全量测试通过 |
 | 当前会话无法调用 Docker CLI，`wsl.exe` 命令输出不可读 | PowerShell 检查 Docker，随后检查 WSL 命令 | 用户随后在 WSL Docker 中完成构建、健康、订单、审批与 RAG 全链路验收，最终结果记录于 `progress.md` |
+# 阶段 8 最新状态（2026-11-16，覆盖下方旧的待连接记录）
+
+- [x] 创建公开仓库：https://github.com/KaelLee335/enterprise-support-agent-v2
+- [x] 推送本地 `main`，提交 `e68a1cea` 与 `04503a1` 均已发布。
+- [x] 核对 GitHub API、远端分支和文件树：105 项；未包含 `.env`、数据库/WAL、向量库、虚拟环境、缓存或 egg-info。
+- [x] 本机 `main` 与 `origin/main` 同步；发布期间未更改虚拟网卡或路由。
+
+阶段 8 已完成。上方遗留的“待连接”小节标题为历史记录，当前状态以本节为准。

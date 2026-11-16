@@ -29,15 +29,14 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 - Compose data persistence is configurable via `PROJECT_DATA_DIR`. An unset/blank value retains this user's WSL `/mnt/d/project_2/data` default; other setups can override it in their local `.env`.
 - The user verified `git status`: only expected project files/directories are untracked. Seven secret/generated paths are ignored and `.env.example` is not ignored. WSL rebuild succeeded, the `/mnt/d/project_2/data -> /app/data` bind mount was confirmed, and all 11 verifier cases passed. No commit or remote push was made.
 
-## Active phase 8: GitHub public delivery
+## Phase 8 completed: GitHub public delivery
 
-- User chose a new public repository. Suggested name: `enterprise-support-agent-v2`.
-- Before publishing, perform a final tracked-file and credential/runtime-data review. `.env`, databases, WAL, vector store, virtualenv, test cache, and egg-info are ignored according to the user's screenshot checks; `.env.example` remains included.
-- Public repository `https://github.com/KaelLee335/enterprise-support-agent-v2` has been created empty. Local initial commit `e68a1cea3bc6f31cb7704c709f6273aae900ee04` uses a GitHub noreply author email. Add it as origin and push `main`; keep credentials and local runtime data out of commits.
+- User chose a new public repository. Final tracked-file and credential/runtime-data review completed before publishing; `.env`, databases, WAL, vector store, virtualenv, test cache, and egg-info were excluded, while `.env.example` was included with an empty key.
+- Public repository: `https://github.com/KaelLee335/enterprise-support-agent-v2`, branch `main`. Local commits `e68a1cea` (initial release) and `04503a1` (release target documentation) were pushed. Remote Git tree was inspected: 105 entries, README/source/tests present, no `.env`, databases/WAL, vector store, virtualenv, caches, or egg-info paths. Keep credentials and local runtime data out of future commits.
 
 ## Active work and priorities
 
-1. Original stages 0–6 and current delivery documentation are complete. The expanded WSL verifier passed health plus 11 use cases with exit code 0; no rebuild is pending.
+1. Original stages 0–6, phase 7 release readiness, and phase 8 public GitHub delivery are complete. The expanded WSL verifier passed health plus 11 use cases with exit code 0; no rebuild is pending. Local `main` tracks `origin/main`.
 2. Optional operations follow-up: inspect the scheduled task's trigger and run-as settings only if Windows boot recovery must be guaranteed. Do not stop the current daemon, start a second daemon, enable systemd, edit `/etc/wsl.conf`, or restart WSL merely to test it.
 3. Productionization remains out of demo scope: real authentication/tenant identity, approval RBAC/audit, multi-instance persistence, limits/timeouts/retries, and security operations. User-requested learning discussion remains deferred.
 

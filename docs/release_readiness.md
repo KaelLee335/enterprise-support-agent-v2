@@ -26,7 +26,13 @@
 - 不对远端 GitHub 创建仓库或推送代码。
 - 向量索引和订单/checkpoint 数据是运行时资产，不提交版本库；新环境依 README 重建索引。
 
-## 阶段 8：GitHub 公开交付（已规划，等待连接）
+## 最新阶段 8 验收状态（2026-11-16；覆盖上方历史待连接记录）
+
+- 公开仓库：[KaelLee335/enterprise-support-agent-v2](https://github.com/KaelLee335/enterprise-support-agent-v2)。`main` 已推送。
+- 远端 Git tree 共 105 项，包含 README、`src/`、`tests/`；未发现 `.env`、数据库/WAL、向量库、虚拟环境、缓存或 egg-info 路径。
+- 本机 `git status` 显示 `main...origin/main`，远端分支可见；创建与推送期间未修改虚拟网卡或路由设置。
+
+## 阶段 8：GitHub 公开交付（历史计划，现已完成）
 
 - 用户已选择新建公开仓库。
 - 建议仓库名：`enterprise-support-agent-v2`；说明：`Code-first enterprise after-sales support agent demo with FastAPI, LangGraph, and RAG.`

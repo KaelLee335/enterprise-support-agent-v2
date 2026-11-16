@@ -89,6 +89,7 @@
 - 阶段 7 验收完成（用户实测）：`git status --short` 仅列出预期项目文件/目录；`.env`、虚拟环境、pytest 临时目录、数据库/WAL、向量库和 egg-info 等 7 项均命中 `.gitignore`，`.env.example` 未忽略。用户已同步 Dockerfile、Compose、`.dockerignore` 至 `/opt/project2`；镜像成功构建，容器 recreated/started 并为 `healthy`。`docker inspect` 确认唯一数据挂载 `/mnt/d/project_2/data -> /app/data`；`verify_phase6.sh` 11 用例全通过、EXIT=0。首次构建期间的 curl 56 是容器尚处于 health: starting 时的瞬态请求，容器就绪后复跑验收全绿。未提交或推送 GitHub；该结果已更新至 `docs/release_readiness.md`、`task_plan.md` 和 `docs/project_status.md`。
 - 阶段 8 本地发布准备完成：GitHub 连接已可用，本地终端经命令级 `safe.directory` 参数恢复；审阅 93 个待提交文件，确认 `.env`、本机数据库/WAL、向量库、虚拟环境、测试缓存和 egg-info 均不在清单中。已知 token 格式扫描无命中，`.env.example` 的 API Key 留空。Compose YAML 解析成功，数据挂载模板为 `/mnt/d/project_2/data -> /app/data`。初始本地提交 `e68a1cea3bc6f31cb7704c709f6273aae900ee04` 已创建，使用 GitHub noreply 邮箱保护本机个人邮箱；当前无 remote。GitHub 工具未提供创建仓库操作，待用户创建空白公开仓库 `enterprise-support-agent-v2` 并提供 URL 后推送。没有输出或提交任何凭据。
 - GitHub 公开仓库已通过本机 Git Credential Manager 认证创建：`https://github.com/KaelLee335/enterprise-support-agent-v2`，visibility=public，空白初始化（无 README/license/gitignore）。未输出令牌。下一步添加 origin 并推送本地 `main` 上的首个提交，再核对远端分支与文件清单。
+- 最终发布验收：本机 push 成功，GitHub API 确认仓库 public、默认分支 `main`；`git ls-remote` 返回 HEAD `04503a162aabaf671d90bbe7d3859100cd0162cc`，本地状态为 `main...origin/main`。远端树 105 项且未截断，含 README、`src/`、`tests/`，未出现 `.env`、数据库/WAL、`data/vector_store`、虚拟环境、缓存或 egg-info 路径。虚拟网卡只读检查显示 WLAN、WSL、Mihomo、VMware 适配器在线；未更改网卡或路由设置。
 
 ### 结构化追踪最终容器验收（用户实测）
 

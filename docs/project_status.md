@@ -22,7 +22,7 @@
 
 ## 尚未完成 / 后续计划
 
-1. 阶段 7（进行中）：全新克隆/构建可复现性与 GitHub 发布前整理。修复完成后需在 WSL `/opt/project2` 重建并运行 11 项验收；不会自动发布到 GitHub。
+1. 阶段 0–8 已完成。公开仓库已发布，当前 `main` 与 `origin/main` 同步；没有待执行的构建或部署验收。
 2. （可选运维）若需验证 Windows 开机自启，检查计划任务触发器、运行账户及用户未登录时的行为。Ubuntu 停止后的计划任务恢复已实测成功。
 3. （生产化，不属于当前演示验收）真实认证与 tenant 授权、审批人 RBAC/审计、多实例持久化、模型超时/限流/重试与安全监控。
 
@@ -32,11 +32,11 @@
 - 用户核查 `git status` 和忽略规则：7 个密钥/生成路径均被忽略，`.env.example` 保持可跟踪，待跟踪列表为预期项目文件。
 - 用户在 WSL 成功重建镜像，容器 `healthy`；`docker inspect` 确认 `/mnt/d/project_2/data -> /app/data`；11 个阶段 6 验收用例全部 PASS，EXIT=0。没有提交或推送。
 
-## 阶段 8：GitHub 公开交付（待连接）
+## 阶段 8：GitHub 公开交付（已完成）
 
 - 用户已选择新建公开仓库，建议名称 `enterprise-support-agent-v2`。
 - 发布前需要再次确认待提交清单与凭据扫描；尚未创建远端或提交代码。
-- 空白公开仓库已创建：[KaelLee335/enterprise-support-agent-v2](https://github.com/KaelLee335/enterprise-support-agent-v2)。本地初始提交 `e68a1cea3bc6f31cb7704c709f6273aae900ee04` 已完成，采用 GitHub noreply 作者邮箱；尚待配置 origin、推送并检查远端内容。`.env`、数据库和向量库不在提交中。
+- 阶段 8 发布完成：[KaelLee335/enterprise-support-agent-v2](https://github.com/KaelLee335/enterprise-support-agent-v2)，公开 `main` 分支。远端文件树 105 项，README、源代码和测试可见；`.env`、数据库/WAL、向量库、虚拟环境、缓存和 egg-info 均未发布。本地 Git 状态已推送并与 `origin/main` 同步。
 
 ## 主要记录入口
 
