@@ -235,3 +235,7 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 ## 阶段 15 离线容器端到端 smoke
 
 GitHub Actions `b797bda` 运行成功：Python 3.12 全量 pytest 55 passed in 3.99s；Compose 配置可解析；Dockerfile 使用阿里云 PyPI 源后镜像构建成功；在临时 Compose 容器中空 API Key 下 health 200、Bearer 查询演示订单成功，政策请求返回安全降级且不访问真实模型。容器只使用临时宿主目录和虚构 seed。该 CI 不等同用户 WSL 部署验收，当前运行容器未更新。
+
+## 用户报告的 WSL 12 项验收
+
+用户报告：同步最新公开 main 后，Docker 镜像重建、容器启动、health 200；`verify_phase6.sh` 12/12 PASS、EXIT=0。同步脚本的 CRLF 导致 pipefail 的问题经去除行尾回车修复。上述均是用户现场结果，本会话没有直接操作 WSL。
