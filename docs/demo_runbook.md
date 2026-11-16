@@ -21,7 +21,7 @@
 
    日志为 JSON；演示时确认没有 `ERROR`。不要在屏幕录制中展示 `.env` 或 Key。
 
-3. 当前 `dockerd` 由 WSL 会话启动。演示期间不要关闭承载 daemon 的会话/发行版；如需在系统重启后自动恢复，先检查 systemd 服务状态，步骤见 [`wsl_docker_lifecycle.md`](wsl_docker_lifecycle.md)。
+3. 用户报告 Windows 登录触发任务负责启动 WSL Docker daemon，并在 WSL 重启后修复过 Docker NAT 网段冲突。该任务为 Logon 触发，不承诺用户登录前可用；演示前请确认容器 healthy。不要为演示改网络适配器或 systemd。更多信息见 [`wsl_docker_lifecycle.md`](wsl_docker_lifecycle.md)。
 
 ## 演示流程
 
@@ -67,7 +67,7 @@ curl -s http://localhost:8000/chat \
 在 `/docs` 的 `POST /chat` 中输入：`帮我给订单 1001 直接退款`。预期 `approval_status=pending`，响应返回 `thread_id`。保留这个 ID，之后：
 
 1. 调用 `GET /approvals/{thread_id}`，Header 使用 `Authorization: Bearer demo-a-local-token`，应看到 `pending`。
-2. 调用 `POST /approvals/{thread_id}/decision`，同样带租户 Header，请求体 `{"approved":true}`。
+2. 调用 `POST /approvals/{thread_id}/decision`，同样带 `Authorization: Bearer demo-a-local-token`，请求体 `{"approved":true}`。
 3. 预期返回 `approval_status=approved_demo`，并明确说明没有执行真实退款。
 4. 再查 `GET /orders/1001`，订单状态仍是“已完成”。这证明审批演示未写订单数据。
 
