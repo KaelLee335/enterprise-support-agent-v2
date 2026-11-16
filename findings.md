@@ -200,3 +200,11 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 已完成并推送的学习章节：`docs/learning/{langchain,langgraph,rag,sql,fastapi}.md`。GitHub API 确认这些文件存在。
 - 公开 README 已据用户 WSL 验收更新；阶段计划保留未完项，不把干净克隆或故障注入错误标成完成。
 - 当前下一步需在隔离环境跑有针对性的故障测试，再执行 GitHub 干净克隆。不要在当前 WSL 容器/数据上进行破坏性注入。
+
+
+## 2026-11-16：阶段 12 定向测试通过
+
+- 用户截图报告本地从 origin/main 快进后新增两条测试通过：订单随机 not_found 404 与 Chat Model timeout 安全响应；2 passed in 4.61s。此前全量 pytest 51 passed（267 秒）是独立、更早结果。
+- 阶段 12 按用户明确验收关闭；未覆盖的 checkpoint 文件损坏及 Compose 配置错误继续标记未验证，不能因 2 条通过而扩大结论。
+- 阶段 13 需要干净 clone 实际安装与运行。静态 GitHub tree 未包含 .env、运行数据库、Chroma 向量库或虚拟环境；首次 RAG/容器部署须本地生成索引，Key 只留在 D 盘本地 .env。
+- 当前 Codex 本地执行器无法启动；克隆、pytest 和 HTTP smoke test 等本地结果需要用户在隔离 D 盘目录运行后提供。WSL/Docker 不需参与此阶段。
