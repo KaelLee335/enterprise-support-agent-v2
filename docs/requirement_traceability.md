@@ -32,7 +32,7 @@
 | 必要 async/await | 部分实现 | 应用 lifespan/middleware 使用异步接口，业务路由是同步函数；尚无异步业务调用链或 I/O 对照练习。 |
 | SQLite、租户/订单表、主外键、索引、参数化查询和初始化 | 已实现/有证据 | `src/support_agent/db.py` 建有 `tenants`、`orders`、外键和租户索引；订单查询用参数化 `WHERE order_id = ? AND tenant_id = ?`。 |
 | JOIN、事务、UPDATE/DELETE 原理与安全边界实践 | 部分实现/未作为功能使用 | 现有业务只需订单查询和幂等 seed 插入；没有 JOIN、订单 UPDATE/DELETE 路径，也运行记录的插入/更新使用 SQLite 事务上下文；订单业务仍只读。JOIN/订单 UPDATE/DELETE 不属于必要功能，继续不添加。 |
-| 用户身份表或 Agent 任务表 | Demo 实现并验收；非生产认证 | Bearer demo token 映射固定用户/租户；`demo_users` 和 `agent_runs` 存于 SQLite，执行记录不保存原始问题。51 项 pytest 与 WSL 11 项验收由用户截图报告通过。实现位置 `src/support_agent/auth.py`、`src/support_agent/db.py`、`src/support_agent/main.py`。 |
+| 用户身份表或 Agent 任务表 | Demo 实现并验收；非生产认证 | Bearer demo token 映射固定用户/租户；`demo_users` 和 `agent_runs` 存于 SQLite，执行记录不保存原始问题。用户报告干净克隆 53 项 pytest 通过；另有 WSL 11 项验收通过。实现位置 `src/support_agent/auth.py`、`src/support_agent/db.py`、`src/support_agent/main.py`。 |
 
 ## LangChain、RAG 与 LangGraph
 
@@ -71,7 +71,7 @@
 | 要求 | 状态 | 证据与边界 |
 |---|---|---|
 | Dockerfile、Compose、环境配置、数据持久化和 WSL 部署 | 已实现/有证据 | `Dockerfile`、`compose.yaml`、README；D 盘数据 bind mount 与 11 项容器验收由用户实测。 |
-| 从 GitHub 干净克隆复现 | 未验证 | WSL 工作副本重建不等同于全新 clone。阶段 13 从远端隔离克隆后复现。 |
+| 从 GitHub 干净克隆复现 | 用户报告已通过 | 用户在 D 盘干净 clone，venv/pip 安装成功、53 项 pytest 通过，并验收 health 200、Bearer 订单查询 200、无 token 401。
 | 架构图与流程图 | 部分实现 | `docs/project_story.md`、`docs/langgraph_design.md` 含 Mermaid 图；仓库中未发现独立 PNG/SVG 图像资产。Mermaid 可作为源码图，不代表已交付渲染图。 |
 | 演示记录/运行证据 | 部分实现 | `docs/demo_runbook.md`、项目状态和 WSL 实测文字记录完整；没有发现整理进仓库的正式演示截图/视频包。 |
 | Bad Case 分析、架构取舍、面试包 | 已实现/有证据 | `docs/rag_answer_manual_review.md`、`docs/evaluation_and_observability.md`、`docs/project_story.md`、`docs/interview_kit.md`（含 3/10 分钟讲解、20 问、5 个故障案例）。材料未来仍需阶段 14 按最新代码复核。 |
@@ -79,12 +79,11 @@
 
 ## 建议后续顺序
 
-1. **阶段 12：补齐隔离故障测试。** 12 项案例库已建立；优先补当前租户随机订单 not_found、假 Chat Model timeout/429、临时 checkpoint 损坏及 Compose 缺 Key 行为。不得在现有 WSL 数据/容器上注入故障。
-2. **阶段 13：全新克隆复现。** 从 GitHub main 克隆到隔离目录，按 README 验证依赖安装、离线测试、health/order；向量索引需要本机配置的 Embedding API Key，执行前明确外发政策内容范围。
-3. **阶段 14：最终交付核对。** 检查架构/评估/Bad Case/演示/面试材料与当前实现、用户截图验收相符。
-4. 生产化属于独立阶段，不包含在本次 Demo 完成标准内。
+1. **阶段 14：最终材料一致性核对。** 校验 README、项目故事、面试包、演示手册、追踪矩阵与当前代码和用户验收结果一致；清除旧的 47 项/待复验/旧 Header 说法。
+2. 保留案例库中 checkpoint 损坏、Compose Key/路径等未验证边界，不扩大阶段 12 的测试通过结论。
+3. 生产化身份、审批 RBAC、多实例与运行安全不属于本地 Demo 验收，只有用户另行授权时才规划。
 
-> 功能与运行验收证据保留原分母：用户报告 51 项 pytest 通过、WSL 11 项 verifier 通过。上述未覆盖故障与干净克隆尚未验证，不应被这些总体验收结果替代。
+> 验收证据：用户报告干净 clone 全量 pytest 53 passed（18.39 秒），health 200、Bearer 订单 1001 查询 200、无 token 401；此前用户另报告 WSL health 200、11 项 verifier 全过。上述结果来自不同环境与验收步骤。
 
 ## 2026-11-16 更新提示词的新增/变更要求
 
