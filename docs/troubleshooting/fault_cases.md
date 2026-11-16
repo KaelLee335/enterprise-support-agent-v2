@@ -16,7 +16,7 @@
 | 8 | SQLite 不可用 | 数据层/API | 已覆盖：安全错误测试 |
 | 9 | Embedding/检索服务失败 | RAG 外部依赖 | 注入式检索异常有测试；真实超时/限流未验证 |
 | 10 | Chat Model 超时、限流或不可用 | 生成层 | 假 timeout 单测由用户报告通过（1/1）；真实供应商限流未测试 |
-| 11 | Checkpoint 缺失、损坏或恢复冲突 | LangGraph 持久化 | 部分覆盖：正常恢复和重复审批；损坏状态未注入 |
+| 11 | Checkpoint 缺失、损坏或恢复冲突 | LangGraph 持久化 | 隔离损坏文件测试通过：启动 fail-fast、原文件字节不变、业务 DB 未初始化；真实备份恢复仍未验证 |
 | 12 | Compose 缺少 Key 或路径错误 | 配置/容器 | 部分覆盖：缺 Key 单测；Compose 缺变量/干净 clone 未验证 |
 
 ## 统一定位流程
@@ -69,7 +69,7 @@
 - **根因：**thread_id 丢失、SQLite 文件/状态异常或请求重复。
 - **定位：**检查 thread_id、snapshot.next、approval_status 及 SQLite 错误类型。
 - **处理：**重复审批用 409；损坏文件只在临时 checkpoint 上注入；不触碰现有 WSL checkpoint。
-- **状态：**正常恢复与重复冲突有覆盖；文件损坏注入待补。
+- **状态：**正常恢复与重复冲突已有覆盖；新增临时损坏文件测试确认启动时拒绝并保留文件，GitHub Actions 54 项通过。未模拟真实运行数据库损坏或备份恢复。
 
 ### 12. Compose 缺 Key 或路径错误
 - **症状：**健康检查正常但 RAG 不工作，或 .env 缺失导致 Compose 不启动；挂载错会让向量库看似为空。
@@ -81,5 +81,11 @@
 ## 阶段状态
 
 - 用户报告：新增的随机 not_found API 与假 Chat Model timeout 回归均通过，2 passed in 4.61s。未重跑完整 51 项套件，也未操作 WSL/Docker。
-- 阶段 12 按用户确认的验收条件完成；checkpoint 文件损坏、Compose 缺 Key/路径边界仍明确列为部分覆盖/未验证，不以本次通过替代。
+- 阶段 12 按用户确认的验收条件完成。阶段 15 隔离 checkpoint 损坏用例已通过；Compose 缺 Key/路径和真实供应商限流仍为部分覆盖/未验证。
 - 阶段 13 已由用户验收：干净克隆的依赖安装、全量 53 项测试及 health/order/auth API smoke 均报告通过；这些结果来自不同验收步骤，未由本会话复跑。
+
+
+## 阶段 15 自动验证记录
+
+- `.github/workflows/tests.yml` 在 push/PR 上执行 Python 3.12 全量 pytest。
+- 用户代码 `3ad9548` 对应 GitHub Actions 运行成功，54 passed in 2.98s。该运行没有 API Key、真实模型调用或 WSL/Docker 操作。
