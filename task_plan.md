@@ -46,13 +46,13 @@
 - [x] 阶段 6：用户确认最新路由加固在 WSL Docker 中通过；health、订单/无空格路由、异常/隐私/提示注入拒答、退款审批、POL-06 RAG、D 盘挂载及节点日志均已验收。
 - [x] 阶段 7：发布就绪与可复现交接：修复全新克隆缺少未跟踪向量库时的 Docker 构建依赖；参数化数据目录且保留此设备默认路径；补全 Git/Docker 忽略项；更新首次部署文档并在 WSL 构建验证。
 - [x] 部署收尾只读诊断：`systemctl is-active` 为空、`is-enabled` 为 `enabled`，systemd active 未证实。用户随后实测 Ubuntu WSL 为 Stopped 时触发 `Start-ScheduledTask`，`dockerd` ready、项目容器 healthy、health 200；计划任务恢复路径已验证，Windows 完整重启触发仍未验证，主机级配置未改动。
-- [x] 阶段 6 验收脚本已在 WSL `/opt/project2` 运行，全部检查通过，EXIT=0。
+- [x] 阶段 6 验收脚本已在 WSL `the WSL project directory` 运行，全部检查通过，EXIT=0。
 
 ## 当前剩余工作
 
 - [x] 阶段 7.1：文档、忽略规则和 Docker 构建输入审查；用户 WSL build 成功证实 Compose 可解析。
 - [x] 阶段 7.2：本地 Git 仓库文件清单和敏感/生成路径忽略规则由用户在 WSL 核查；`.env.example` 可跟踪，尚未提交。
-- [x] 阶段 7.3：用户在 WSL `/opt/project2` 同步发布就绪改动、重建并运行 11 项阶段 6 验收，数据挂载正确。
+- [x] 阶段 7.3：用户在 WSL `the WSL project directory` 同步发布就绪改动、重建并运行 11 项阶段 6 验收，数据挂载正确。
 
 - [x] 逐例审查 Top-4/Top-8 生成答案；`docs/rag_answer_manual_review.md` 已记录全部 14 组。
 - [x] 政策约束层 v1 已实现并完成 14 案例 Top-4/Top-8 评估；28/28 引用 ID 校验有效，重点 Bad Case 输出已人工审阅。
@@ -62,7 +62,7 @@
 - [x] 阶段 11：完成 LangChain、LangGraph、RAG、SQL、FastAPI 五章代码绑定中文手册，位于 docs/learning/；GitHub tree 已确认五章存在。
 - [x] 阶段 12：本地 Demo 身份、租户权限、最小运行记录和 12 项故障库完成；用户报告全量 51 项和 WSL 11/11 通过，并报告新增 not_found 与 fake timeout 两条定向测试 2/2 通过。Checkpoint 损坏、Compose 缺 Key 仍列为未验证，不等同本阶段验收通过。
 - [x] 阶段 13：用户报告 D 盘全新 clone、venv/pip 安装、53 项 pytest 通过（18.39s）；API health 200、Bearer 订单 1001 查询 200、无 token 401。此次无 .env、无 API Key、无 WSL/Docker。
-- [x] 阶段 14：已核对 README、项目故事、面试包、演示手册、需求追踪、故障库、WSL 生命周期说明及项目状态；按用户报告更新 53 项测试、clean clone API smoke 与 NAT 修复证据，并保留未验证边界。
+- [x] 阶段 14：已核对 README、项目故事、面试包、演示手册、需求追踪、故障库和项目状态；按用户报告更新 53 项测试及 clean clone API smoke，并保留未验证边界。WSL/Docker 主机记录采用不含机器路径和网络参数的概括描述。
 - [ ] 阶段 15 生产化待单独定范围；学习/面试演练在用户参与阶段逐步开展。
 
 ## 本轮范围
@@ -78,14 +78,11 @@
 - [x] 添加 origin、推送 `main` 并核对远端仓库可见性、文件树和 README/source/tests 内容。
 - [x] 验证远端默认分支、README/source/tests 展示并提供仓库链接。
 
-## 阶段 9：Windows/WSL Docker 启动可靠性（已完成；保留现有登录触发）
+## 阶段 9：Docker 启动可靠性只读检查（已完成）
 
-- [x] 只读检查 `WSL-Dockerd-Autostart` 任务的命令、触发器、运行账户和最近结果。
-- [x] 确认任务当前以 `LAPTOP-08OK88SN\\17488` 交互式账户运行，触发器为已启用的 Logon（用户登录），不是 Startup（系统启动）。
-- [x] 用户澄清“开机触发”指 Windows 用户登录时触发；现有 Logon 配置符合预期，决定保留，不改成登录前的 Startup 触发。
-- [x] 不做系统重启或登录前启动测试；已验证的 Ubuntu Stopped 手动触发恢复链路保持为既有验收结果。
-
-检查只读取任务属性：任务状态 Running，最近执行时间 2026-11-16 09:58:58，结果代码 267009；未触发或修改任务。用户确认登录触发即为目标配置。此前从 Ubuntu Stopped 状态手动触发后容器 healthy、health 200 的恢复链路已验收；未测试 Windows 重启后的自动触发。
+- 用户确认当前 Windows 用户登录触发符合预期，保持现状，不变更启动任务。
+- 用户报告从 WSL 停止状态触发启动后，Docker 容器恢复健康；完整 Windows 重启后的自动恢复仍未验证。
+- 本项目不因阶段推进而重启 WSL、停止 daemon、启动第二个 daemon、修改 systemd 或调整网络。
 
 ## 阶段 10：原始需求追踪与差距盘点（已完成）
 
@@ -111,7 +108,7 @@
 ### 不在本阶段范围
 
 - 不更改 `RAG_TOP_K=4`，不新增云端调用，不触碰真实用户数据。
-- 不改现有 `WSL-Dockerd-Autostart` 登录触发配置。
+- 不改现有 `the existing scheduled task` 登录触发配置。
 - 不实现生产化身份认证、真实退款、审批 RBAC 或多实例部署。
 
 ## 阶段 11：LangChain → LangGraph → RAG → SQL → FastAPI 学习手册（已完成）
