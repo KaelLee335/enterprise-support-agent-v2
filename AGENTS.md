@@ -36,9 +36,9 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 
 ## Active work and priorities
 
-1. Phases 0–9 are complete. Phase 10 is planned: isolated fresh-clone reproducibility from the public GitHub `main`; do not disturb the existing WSL service or copy runtime data/secrets.
+1. Phases 0–9 are complete. Next is phase 10: read-only traceability audit against the user's full project brief, with evidence links across source, tests, evaluations, docs, and WSL acceptance. Do not modify business code or run tests during that audit.
 2. Phase 9 is complete. User clarified that “boot trigger” means starting on Windows user logon; the existing Logon trigger is intended and must remain unchanged. Do not stop the current daemon, start a second daemon, enable systemd, edit `/etc/wsl.conf`, modify network adapters, or restart WSL merely to test it.
-3. Productionization remains out of demo scope: real authentication/tenant identity, approval RBAC/audit, multi-instance persistence, limits/timeouts/retries, and security operations. User-requested learning discussion remains deferred.
+3. The brief requires the user to participate in core design decisions and learn through guided modules; plan this as phase 11 after the audit, one small topic at a time. Do not start a quiz or interview drill during phase 10. Productionization remains a separately scoped phase 15.
 
 ## Runtime and data boundaries
 

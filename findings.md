@@ -142,3 +142,11 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 经用户批准实施后，政策约束层 v1 在本机完成：`src/support_agent/rag/answer_constraints.py` 包含 POL-04 进液排除、POL-02 质量/无理由边界与退货条件、POL-05 运费指引、POL-06 退款阶段、POL-09 发票隐私/资格边界。关键硬边界用固定政策回复，其余仅补充证据原文要点；执行 ID 进入结构化日志。Top-4/8 14 案例共 28 条答案均通过来源 ID 校验；输出在 `data/evaluation/v2_rag_answers_constraints_v3.json`。此评估没有 LLM judge，不能视为语义准确率。
 - 约束层尚未同步到 WSL Docker；容器仍运行用户先前验收版本。已准备 `scripts/update_wsl_and_verify.sh`，从 `inbox` WSL 会话运行时会将应用源文件及扩充后的 `verify_phase6.sh` 从 D 盘复制到 `/opt/project2`，重建后检查容器健康并运行全部断言。该部署脚本尚未由用户执行。
 - 上条为历史状态，现已被后续实测取代：用户确认 D 盘源码已同步至 `/opt/project2` 并重建容器，扩充版 `verify_phase6.sh` 的 health 检查和 11 个业务用例全部通过，EXIT=0。最新执行证据记录于 `progress.md`，当前状态见 `docs/project_status.md`。
+# 2026-11-16：原始项目要求与当前产物初步对照
+
+- 仓库已有 `docs/langgraph_design.md` 的 Mermaid 路由图，以及 State、Checkpoint、租户隔离和单轮请求边界说明；`docs/interview_kit.md`、`docs/project_story.md` 已含架构讲解和面试材料。初步文件清单中未发现独立 PNG/SVG 架构图；后续追踪矩阵应区分可渲染 Mermaid 图与独立图片资产。
+- 现有设计明确 `X-Tenant-ID` 只是演示租户范围参数，不是身份认证；订单查询通过 order ID 与 tenant ID 同时过滤。对照原始“用户身份/数据范围/工具权限”要求，应标记为 Demo 层租户隔离已实现、真实身份认证未实现，不能混为一项。
+- 面试材料记录 SQLite 当前有 `tenants` 和 `orders` 表，没有 `users` 表或持久化 Agent 任务日志表；状态/轨迹目前分布在 SQLite checkpoint 与结构化日志。该差异需要纳入阶段 10 追踪，不自动增加新表。
+- 原始要求的故障注入清单覆盖模型/数据库/Tool/Checkpoint/RAG/路由/Docker 配置等多个层次。当前测试文件已包含部分 Agent、RAG、API、DB 与日志测试，但完整清单的逐项证据尚未建立；阶段 10 应逐条核验而不是宣称全覆盖。
+- 以上是对现有文档与文件名的初步检查，不是完整合规审计；阶段 10 完成前不得据此报告全量差距结论。
+
