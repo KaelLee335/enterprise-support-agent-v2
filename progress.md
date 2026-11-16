@@ -143,3 +143,4 @@
 - 本会话已将截图中的状态与边界补记到 `AGENTS.md`。GitHub 远端仍是最后读取的旧提交 `6a2c132`；公开仓库是否已接收截图中这批 15+ 文件变更未知，需在本机执行通道恢复后再核查，避免直接通过网页 API 覆盖未审查文件。
 - 下一步：执行通道恢复后核实工作树、确认 51 项测试和文档的真实内容，再决定 GitHub 同步；学习阶段继续 LangChain → LangGraph → RAG → SQL → FastAPI。
 
+- 2026-11-16 补充：Codex 执行器仍不可用，`docs/learning/README.md` 与 `langchain.md` 由 WorkBuddy 对源码核实（6 条代码描述与 answer.py/retrieval.py/index.py/nodes.py 一致）后随身份认证改动一并提交；`dbab8af` 已推送 origin/main，远端与本地同步。
