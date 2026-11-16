@@ -36,7 +36,7 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 
 ## Active work and priorities
 
-1. Original stages 0–6, phase 7 release readiness, and phase 8 public GitHub delivery are complete. The expanded WSL verifier passed health plus 11 use cases with exit code 0; no rebuild is pending. Local `main` tracks `origin/main`.
+1. Phases 0–9 are complete. Phase 10 is planned: isolated fresh-clone reproducibility from the public GitHub `main`; do not disturb the existing WSL service or copy runtime data/secrets.
 2. Phase 9 is complete. User clarified that “boot trigger” means starting on Windows user logon; the existing Logon trigger is intended and must remain unchanged. Do not stop the current daemon, start a second daemon, enable systemd, edit `/etc/wsl.conf`, modify network adapters, or restart WSL merely to test it.
 3. Productionization remains out of demo scope: real authentication/tenant identity, approval RBAC/audit, multi-instance persistence, limits/timeouts/retries, and security operations. User-requested learning discussion remains deferred.
 
