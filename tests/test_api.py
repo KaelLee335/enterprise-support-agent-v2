@@ -338,3 +338,25 @@ def test_corrupt_checkpoint_fails_startup_without_overwriting(tmp_path, monkeypa
 
     assert checkpoint_path.read_bytes() == corrupt_bytes
     assert not database_path.exists()
+
+def test_policy_request_without_embedding_key_fails_safe(client, monkeypatch, tmp_path):
+    settings_without_key = Settings(
+        database_path=tmp_path / "api.db",
+        checkpoint_path=tmp_path / "checkpoints.sqlite",
+        siliconflow_api_key=None,
+    )
+    monkeypatch.setattr(
+        "support_agent.agent.nodes.get_settings",
+        lambda: settings_without_key,
+    )
+
+    response = client.post(
+        "/chat",
+        json={"question": "退货规则是什么？"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["error"] == "RuntimeError"
+    assert response.json()["evidence"] == []
+    assert "无法确认" in response.json()["answer"]
