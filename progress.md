@@ -214,3 +214,10 @@
 - 新增 `tests/test_api.py::test_corrupt_checkpoint_fails_startup_without_overwriting`，使用 tmp_path 隔离坏文件，断言启动失败、文件字节不变、业务数据库未创建。
 - GitHub Actions 在 Python 3.12 下全量结果为 54 passed in 2.98s。运行链接：https://github.com/KaelLee335/enterprise-support-agent-v2/actions/runs/43855982263。本会话没有触碰 WSL/Docker。
 - 下一步：在 CI 用 `.env.example` 验证 Compose 配置可解析，再评估缺 Key 时的预期行为。真实供应商 429/超时仍后置。
+
+# 2026-11-16 — 阶段 15 离线容器链路验收
+
+- GitHub Actions 已扩展为源码/测试/容器配置变更时运行全量测试、Compose 配置校验、Docker 镜像构建和临时容器 smoke；纯文档提交不触发镜像构建，另保留手动触发。
+- 最新运行 `b797bda` 全部成功：55 passed in 3.99s；Compose config、阿里云源镜像构建、临时容器 health 200、带 Bearer 订单 1001 查询、空 API Key 政策请求安全降级均通过。
+- checkpoint 损坏测试确认应用拒绝启动、坏文件字节不变、业务 DB 不先创建。CI 使用临时目录和虚构数据，无真实模型/API Key，也未操作用户 WSL/Docker。
+- 需用户操作时：若要更新现有运行容器，请先拉取公开 main，再由用户按既有流程同步并重建 WSL 容器；本会话只验证 GitHub 临时容器。
