@@ -67,15 +67,15 @@
 
 ### 阶段 6 首轮 Docker 验收（用户实测）
 
-- 用户确认从 WSL `/opt/project2` 构建成功，容器 `project2-support-agent-1` 为 `Up (healthy)`；`/health` 返回 200，`GET /orders/1001` 与 `POST /chat` 全链路成功，订单只读回答返回“已完成”。
-- 用户确认在 `/mnt/d` 构建遇到 BuildKit 权限限制，因此改用 `/opt/project2` 作为构建上下文；`/mnt/d/project_2/data:/app/data` 绝对 bind mount 仍指向 Windows D 盘数据。
+- 用户确认从 WSL `WSL 项目目录` 构建成功，容器 `project2-support-agent-1` 为 `Up (healthy)`；`/health` 返回 200，`GET /orders/1001` 与 `POST /chat` 全链路成功，订单只读回答返回“已完成”。
+- 用户确认在 `本机 Windows 挂载目录` 构建遇到 BuildKit 权限限制，因此改用 `WSL 项目目录` 作为构建上下文；`本机持久化数据目录:/app/data` 绝对 bind mount 仍指向 Windows D 盘数据。
 - 用户修复并同步 `main.py` 的 seed 路径三级回退，处理 site-packages 安装布局启动失败。
 - 用户实测 pytest 33 项通过；后续本地修复中文紧邻订单号解析，并在 Windows 项目全量回归 35 项通过。Compose YAML 已解析验证。
-- 当前容器实测版本早于最后的 `ORDER_ID_PATTERN` 和 D 盘绝对挂载变更，需要同步最新 `src/support_agent/agent/nodes.py`、`compose.yaml` 到 `/opt/project2` 并 `docker compose up --build -d` 后，验证“查询订单1001”及 `healthy`。
+- 当前容器实测版本早于最后的 `ORDER_ID_PATTERN` 和 D 盘绝对挂载变更，需要同步最新 `src/support_agent/agent/nodes.py`、`compose.yaml` 到 `WSL 项目目录` 并 `docker compose up --build -d` 后，验证“查询订单1001”及 `healthy`。
 
 ### 最终 Docker 验收（用户实测）
 
-- 用户已将订单号路由修复和 D 盘绝对 bind mount 同步到 `/opt/project2` 并重建；无空格输入“查询订单1001”命中 `order_lookup`。
+- 用户已将订单号路由修复和 D 盘绝对 bind mount 同步到 `WSL 项目目录` 并重建；无空格输入“查询订单1001”命中 `order_lookup`。
 - 用户发现 pip 安装后相对数据路径错误指向 `site-packages`，已修改 `config.py` 为基于当前工作目录解析相对路径，并将 DATABASE/CHECKPOINT/VECTOR_STORE 统一使用 `_resolve_env_path`。seed 路径使用三级回退。
 - 最终验收全绿：`/health` 200、订单查询、无空格订单号查询、退款进入审批 `pending`、政策问答引用 POL-06 且 `citations_valid=True`、容器日志 0 error；pytest 35 passed。
 - 阶段 0–6 完成，Docker 结果由用户在 WSL 环境实测确认。
@@ -89,8 +89,8 @@
 - 最新结果复跑确认：Agent routes 35/35，order parameters 8/8，模拟工具调用 9/9，outcomes 6/6，业务订单字段 5/5，临时 DB 未变化；安全路由 4/4；pytest 47 passed。修复前路由报告保留为 `data/evaluation/v2_agent_routes_before_fixes.json`，路由 30/35。
 - 用户已将 `nodes.py`/`state.py` 同步到 WSL 并重建，验收脚本 `scripts/verify_phase6.sh` 与 Swagger 均通过：格式错误/多订单号澄清、个人信息/提示注入拒答，以及正常订单查询和 POL-06 RAG 回归。
 - 用户指出当前 `dockerd` 不自启，由会话持有。Docker 容器与功能已完成验收；daemon 跨发行版关闭/Windows 重启后的生命周期还未核实。新增 `docs/wsl_docker_lifecycle.md` 记录只读检查与避免重复启动 daemon 的注意事项。
-- 将 `scripts/verify_phase6.sh` 改为断言式验收：health 非 200、intent 不符、回答缺少预期文本或 POL-06 引用无效时会失败；README 已补运行命令。需在 WSL `/opt/project2` 同步脚本并运行，以验收脚本自身和当前服务。
-- 用户已在 `/opt/project2` 运行断言式验收脚本，7 项健康/安全/回归检查全部 PASS，EXIT=0。WSL 只读状态：`pgrep -a dockerd` 为 PID 11；`systemctl is-active docker` 为空，`is-enabled docker` 为 `enabled`。这确认 daemon 当前运行，但不足以证明 systemd 正在管理或重启后会自启；没有修改 WSL 启动配置。服务演示期间保持 `inbox` WSL 会话运行。
+- 将 `scripts/verify_phase6.sh` 改为断言式验收：health 非 200、intent 不符、回答缺少预期文本或 POL-06 引用无效时会失败；README 已补运行命令。需在 WSL `WSL 项目目录` 同步脚本并运行，以验收脚本自身和当前服务。
+- 用户已在 `WSL 项目目录` 运行断言式验收脚本，7 项健康/安全/回归检查全部 PASS，EXIT=0。WSL 只读状态：`pgrep -a dockerd` 为 PID 11；`systemctl is-active docker` 为空，`is-enabled docker` 为 `enabled`。这确认 daemon 当前运行，但不足以证明 systemd 正在管理或重启后会自启；没有修改 WSL 启动配置。服务演示期间保持 `inbox` WSL 会话运行。
 - 使用项目本机 `.env` 对同一 RAG 标注集完成 Top-2/4/6/8 对比：Hit@k 分别为 97.2/100/100/100%，平均 Recall@k 为 77.3/86.6/89.4/99.1%，完整证据率为 58.3/72.2/77.8/97.2%。Top-2/6/8 报告分别为 `data/evaluation/v2_retrieval_top2.json`、`data/evaluation/v2_retrieval_top6.json`、`data/evaluation/v2_retrieval_top8.json`。默认 `RAG_TOP_K=4` 暂不更改，需结合 LLM 答案语义质量与延迟/token 成本再决策。
 - 用户明确授权后，已对 14 条答案要点明确的政策 QA 用例分别生成 Top-4/Top-8 答案并以 Qwen 同模型作探索性评分，完整报告 `data/evaluation/v2_rag_answers.json`。引用编号静态检查均为 100%；LLM judge 要点覆盖率 76.9%/71.8%，grounded/引用支持 92.9%/92.9%。人工抽样发现 judge 误判 KB-04 Top-4，并发现 KB-04 Top-8 出现与 POL-04 冲突的表述；这些自动分数不能视为准确率，默认 Top-4 保持不变。更换 Top-k 前需更可靠的独立语义评审与成本分析。
 - 按用户要求建立根目录 `AGENTS.md` 和 `docs/project_status.md`，将项目边界、已验收状态、未完成事项、接续规则写入。另新增 `docs/rag_answer_manual_review.md`，逐例记录 14 组 Top-4/Top-8 答案的遗漏和事实问题。
@@ -98,23 +98,23 @@
 - 因单纯 Prompt 调整不稳，新增 `docs/rag_grounding_hardening_plan.md`，建议以版本化、可审计约束层解决政策排除/条件遗漏；实现前需用户决定是否扩大项目范围，备选是保留演示限制。
 - 用户确认继续实现约束层。本机 `answer_constraints.py` 加入规则：POL-04 进液排除和 POL-02 质量问题退货分流为确定性兜底；POL-02 退货条件、POL-05 运费/指引、POL-06 两阶段退款、POL-09 发票隐私/范围约束按需补充。命中/执行约束 ID 加入答案结果、评估文件和 `rag_answer_constraints` 结构日志。原始 Prompt 未改，`RAG_TOP_K` 仍为 4。
 - 约束层 14 案例 Top-4/Top-8 全量评估完成：28 条输出引用检查 28/28 有效；每档匹配 11 条约束，分别 6/7 条执行补充/兜底。跳过已知不可靠的同模型 judge，并人工审阅关键兜底输出。报告 `data/evaluation/v2_rag_answers_constraints_v3.json`。
-- 新版本仅在 Windows 工作区完成评估；尚未同步至 `/opt/project2`，也未重建/重验 WSL Docker。下一步需用户在其 WSL 会话同步本次应用源文件、重建容器并运行 `scripts/verify_phase6.sh`。
-- 为减少 WSL 手工同步错误，新增 `scripts/update_wsl_and_verify.sh`：会复制 `answer.py`、新约束模块、`nodes.py` 和扩充后的验收脚本；执行 `docker compose up --build -d`、轮询容器 `healthy` 与 `/health`，再运行阶段 6 全集检查。脚本已按 `/mnt/d/project_2` → `/opt/project2` 的既定路径写好，但尚未在 WSL 运行。
-- 截图复核：WSL 的 POL-06 回答包含退款处理 1–3 个工作日、到账 1–5 个工作日、取决于支付渠道及“具体到账时间无法保证”，并引用 POL-06；内容符合规则。失败点仅为 WSL 上旧版 `verify_phase6.sh` 的措辞白名单遗漏该同义句。检查确认 D 盘脚本当前已接受“具体到账时间无法保证”。下一步只需将该脚本复制到 `/opt/project2/scripts/verify_phase6.sh` 并重跑，不需重建容器；等待用户回报复验结果。
+- 新版本仅在 Windows 工作区完成评估；尚未同步至 `WSL 项目目录`，也未重建/重验 WSL Docker。下一步需用户在其 WSL 会话同步本次应用源文件、重建容器并运行 `scripts/verify_phase6.sh`。
+- 为减少 WSL 手工同步错误，新增 `scripts/update_wsl_and_verify.sh`：会复制 `answer.py`、新约束模块、`nodes.py` 和扩充后的验收脚本；执行 `docker compose up --build -d`、轮询容器 `healthy` 与 `/health`，再运行阶段 6 全集检查。脚本已按 `本机数据目录` → `WSL 项目目录` 的既定路径写好，但尚未在 WSL 运行。
+- 截图复核：WSL 的 POL-06 回答包含退款处理 1–3 个工作日、到账 1–5 个工作日、取决于支付渠道及“具体到账时间无法保证”，并引用 POL-06；内容符合规则。失败点仅为 WSL 上旧版 `verify_phase6.sh` 的措辞白名单遗漏该同义句。检查确认 D 盘脚本当前已接受“具体到账时间无法保证”。下一步只需将该脚本复制到 `WSL 项目目录/scripts/verify_phase6.sh` 并重跑，不需重建容器；等待用户回报复验结果。
 - 用户随后确认已同步脚本并重跑：健康检查通过，11 个业务用例全部 PASS，EXIT=0；其中此前失败的 POL-06 退款两阶段时限检查现已通过，POL-04 进液排除、POL-02 质量故障路由及 POL-09 发票隐私边界也全部通过。扩充版阶段 6 验收完成，无需重建容器。剩余可选项是 WSL daemon 生命周期只读诊断；生产化能力不在演示验收范围。
 - 用户提供 Docker 启动恢复实测：Ubuntu WSL 原为 `Stopped`，触发 `Start-ScheduledTask` 后日志显示 `dockerd ready`，Docker 容器 `project2-support-agent-1` 为 `Up (healthy)`，health 返回 200。结合 `/proc/1/comm` 为 `init`、`systemctl is-active docker` 无输出、`is-enabled` 为 enabled，结论是已验证计划任务可从停止的发行版恢复 Docker 与项目；不能据此推断 Windows 完整重启后会自动触发。记录更新在 `docs/wsl_docker_lifecycle.md`，无需改 systemd 或 WSL 配置。
 - 按阶段计划完成最终交付文档核对：修正 README、Evaluation 和 RAG 人工复核报告中“约束层尚未部署/验收”的过期说明；更新 AGENTS 接续状态；findings 中保留原始历史记录并明确标注已被后续实测取代。原计划阶段 0–6 均已完成，目前无待执行的必选阶段；剩余的是可选 Windows 开机计划任务设置核查，以及用户此前暂缓的学习问答。
-- 阶段 7（发布就绪/可复现交接）开始：检查发现 Dockerfile 直接 `COPY data/vector_store`，但该本机生成目录在 `.gitignore` 中排除，会使全新克隆无法构建；Compose 又把数据路径写死为 `/mnt/d/project_2/data`。已移除 Docker 镜像对向量目录的构建依赖（运行时由持久化挂载目录读取）、通过 `PROJECT_DATA_DIR` 参数化数据路径并保留当前 D 盘默认、完善 `.gitignore`/`.dockerignore`、更新 `.env.example` 和 README，新增 `docs/release_readiness.md`。已在缺少 `.git` 时初始化本地 Git 仓库，未提交/推送。初始化后工具环境多次返回 `setup refresh had errors`，因此暂未完成 `git status`/ignore 审查和 Compose YAML 检查；这些需先恢复命令行再完成。随后需要用户在 WSL 同步 Dockerfile/Compose/忽略规则，构建并跑扩充版验收。
-- 阶段 7 验收完成（用户实测）：`git status --short` 仅列出预期项目文件/目录；`.env`、虚拟环境、pytest 临时目录、数据库/WAL、向量库和 egg-info 等 7 项均命中 `.gitignore`，`.env.example` 未忽略。用户已同步 Dockerfile、Compose、`.dockerignore` 至 `/opt/project2`；镜像成功构建，容器 recreated/started 并为 `healthy`。`docker inspect` 确认唯一数据挂载 `/mnt/d/project_2/data -> /app/data`；`verify_phase6.sh` 11 用例全通过、EXIT=0。首次构建期间的 curl 56 是容器尚处于 health: starting 时的瞬态请求，容器就绪后复跑验收全绿。未提交或推送 GitHub；该结果已更新至 `docs/release_readiness.md`、`task_plan.md` 和 `docs/project_status.md`。
-- 阶段 8 本地发布准备完成：GitHub 连接已可用，本地终端经命令级 `safe.directory` 参数恢复；审阅 93 个待提交文件，确认 `.env`、本机数据库/WAL、向量库、虚拟环境、测试缓存和 egg-info 均不在清单中。已知 token 格式扫描无命中，`.env.example` 的 API Key 留空。Compose YAML 解析成功，数据挂载模板为 `/mnt/d/project_2/data -> /app/data`。初始本地提交 `e68a1cea3bc6f31cb7704c709f6273aae900ee04` 已创建，使用 GitHub noreply 邮箱保护本机个人邮箱；当前无 remote。GitHub 工具未提供创建仓库操作，待用户创建空白公开仓库 `enterprise-support-agent-v2` 并提供 URL 后推送。没有输出或提交任何凭据。
+- 阶段 7（发布就绪/可复现交接）开始：检查发现 Dockerfile 直接 `COPY data/vector_store`，但该本机生成目录在 `.gitignore` 中排除，会使全新克隆无法构建；Compose 又把数据路径写死为 `本机持久化数据目录`。已移除 Docker 镜像对向量目录的构建依赖（运行时由持久化挂载目录读取）、通过 `PROJECT_DATA_DIR` 参数化数据路径并保留当前 D 盘默认、完善 `.gitignore`/`.dockerignore`、更新 `.env.example` 和 README，新增 `docs/release_readiness.md`。已在缺少 `.git` 时初始化本地 Git 仓库，未提交/推送。初始化后工具环境多次返回 `setup refresh had errors`，因此暂未完成 `git status`/ignore 审查和 Compose YAML 检查；这些需先恢复命令行再完成。随后需要用户在 WSL 同步 Dockerfile/Compose/忽略规则，构建并跑扩充版验收。
+- 阶段 7 验收完成（用户实测）：`git status --short` 仅列出预期项目文件/目录；`.env`、虚拟环境、pytest 临时目录、数据库/WAL、向量库和 egg-info 等 7 项均命中 `.gitignore`，`.env.example` 未忽略。用户已同步 Dockerfile、Compose、`.dockerignore` 至 `WSL 项目目录`；镜像成功构建，容器 recreated/started 并为 `healthy`。`docker inspect` 确认唯一数据挂载 `本机持久化数据目录 -> /app/data`；`verify_phase6.sh` 11 用例全通过、EXIT=0。首次构建期间的 curl 56 是容器尚处于 health: starting 时的瞬态请求，容器就绪后复跑验收全绿。未提交或推送 GitHub；该结果已更新至 `docs/release_readiness.md`、`task_plan.md` 和 `docs/project_status.md`。
+- 阶段 8 本地发布准备完成：GitHub 连接已可用，本地终端经命令级 `safe.directory` 参数恢复；审阅 93 个待提交文件，确认 `.env`、本机数据库/WAL、向量库、虚拟环境、测试缓存和 egg-info 均不在清单中。已知 token 格式扫描无命中，`.env.example` 的 API Key 留空。Compose YAML 解析成功，数据挂载模板为 `本机持久化数据目录 -> /app/data`。初始本地提交 `e68a1cea3bc6f31cb7704c709f6273aae900ee04` 已创建，使用 GitHub noreply 邮箱保护本机个人邮箱；当前无 remote。GitHub 工具未提供创建仓库操作，待用户创建空白公开仓库 `enterprise-support-agent-v2` 并提供 URL 后推送。没有输出或提交任何凭据。
 - GitHub 公开仓库已通过本机 Git Credential Manager 认证创建：`https://github.com/KaelLee335/enterprise-support-agent-v2`，visibility=public，空白初始化（无 README/license/gitignore）。未输出令牌。下一步添加 origin 并推送本地 `main` 上的首个提交，再核对远端分支与文件清单。
 - 最终发布验收：本机 push 成功，GitHub API 确认仓库 public、默认分支 `main`；`git ls-remote` 返回 HEAD `04503a162aabaf671d90bbe7d3859100cd0162cc`，本地状态为 `main...origin/main`。远端树 105 项且未截断，含 README、`src/`、`tests/`，未出现 `.env`、数据库/WAL、`data/vector_store`、虚拟环境、缓存或 egg-info 路径。虚拟网卡只读检查显示 WLAN、WSL、Mihomo、VMware 适配器在线；未更改网卡或路由设置。
-- 阶段 9 主机启动只读审查：发现 `\\WSL-Dockerd-Autostart` 执行 `wsl.exe -d Ubuntu -u root -- /usr/local/bin/start-dockerd.sh`，由当前用户以 Interactive/ Limited 运行；触发器是已启用 Logon，不是 Startup。任务 State=Running；最近执行时间 2026-11-16 09:58:58，结果代码 267009。该检查只读取任务设置，没有触发或修改任务、Docker daemon、WSL/systemd 或虚拟网卡。README、`docs/wsl_docker_lifecycle.md`、`docs/project_status.md`、`task_plan.md` 和 `AGENTS.md` 已记录该边界。若用户需要登录前的开机自启，需先确定并授权系统任务变更。
-- 用户澄清“开机触发”是指 Windows 用户登录时触发；截图确认 `WSL-Dockerd-Autostart` 配置本来就是 Logon trigger，与只读检查一致。用户选择保留现状，无需修改。阶段 9 完成；未验证 Windows 重启后的自动触发行为。
+- 阶段 9 主机启动只读审查：发现 `\\现有启动任务` 执行 `wsl.exe -d Ubuntu -u root -- /usr/local/bin/Docker 启动脚本`，由当前用户以 Interactive/ Limited 运行；触发器是已启用 Logon，不是 Startup。任务 State=Running；最近执行时间 2026-11-16 09:58:58，结果代码 267009。该检查只读取任务设置，没有触发或修改任务、Docker daemon、WSL/systemd 或虚拟网卡。README、`docs/wsl_docker_lifecycle.md`、`docs/project_status.md`、`task_plan.md` 和 `AGENTS.md` 已记录该边界。若用户需要登录前的开机自启，需先确定并授权系统任务变更。
+- 用户澄清“开机触发”是指 Windows 用户登录时触发；截图确认 `现有启动任务` 配置本来就是 Logon trigger，与只读检查一致。用户选择保留现状，无需修改。阶段 9 完成；未验证 Windows 重启后的自动触发行为。
 
 ### 结构化追踪最终容器验收（用户实测）
 
-- 最新 `observability.py`、`agent/graph.py`、`main.py` 已同步至 `/opt/project2` 并重建，构建耗时约 1 分 33 秒。
+- 最新 `observability.py`、`agent/graph.py`、`main.py` 已同步至 `WSL 项目目录` 并重建，构建耗时约 1 分 33 秒。
 - 用户为降低重复构建时间并处理 pip 超时，将 Dockerfile 改为先安装依赖、再安装本地源码的缓存分层，并切换到 TUNA pip 源、延长下载超时；该 Dockerfile 已同步在 Windows 工作区。
 - 订单日志实际包含 `question_preview`、`node_start/end` 和 `duration_ms`（route 约 0.5ms、lookup 约 16.9ms）。政策问答日志包含检索来源及距离，POL-06 distance=0.625 为此次最相似来源，生成节点约 756ms、`citation_valid=true`。退款审批暂停记录为 INFO `node_pause`，状态 `pending`。
 - 全程无 ERROR；本机日志脱敏/耗时等回归 39 项通过。用户要求将学习理解问题留到之后统一处理，本轮不追加答题问题。
@@ -134,7 +134,7 @@
 - 忽略规则复核：`.env`/`.venv`/`.pytest-tmp`/`data/*.db`/`data/*.sqlite*`/`data/vector_store`/`*.egg-info` 全部命中；`.env.example` 未被忽略，可入库。
 - API 身份映射与租户隔离审查：Bearer token → 固定 DemoIdentity（user-demo-a→demo-a、user-legacy-demo→legacy-demo）；`X-Tenant-ID` header 已全线移除，伪造 header 被忽略；`agent_runs` 表带 tenant 外键与状态 CHECK，所有查询 `WHERE run_id AND tenant_id`，运行记录不含 question 明文；故障用例已补齐（缺失 token 401、无效 token 401、伪造 header、跨租户 run 404）。
 - 全量 pytest：**51 passed, 267s**（此前定向测试 26 项），唯一警告为 `.pytest_cache` 权限（已知无害）。`PYTEST_EXIT=0`。
-- WSL 同步与验收：auth.py 等 7 个源码/测试文件同步至 `/opt/project2`，`DEMO_TOKEN_*` 追加至 WSL `.env`，容器重建后 health 200、verify_phase6.sh 11 用例全 PASS。
+- WSL 同步与验收：auth.py 等 7 个源码/测试文件同步至 `WSL 项目目录`，`DEMO_TOKEN_*` 追加至 WSL `.env`，容器重建后 health 200、verify_phase6.sh 11 用例全 PASS。
 # 2026-11-16 — 接收本地与 WSL 验收记录
 
 - 用户截图报告：身份映射/租户隔离审查通过；全量 pytest 51 passed（267 秒）；`progress.md`、`findings.md`、`docs/project_status.md` 已记录实测；WSL 容器重建后 health 200 且 `verify_phase6.sh` 11/11 PASS。
