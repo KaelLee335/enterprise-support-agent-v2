@@ -61,10 +61,11 @@
 | 故障：工具 not_found | 部分实现 | 已新增 `tests/test_api.py::test_random_missing_order_is_not_found_for_authenticated_tenant`；用户报告全量 53 项干净克隆测试通过，包含该用例。原有评估也区分 found/not_found。 |
 | 故障：错误分支/提示注入/隐私索取 | 已实现/有证据 | 路由/API 单测与 WSL 11 项断言验收覆盖多类恶意/异常输入。 |
 | 故障：数据库连接失败 | 已实现/有证据 | `tests/test_api.py::test_order_database_failure_returns_safe_error`。 |
-| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；fake Chat Model timeout 节点单测包含在用户报告通过的 53 项全量测试中；真实 429 与 checkpoint 损坏仍待注入测试。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
-| 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常应用重启恢复和重复审批冲突有测试；损坏文件仍待隔离注入，见 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；fake Chat Model timeout 节点单测含在用户报告通过的 53 项中；真实供应商 429/超时仍未演练。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常重启恢复、重复审批冲突有测试；新增隔离损坏文件用例验证启动 fail-fast、checkpoint 字节不变且业务 DB 不先初始化。GitHub Actions 54 项通过。真实 checkpoint 备份恢复/页面级损坏仍未验证。 |
 | 故障：Docker 环境变量缺失 | 部分覆盖 | 单测确认缺少 SiliconFlow Key 时构造 Embedding 会报错；Compose 缺变量的启动/健康行为仍未端到端验证，已列入 `docs/troubleshooting/fault_cases.md`。 |
 | 延迟基线、P50/P95 | 未实现 | 有单次节点时延日志；`docs/evaluation_and_observability.md` 记录尚无稳定统计基线。 |
+| GitHub Actions 自动测试 | 已实现/有证据 | `.github/workflows/tests.yml` 在 push/PR 上安装 Python 3.12 依赖并运行 pytest；checkpoint 加固后 54 passed in 2.98s。 |
 
 ## Docker、交付物与学习机制
 
@@ -79,7 +80,7 @@
 
 ## 建议后续顺序
 
-1. 阶段 14 文档一致性复核已完成；阶段 13 的 53 项测试和 API 首次启动验收均按用户报告记录。
+1. 阶段 14 文档一致性复核已完成；阶段 13 的 53 项测试和 API 首次启动验收均按用户报告记录；阶段 15 CI 的 54 项为自动流水线实测。
 2. 保留案例库中 checkpoint 损坏、Compose Key/路径等未验证边界，不扩大阶段 12 的测试通过结论。
 3. 生产化身份、审批 RBAC、多实例与运行安全不属于本地 Demo 验收，只有用户另行授权时才规划。
 
