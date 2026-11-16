@@ -17,7 +17,7 @@
 | 9 | Embedding/检索服务失败 | RAG 外部依赖 | 注入式检索异常有测试；真实超时/限流未验证 |
 | 10 | Chat Model 超时、限流或不可用 | 生成层 | 假 timeout 单测由用户报告通过（1/1）；真实供应商限流未测试 |
 | 11 | Checkpoint 缺失、损坏或恢复冲突 | LangGraph 持久化 | 隔离损坏文件测试通过：启动 fail-fast、原文件字节不变、业务 DB 未初始化；真实备份恢复仍未验证 |
-| 12 | Compose 缺少 Key 或路径错误 | 配置/容器 | 部分覆盖：缺 Key 单测；Compose 缺变量/干净 clone 未验证 |
+| 12 | Compose 缺少 Key 或路径错误 | 配置/容器 | Compose 模板校验、Docker 构建及空 Key 临时容器 smoke 通过；缺少 .env 文件/数据路径错误未验证 |
 
 ## 统一定位流程
 
@@ -87,5 +87,5 @@
 
 ## 阶段 15 自动验证记录
 
-- `.github/workflows/tests.yml` 在 push/PR 上执行 Python 3.12 全量 pytest。
-- 用户代码 `3ad9548` 对应 GitHub Actions 运行成功，54 passed in 2.98s。该运行没有 API Key、真实模型调用或 WSL/Docker 操作。
+- `.github/workflows/tests.yml` 对代码/配置变更运行 Python 3.12 全量 pytest、Compose 配置、Docker 镜像构建和无 API Key 临时容器 smoke。
+- 用户代码 `b797bda` 对应的 GitHub Actions 运行成功：55 passed in 3.99s，Compose 配置、镜像构建和容器 smoke 均通过。临时容器只用空 Key 与模拟数据；没有调用真实模型或操作 WSL。
