@@ -15,7 +15,7 @@
 
 ## V1 位置和可复用资产
 
-V1 仓库位于 `D:\python_project\enterprise-support-agent`。V1 目录可读，当前分支为 `main`。只读 Git 检查发现：
+V1 仓库位于 `[本机路径]`。V1 目录可读，当前分支为 `main`。只读 Git 检查发现：
 
 - V1 有既存未提交修改：`.env.example` 中 `DIFY_API_KEY` 从占位文本改为空值。不要覆盖、还原或清理该修改。
 - V1 其余工作区状态未报告修改。V2 没有可用 Git 元数据（当前目录并非 Git 仓库）。
@@ -221,3 +221,8 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 ## 阶段 13、14 验收更新（用户报告）
 
 用户报告：干净克隆安装依赖后全量 pytest 53 项通过（18.39 秒）；API 首次启动 health 200、带 Bearer 的 demo 订单查询 200、缺少 token 返回 401。文档一致性收尾完成；本会话没有重跑测试或 API。真实 429、checkpoint 损坏和 Compose 缺 Key/路径仍未验证。
+
+
+## 2026-11-16：阶段 13 与 14 收尾
+
+用户报告干净克隆安装依赖后，全量 pytest 53 项通过（18.39 秒）；health 200、带 Bearer 查询演示订单 200、无 token 返回 401。阶段 14 文档一致性核对已完成。本会话未重跑测试或 API。真实供应商 429、checkpoint 损坏及 Compose 缺 Key/路径仍未验证。
