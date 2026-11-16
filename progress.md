@@ -159,4 +159,3 @@
 - 章节说明了哪些命令会访问 SiliconFlow，并避免将个人信息放入示例；退款仍为 `approved_demo`，订单只读。
 - 无本地执行器：无法从磁盘读回新增内容、做 Markdown 链接检查或推送。远端目前只读确认已有 `docs/learning/README.md`、`fast_mode_handoff.md`、`langchain.md`；LangGraph/RAG/SQL/FastAPI 四章尚未在远端目录看到。不能声称这些章节已发布。
 - 项目功能测试已有用户截图报告 51 passed 与 WSL 11/11 PASS；本次只有学习材料变更，未运行测试或重建容器。
-
