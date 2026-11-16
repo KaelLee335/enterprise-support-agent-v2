@@ -231,3 +231,7 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 ## 阶段 15 第一步：checkpoint SQLite 完整性预检
 
 `main.py` 在初始化订单数据库前打开 checkpoint 文件并执行 `PRAGMA quick_check`。异常或非 `ok` 结果会关闭连接并以清晰错误拒绝启动；不会删除、覆盖或自动新建替代 checkpoint。这保护了可能包含待审批状态的文件，恢复仍由操作者决定。新增临时文件回归测试验证原始坏文件字节保持不变，且订单数据库尚未初始化。GitHub Actions Python 3.12 全量套件 54 passed（2.98 秒）；没有真实 WSL/Docker 或模型 API 操作。
+
+## 阶段 15 离线容器端到端 smoke
+
+GitHub Actions `b797bda` 运行成功：Python 3.12 全量 pytest 55 passed in 3.99s；Compose 配置可解析；Dockerfile 使用阿里云 PyPI 源后镜像构建成功；在临时 Compose 容器中空 API Key 下 health 200、Bearer 查询演示订单成功，政策请求返回安全降级且不访问真实模型。容器只使用临时宿主目录和虚构 seed。该 CI 不等同用户 WSL 部署验收，当前运行容器未更新。
