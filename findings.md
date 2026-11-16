@@ -226,3 +226,8 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 ## 2026-11-16：阶段 13 与 14 收尾
 
 用户报告干净克隆安装依赖后，全量 pytest 53 项通过（18.39 秒）；health 200、带 Bearer 查询演示订单 200、无 token 返回 401。阶段 14 文档一致性核对已完成。本会话未重跑测试或 API。真实供应商 429、checkpoint 损坏及 Compose 缺 Key/路径仍未验证。
+
+
+## 阶段 15 第一步：checkpoint SQLite 完整性预检
+
+`main.py` 在初始化订单数据库前打开 checkpoint 文件并执行 `PRAGMA quick_check`。异常或非 `ok` 结果会关闭连接并以清晰错误拒绝启动；不会删除、覆盖或自动新建替代 checkpoint。这保护了可能包含待审批状态的文件，恢复仍由操作者决定。新增临时文件回归测试验证原始坏文件字节保持不变，且订单数据库尚未初始化。GitHub Actions Python 3.12 全量套件 54 passed（2.98 秒）；没有真实 WSL/Docker 或模型 API 操作。
