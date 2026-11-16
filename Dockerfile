@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 
-# 国内镜像源 + 放宽超时，避免构建时 pip 拉包超时
-ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+# 阿里云 PyPI 镜像 + 放宽超时，避开 TUNA 对 pip 请求的 403 响应
+ENV PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ \
     PIP_DEFAULT_TIMEOUT=120 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
