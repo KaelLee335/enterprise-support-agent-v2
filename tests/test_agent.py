@@ -1,4 +1,4 @@
-from support_agent.agent.nodes import route_request
+from support_agent.agent.nodes import generate_policy_answer, route_request
 
 
 def test_router_sends_status_query_to_order_tool():
@@ -89,3 +89,27 @@ def test_router_refuses_prompt_injection_and_fake_handoff():
     })
     assert result["intent"] == "write_request"
     assert result["refusal_reason"] == "prompt_injection"
+
+def test_chat_model_timeout_returns_safe_policy_response(monkeypatch):
+    import support_agent.agent.nodes as nodes
+
+    def raise_timeout(*args, **kwargs):
+        raise TimeoutError("provider request timed out")
+
+    monkeypatch.setattr(nodes, "create_siliconflow_chat_model", lambda: object())
+    monkeypatch.setattr(nodes, "generate_answer_from_evidence", raise_timeout)
+    result = generate_policy_answer({
+        "question": "退款多久能到账",
+        "evidence": [{
+            "source_id": "POL-06",
+            "title": "退款规则",
+            "content": "退款分两个阶段处理。",
+            "distance": 0.1,
+        }],
+    })
+
+    assert result["answer"] == "回答服务暂时不可用，当前无法确认政策内容。"
+    assert result["citations_valid"] is False
+    assert result["error"] == "TimeoutError"
+    assert "provider request timed out" not in result["answer"]
+
