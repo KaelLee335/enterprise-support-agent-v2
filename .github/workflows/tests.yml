@@ -3,7 +3,23 @@ name: Tests
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "compose.yaml"
+      - "pyproject.toml"
+      - ".env.example"
+      - ".github/workflows/tests.yml"
   pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "Dockerfile"
+      - "compose.yaml"
+      - "pyproject.toml"
+      - ".env.example"
+      - ".github/workflows/tests.yml"
   workflow_dispatch:
 
 permissions:
