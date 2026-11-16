@@ -23,7 +23,7 @@
 
 ## 尚未完成 / 后续计划
 
-1. 阶段 0–11 已完成。用户截图报告演示 Bearer 身份/租户隔离、最小运行记录、51 项 pytest 和 WSL 11/11 验收通过。阶段 12 已按用户报告验收：两条新增 not_found 与假模型 timeout 测试通过（2/2）；12 类故障库已建立。Checkpoint 损坏/Compose 缺 Key 仍记录为未验证边界。
+1. 阶段 0–11 已完成。用户截图报告演示 Bearer 身份/租户隔离、最小运行记录、51 项 pytest 和 WSL 11/11 验收通过。阶段 12 已按用户报告验收：两条新增 not_found 与假模型 timeout 测试通过（2/2）；12 类故障库已建立。checkpoint 随机损坏文件已在临时目录验证为 fail-fast 且原文件字节不变；真实供应商 429 与 Compose 缺配置仍未验证。
 2. 阶段 11 学习手册已完成并推送：LangChain、LangGraph、RAG、SQL、FastAPI 五章位于 `docs/learning/`；每章包括代码入口、数据流图、示例、重点和自测题。
 3. 阶段 13 已完成：用户报告 D 盘干净克隆依赖安装成功、全量 53 项 pytest 通过，并完成 API health/order 首次启动验收。
 4. 阶段 14 已完成：复核 README、项目故事、面试包、演示手册、需求追踪、故障库和 WSL 生命周期说明；过期待验收状态已修正，主机级配置仅以概括形式记录。
@@ -79,10 +79,10 @@
 1. 同步公开仓库最新文档：在本机项目目录运行 `git pull --ff-only origin main`。
 2. 可选决策：是否从本地 Demo 转入生产化阶段 15。若暂不生产化，无需采取其他动作；若启动，再提供部署环境、身份系统和数据合规要求。
 
-当前无需重启 WSL/Docker、配置 API Key 或重跑已验收的 53 项测试/API smoke。
+当前无需重启 WSL/Docker、配置 API Key 或重跑已验收的 53 项 clean-clone 测试/API smoke；阶段 15 新增的 54 项结果来自 GitHub Actions。
 
 ## 当前优先级
 
-用户确认先完成主要业务链路，再回头做加固。现有验收已覆盖身份/租户校验、LangGraph 路由、订单查询、政策问答、退款审批演示、答复与运行记录；证据包括用户报告的 WSL 11/11、干净克隆 53 项 pytest 和 API smoke。它们是不同的验收结果。
+用户确认先完成主要业务链路，再回头做加固。主链路已由用户验收。阶段 15 可靠性加固现已开始：已新增 GitHub Actions，在干净 Python 3.12 环境全量运行 pytest；新增 checkpoint 损坏预检，损坏文件安全阻止启动且不覆盖原文件。
 
-真实供应商限流、损坏 checkpoint、Compose 配置故障、延迟统计及生产化工作暂缓。不要把这些加固项描述成主链路缺失。
+GitHub Actions 报告 54 passed in 2.98s。下一项是 Compose 配置预检；真实供应商限流、延迟统计和生产化暂缓。
