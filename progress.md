@@ -91,6 +91,7 @@
 - GitHub 公开仓库已通过本机 Git Credential Manager 认证创建：`https://github.com/KaelLee335/enterprise-support-agent-v2`，visibility=public，空白初始化（无 README/license/gitignore）。未输出令牌。下一步添加 origin 并推送本地 `main` 上的首个提交，再核对远端分支与文件清单。
 - 最终发布验收：本机 push 成功，GitHub API 确认仓库 public、默认分支 `main`；`git ls-remote` 返回 HEAD `04503a162aabaf671d90bbe7d3859100cd0162cc`，本地状态为 `main...origin/main`。远端树 105 项且未截断，含 README、`src/`、`tests/`，未出现 `.env`、数据库/WAL、`data/vector_store`、虚拟环境、缓存或 egg-info 路径。虚拟网卡只读检查显示 WLAN、WSL、Mihomo、VMware 适配器在线；未更改网卡或路由设置。
 - 阶段 9 主机启动只读审查：发现 `\\WSL-Dockerd-Autostart` 执行 `wsl.exe -d Ubuntu -u root -- /usr/local/bin/start-dockerd.sh`，由当前用户以 Interactive/ Limited 运行；触发器是已启用 Logon，不是 Startup。任务 State=Running；最近执行时间 2026-11-16 09:58:58，结果代码 267009。该检查只读取任务设置，没有触发或修改任务、Docker daemon、WSL/systemd 或虚拟网卡。README、`docs/wsl_docker_lifecycle.md`、`docs/project_status.md`、`task_plan.md` 和 `AGENTS.md` 已记录该边界。若用户需要登录前的开机自启，需先确定并授权系统任务变更。
+- 用户澄清“开机触发”是指 Windows 用户登录时触发；截图确认 `WSL-Dockerd-Autostart` 配置本来就是 Logon trigger，与只读检查一致。用户选择保留现状，无需修改。阶段 9 完成；未验证 Windows 重启后的自动触发行为。
 
 ### 结构化追踪最终容器验收（用户实测）
 
