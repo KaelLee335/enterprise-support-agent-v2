@@ -190,7 +190,7 @@
 
 - 用户提供截图：D 盘克隆 GitHub HEAD 9caa363；创建新 venv、安装依赖成功；全量 pytest 53 passed in 18.39s，exit 0。包括原 51 项和两条阶段 12 回归。此为用户报告，本会话未复跑。
 - 安装阶段发现全局 TUNA pip simple 对 pip User-Agent 返回 403；临时指定 Aliyun mirror 安装成功。README 已加单次镜像覆盖说明；Dockerfile 暂未更改，未来 Dockerfile 修改时再换源或做回退。
-- 阶段 13 尚缺 clean clone 中的 API 进程 smoke：health 200 和 Authorization Bearer 查询虚构订单 1001。本会话尝试执行时仍报 setup refresh errors，因此需要用户在克隆目录启动并验证。
+- 【历史待办，已由后续验收取代】阶段 13 API smoke 已由用户报告通过：health 200、Bearer 查询 demo 订单 1001 为 200、无 token 为 401。
 - 无 WSL/Docker 操作；未运行索引，没有发生新的云端调用。
 
 
