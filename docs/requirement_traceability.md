@@ -61,18 +61,18 @@
 | 故障：工具 not_found | 部分实现 | 已新增 `tests/test_api.py::test_random_missing_order_is_not_found_for_authenticated_tenant`；用户报告全量 53 项干净克隆测试通过，包含该用例。原有评估也区分 found/not_found。 |
 | 故障：错误分支/提示注入/隐私索取 | 已实现/有证据 | 路由/API 单测与 WSL 11 项断言验收覆盖多类恶意/异常输入。 |
 | 故障：数据库连接失败 | 已实现/有证据 | `tests/test_api.py::test_order_database_failure_returns_safe_error`。 |
-| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；fake Chat Model timeout 节点单测含在用户报告通过的 53 项中；真实供应商 429/超时仍未演练。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | fake Chat Model timeout 单测在用户报告通过的 53 项中；空 Embedding Key 的临时容器请求返回安全答复且未调用供应商。真实供应商 429/超时仍未演练。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
 | 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常重启恢复、重复审批冲突有测试；新增隔离损坏文件用例验证启动 fail-fast、checkpoint 字节不变且业务 DB 不先初始化。GitHub Actions 54 项通过。真实 checkpoint 备份恢复/页面级损坏仍未验证。 |
-| 故障：Docker 环境变量缺失 | 部分覆盖 | 单测确认缺少 SiliconFlow Key 时构造 Embedding 会报错；Compose 缺变量的启动/健康行为仍未端到端验证，已列入 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：Docker 环境变量缺失 | 部分覆盖 | GitHub Actions 用空 API Key 启动临时容器，health 与订单查询成功，政策问题安全降级；Compose 缺少 `.env` 文件及数据挂载路径错误仍未端到端验证，见 `docs/troubleshooting/fault_cases.md`。 |
 | 延迟基线、P50/P95 | 未实现 | 有单次节点时延日志；`docs/evaluation_and_observability.md` 记录尚无稳定统计基线。 |
-| GitHub Actions 自动测试 | 已实现/有证据 | `.github/workflows/tests.yml` 在 push/PR 上安装 Python 3.12 依赖并运行 pytest；checkpoint 加固后 54 passed in 2.98s。 |
+| GitHub Actions 自动测试与镜像构建 | 已实现/有证据 | `.github/workflows/tests.yml` 对代码/配置变更运行 Python 3.12 pytest、Compose 配置校验、Docker 构建和无 Key 容器 smoke；55 passed，所有步骤成功。 |
 
 ## Docker、交付物与学习机制
 
 | 要求 | 状态 | 证据与边界 |
 |---|---|---|
 | Dockerfile、Compose、环境配置、数据持久化和 WSL 部署 | 已实现/有证据 | `Dockerfile`、`compose.yaml`、README；D 盘数据 bind mount 与 11 项容器验收由用户实测。 |
-| 从 GitHub 干净克隆复现 | 用户报告已通过 | 用户在 D 盘干净 clone，venv/pip 安装成功、53 项 pytest 通过，并验收 health 200、Bearer 订单查询 200、无 token 401。 |
+| 从 GitHub 干净克隆复现 | 用户报告已通过 | 用户干净 clone，依赖安装成功、53 项 pytest 通过，并验收 health 200、Bearer 订单查询 200、无 token 401。后续 CI 有独立的 55 项测试与容器 smoke。 |
 | 架构图与流程图 | 部分实现 | `docs/project_story.md`、`docs/langgraph_design.md` 含 Mermaid 图；仓库中未发现独立 PNG/SVG 图像资产。Mermaid 可作为源码图，不代表已交付渲染图。 |
 | 演示记录/运行证据 | 部分实现 | `docs/demo_runbook.md`、项目状态和 WSL 实测文字记录完整；没有发现整理进仓库的正式演示截图/视频包。 |
 | Bad Case 分析、架构取舍、面试包 | 已实现/有证据 | `docs/rag_answer_manual_review.md`、`docs/evaluation_and_observability.md`、`docs/project_story.md`、`docs/interview_kit.md`（含 3/10 分钟讲解、20 问、5 个故障案例）。阶段 14 已完成文档一致性复核。 |
