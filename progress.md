@@ -192,3 +192,11 @@
 - 安装阶段发现全局 TUNA pip simple 对 pip User-Agent 返回 403；临时指定 Aliyun mirror 安装成功。README 已加单次镜像覆盖说明；Dockerfile 暂未更改，未来 Dockerfile 修改时再换源或做回退。
 - 阶段 13 尚缺 clean clone 中的 API 进程 smoke：health 200 和 Authorization Bearer 查询虚构订单 1001。本会话尝试执行时仍报 setup refresh errors，因此需要用户在克隆目录启动并验证。
 - 无 WSL/Docker 操作；未运行索引，没有发生新的云端调用。
+
+
+# 2026-11-16 — 干净克隆首次启动验收与阶段 14 收尾
+
+- 用户截图报告干净克隆 API 冒烟通过：`GET /health` 无认证返回 `{"status":"ok"}`；使用 `Bearer demo-a-local-token` 查询 `/orders/1001` 返回 200 和 demo-a 虚构订单；缺少 token 返回 401。结合此前用户报告的 venv/依赖安装和 53 项 pytest（18.39 秒）通过，阶段 13 首次启动复现完成。以上均为用户报告，本会话未自行启动进程或重跑测试。
+- 同步修正需求追踪矩阵和故障库中两条回归仍写“尚未运行/待运行”的旧状态：用户报告的 53 项全量测试包含随机订单 not_found 404 与 fake Chat Model timeout 安全答复测试；真实 429、checkpoint 损坏和 Compose 缺 Key/路径仍保持未验证/部分覆盖。
+- 复核并更新 README（无过期测试数）、项目故事、面试材料、演示手册、需求追踪、故障库、项目状态、AGENTS、task_plan 与 WSL 生命周期说明。WSL NAT 修复内容仅按用户报告记录；未运行 WSL/Docker、未改主机配置。
+- 阶段 14 文档一致性核查完成。阶段 15 生产化仍为另行定范围的非 Demo 工作；当前项目阶段可交接。
