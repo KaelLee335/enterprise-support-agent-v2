@@ -320,3 +320,21 @@ def test_random_missing_order_is_not_found_for_authenticated_tenant(client):
     assert response.status_code == 404
     assert response.json()["detail"] == "Order not found for this tenant"
 
+def test_corrupt_checkpoint_fails_startup_without_overwriting(tmp_path, monkeypatch):
+    database_path = tmp_path / "api.db"
+    checkpoint_path = tmp_path / "checkpoints.sqlite"
+    corrupt_bytes = b"not a valid sqlite checkpoint"
+    checkpoint_path.write_bytes(corrupt_bytes)
+    monkeypatch.setattr(main, "settings", Settings(
+        database_path=database_path,
+        checkpoint_path=checkpoint_path,
+    ))
+    monkeypatch.setattr(main, "SEED_PATH", tmp_path / "orders.json")
+    main.SEED_PATH.write_text('{"orders": []}', encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="Checkpoint database"):
+        with TestClient(main.app):
+            pass
+
+    assert checkpoint_path.read_bytes() == corrupt_bytes
+    assert not database_path.exists()
