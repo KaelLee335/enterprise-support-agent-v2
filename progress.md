@@ -205,3 +205,12 @@
 
 - 用户决定先完成主要业务链路，再回头做加固。对照需求追踪与用户验收，主链路已由演示身份/租户校验、FastAPI、LangGraph 路由、订单只读查询/政策 RAG/退款审批演示、答复与运行记录组成；现有 WSL、clean-clone 测试及 API smoke 证据分别记录，不混为一个指标。
 - 已在 `task_plan.md`、`docs/project_status.md` 和 `AGENTS.md` 记录该优先级。真实供应商限流、checkpoint 损坏、Compose 缺配置、延迟统计和生产化暂缓；不扩展真实订单写操作或退款。
+
+
+# 2026-11-16 — 阶段 15 第一步：自动测试与 checkpoint 损坏保护
+
+- 新增 GitHub Actions 工作流 `.github/workflows/tests.yml`，在 push、pull request 和手动触发时使用 Python 3.12 安装项目及 dev 依赖并运行全量 pytest；不使用 `.env`、API Key 或真实模型调用。
+- 在应用启动时对 checkpoint SQLite 文件运行只读 `PRAGMA quick_check`。若损坏/不可读则 fail-fast；先校验 checkpoint，再初始化业务订单数据库，避免覆盖损坏文件或留下误导性的新 DB。
+- 新增 `tests/test_api.py::test_corrupt_checkpoint_fails_startup_without_overwriting`，使用 tmp_path 隔离坏文件，断言启动失败、文件字节不变、业务数据库未创建。
+- GitHub Actions 在 Python 3.12 下全量结果为 54 passed in 2.98s。运行链接：https://github.com/KaelLee335/enterprise-support-agent-v2/actions/runs/43855982263。本会话没有触碰 WSL/Docker。
+- 下一步：在 CI 用 `.env.example` 验证 Compose 配置可解析，再评估缺 Key 时的预期行为。真实供应商 429/超时仍后置。
