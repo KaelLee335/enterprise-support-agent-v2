@@ -15,7 +15,7 @@
 
 | 要求 | 状态 | 证据与边界 |
 |---|---|---|
-| 代码化重构 Dify 售后 Agent，覆盖请求、业务处理、Agent、存储、评估和部署 | 已实现/有证据 | `README.md`、`docs/project_story.md`、FastAPI/SQLite/LangChain/LangGraph 代码、WSL 11 项验收记录。V2 运行不依赖 Dify。 |
+| 代码化重构 Dify 售后 Agent，覆盖请求、业务处理、Agent、存储、评估和部署 | 已实现/有证据 | `README.md`、`docs/project_story.md`、FastAPI/SQLite/LangChain/LangGraph 代码、用户最新报告 WSL 12 项验收（此前 11 项为历史结果）。V2 运行不依赖 Dify。 |
 | 复用 V1 政策、20 条订单、45 条评估规格、架构/README 资产 | 已实现/有证据 | `docs/migration.md` 与阶段 0 `findings.md` 记录文件比对；V1 原始文件未修改。 |
 | RET-01/QUA-01 与 V1 差异保持透明 | 已实现/有证据 | `data/policies/RET-01.md`、`data/policies/QUA-01.md` 标记 V2 来源，`docs/migration.md` 说明 V1 覆盖差异。 |
 | 固定订单 1001：demo-a、定制商品、签收/反馈日期、质量问题 | 已实现/有证据 | `data/seed/v1_orders.json`、`tests/test_db.py::test_initialization_imports_v1_and_fixed_order`、`docs/migration.md`。 |
@@ -45,7 +45,7 @@
 | 无可靠证据时拒答，防止引用伪造 | 已实现/有证据 | 空召回不调模型的测试、检索/生成错误安全答复、引用编号校验、`answer_constraints.py`、WSL policy QA 验收。引用 ID 有效不等于语义必然正确。 |
 | 语义 grounding/最终回答事实正确性自动评估 | 部分实现 | 有 14 条逐例人工审阅和规则约束评估；同模型 LLM judge 被明确标为探索性且存在误判。尚无独立裁判或成熟事实级自动指标。 |
 | State、Node、Edge、条件路由、checkpoint、interrupt/resume、单 Agent 执行轨迹 | 已实现/有证据 | `src/support_agent/agent/state.py`、`graph.py`、`nodes.py`；`docs/langgraph_design.md`；审批跨应用重启恢复测试与 WSL 验收。 |
-| Tool 权限、身份与租户授权 | Demo 范围已验收；生产 RBAC 不适用 | 本地演示身份固定映射租户，后端 SQL 强制租户条件；用户报告身份边界测试及 WSL 11 项验收通过。公开 Demo token 不是生产认证，审批接口没有真实审批人 RBAC。 |
+| Tool 权限、身份与租户授权 | Demo 范围已验收；生产 RBAC 不适用 | 本地演示身份固定映射租户，后端 SQL 强制租户条件；用户报告身份边界测试及最新 WSL 12 项验收通过。公开 Demo token 不是生产认证，审批接口没有真实审批人 RBAC。 |
 | LangChain/LangGraph 学习材料 | 已完成 | `docs/learning/` 含 LangChain、LangGraph、RAG、SQL、FastAPI 五章；中文材料链接实际代码，包含流程图、示例、重点和自测题。互动问答由用户安排后再开展。 |
 
 ## 评估、追踪与故障注入
@@ -59,7 +59,7 @@
 | 故障：RAG 空召回/无可靠来源 | 已实现/有证据 | `tests/test_rag.py::test_rag_answer_does_not_call_model_when_retrieval_is_empty` 和 WSL 断言式验收。 |
 | 故障：错误政策排序或回答违反政策 | 部分实现 | Top-8 冲突在人工审查中发现，约束层已修复高影响规则；尚无完整、独立的语义蕴含自动测试套件。 |
 | 故障：工具 not_found | 部分实现 | 已新增 `tests/test_api.py::test_random_missing_order_is_not_found_for_authenticated_tenant`；用户报告全量 53 项干净克隆测试通过，包含该用例。原有评估也区分 found/not_found。 |
-| 故障：错误分支/提示注入/隐私索取 | 已实现/有证据 | 路由/API 单测与 WSL 11 项断言验收覆盖多类恶意/异常输入。 |
+| 故障：错误分支/提示注入/隐私索取 | 已实现/有证据 | 路由/API 单测与用户报告的 WSL 12 项断言验收覆盖多类恶意/异常输入。 |
 | 故障：数据库连接失败 | 已实现/有证据 | `tests/test_api.py::test_order_database_failure_returns_safe_error`。 |
 | 故障：模型 API 不可用/真实超时/限流 | 部分实现 | fake Chat Model timeout 单测在用户报告通过的 53 项中；空 Embedding Key 的临时容器请求返回安全答复且未调用供应商。真实供应商 429/超时仍未演练。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
 | 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常重启恢复、重复审批冲突有测试；新增隔离损坏文件用例验证启动 fail-fast、checkpoint 字节不变且业务 DB 不先初始化。GitHub Actions 54 项通过。真实 checkpoint 备份恢复/页面级损坏仍未验证。 |
@@ -71,7 +71,7 @@
 
 | 要求 | 状态 | 证据与边界 |
 |---|---|---|
-| Dockerfile、Compose、环境配置、数据持久化和 WSL 部署 | 已实现/有证据 | `Dockerfile`、`compose.yaml`、README；D 盘数据 bind mount 与 11 项容器验收由用户实测。 |
+| Dockerfile、Compose、环境配置、数据持久化和 WSL 部署 | 已实现/有证据 | `Dockerfile`、`compose.yaml`、README；持久化数据 bind mount 与最新 12 项容器验收由用户报告实测通过；此前 11 项为历史结果。 |
 | 从 GitHub 干净克隆复现 | 用户报告已通过 | 用户干净 clone，依赖安装成功、53 项 pytest 通过，并验收 health 200、Bearer 订单查询 200、无 token 401。后续 CI 有独立的 55 项测试与容器 smoke。 |
 | 架构图与流程图 | 部分实现 | `docs/project_story.md`、`docs/langgraph_design.md` 含 Mermaid 图；仓库中未发现独立 PNG/SVG 图像资产。Mermaid 可作为源码图，不代表已交付渲染图。 |
 | 演示记录/运行证据 | 部分实现 | `docs/demo_runbook.md`、项目状态和 WSL 实测文字记录完整；没有发现整理进仓库的正式演示截图/视频包。 |
