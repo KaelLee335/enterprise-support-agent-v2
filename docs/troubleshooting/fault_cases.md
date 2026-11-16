@@ -62,7 +62,7 @@
 - **根因：**网络、服务商限流、凭据或模型配置异常。
 - **定位：**区分 Embedding 与 Chat Model 调用；记录安全的错误类型，不记录 API Key 和响应体。
 - **处理：**Embedding 使用 fake 注入测试；下一步用假 Chat Model 抛 TimeoutError/429，断言安全答复、run 状态 failed、无敏感细节。真实云端超时不作为单测。
-- **状态：**检索异常有注入测试；假 Chat Model timeout 单测已添加，待运行，真实服务故障未演练。
+- **状态：**检索异常有注入测试；假 Chat Model timeout 单测用户报告已通过（全量 53 项），真实服务故障未演练。
 
 ### 11. Checkpoint 恢复失败
 - **症状：**审批 thread 不存在、状态不是 pending、checkpoint 文件损坏，或重复提交决定。
