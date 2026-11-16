@@ -25,8 +25,8 @@
 
 1. 阶段 0–11 已完成。用户截图报告演示 Bearer 身份/租户隔离、最小运行记录、51 项 pytest 和 WSL 11/11 验收通过。阶段 12 已按用户报告验收：两条新增 not_found 与假模型 timeout 测试通过（2/2）；12 类故障库已建立。Checkpoint 损坏/Compose 缺 Key 仍记录为未验证边界。
 2. 阶段 11 学习手册已完成并推送：LangChain、LangGraph、RAG、SQL、FastAPI 五章位于 `docs/learning/`；每章包括代码入口、数据流图、示例、重点和自测题。
-3. 阶段 12 先补随机订单 not_found、Chat Model timeout/429、checkpoint 损坏及 Compose 缺 Key 的隔离测试；这些不在已有 51 项通过结果中冒充已覆盖。随后阶段 13 从公开 GitHub 做干净克隆，验证 README 首次安装/运行流程。
-4. 阶段 14：核对架构、流程、指标、演示记录和面试材料与实现一致；之后完成最终交接。
+3. 阶段 13 已完成：用户报告 D 盘干净克隆依赖安装成功、全量 53 项 pytest 通过，并完成 API health/order 首次启动验收。
+4. 阶段 14 当前执行：核对架构、流程、指标、演示记录和面试材料与实现一致；之后完成最终交接。
 5. 阶段 15 生产化（真实认证、RBAC、多实例、运营安全）不在本地 Demo 范围，单独规划，不默认开展。
 
 ## 阶段 7：发布就绪与可复现交接（已完成）
@@ -64,12 +64,12 @@
 - WSL 重启后出现 Docker NAT 网段冲突；用户截图称通过备份 daemon 配置、调整 Docker bridge CIDR 和启动等待逻辑修复。主机网络改动以用户报告为准，不在本会话继续更改。
 - 用户截图报告 LangChain 源码映射已核对、四章学习材料与索引已推送；本会话读取 GitHub tree 确认 `docs/learning/` 有 README 与 LangChain、LangGraph、RAG、SQL、FastAPI 五章。
 - README、状态、需求追踪、计划、代理说明、进度和发现文档已随公开仓库更新；本轮只改文档，没有变更业务代码或运行测试。
-- 下一阶段是干净克隆复现；该步骤尚未运行，也不应把它描述为完成。
+- 阶段 13 干净克隆复现已完成（用户报告）；阶段 14 正在做最终材料一致性核查。
 
 
 ## Clean clone 与 pip 镜像记录（2026-11-16）
 
-- 用户报告在 D 盘干净克隆 HEAD 9caa363，安装依赖后 pytest 53 passed / 18.39s / exit 0；这是用户提供的结果，本会话未复跑。
+- 用户报告 D 盘干净克隆后同步到最新 main，pytest 53 passed / 18.39s / exit 0；这是用户提供的结果，本会话未复跑。
 - 用户遇到全局 TUNA pip simple 返回 403（pip User-Agent 请求），临时加阿里云 `-i https://mirrors.aliyun.com/pypi/simple` 后安装成功。README 已加入单次安装的镜像 fallback。
 - Dockerfile 的 TUNA 源风险记录为下次 Dockerfile 调整事项；本轮未改 Dockerfile，也未触碰 WSL/Docker。
-- 待验收：在该 clean clone 本机启动 API，检查 health 200 和 Bearer 订单 1001 查询；当前 Codex 本地执行工具仍无法启动。
+- 用户随后报告该 clean clone 的 health 返回 {"status":"ok"}，带 Bearer 的 GET /orders/1001 返回 200 且租户/虚构数据正确，无 token 返回 401。至此首次启动链路已由用户验收；本会话没有自行运行本地进程。
