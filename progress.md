@@ -23,7 +23,7 @@
 
 - 开始阶段 0；已读取用户提供的项目范围、工程目标和阶段要求。
 - 已初始化 `task_plan.md`、`findings.md` 和 `progress.md`。
-- 确认 V1 路径 `D:\python_project\enterprise-support-agent`，并核对 10 份政策、20 条订单、45 条评估规格、README、架构说明和结果 JSON 的 V2 副本哈希；各副本均与来源一致。
+- 确认 V1 路径 `[本机路径]`，并核对 10 份政策、20 条订单、45 条评估规格、README、架构说明和结果 JSON 的 V2 副本哈希；各副本均与来源一致。
 - 确认 V1 自带 Dify DSL、配置指南、评估脚本和历史报告；DSL 不包含可直接迁移的向量索引。V1 的 `.env.example` 有用户既存修改，已保持不动。
 - 记录 RET-01/QUA-01 是 V2 补充事实，不应声称为 V1 原规则；记录评估 JSON 的 127 captured 与 125 actual saved 口径差异。
 - 当前阶段 0 完成；未运行测试或启动服务。阶段 1 基础 API/SQLite 代码已存在但尚未在本轮运行验证。工作区既有 Docker 配置尚未验证；用户告知 Dify 由桌面 `启动dify.bat` 启动，本轮没有将其等同于 V2 服务。
@@ -174,7 +174,7 @@
 
 - 新增 tests/test_api.py 随机订单 not_found 断言；新增 tests/test_agent.py 假 Chat Model TimeoutError 安全回答断言。两者均通过 GitHub 文件 API 提交，尚未运行。
 - 更新 fault_cases、requirement_traceability、task_plan、project_status、AGENTS，将状态标为“已添加、待运行”；没有将其计入此前用户报告的 51 passed。
-- 当前唯一需要用户现场操作的是把本机 D:\\project_2 快进到公开 origin/main 并运行 pytest。运行结果回来后继续 checkpoint 隔离注入与阶段 13 干净克隆。
+- 当前唯一需要用户现场操作的是把本机 [本机路径] 快进到公开 origin/main 并运行 pytest。运行结果回来后继续 checkpoint 隔离注入与阶段 13 干净克隆。
 
 
 # 2026-11-16 — 阶段 12 验收与阶段 13 交接
