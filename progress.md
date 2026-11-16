@@ -159,3 +159,12 @@
 - 章节说明了哪些命令会访问 SiliconFlow，并避免将个人信息放入示例；退款仍为 `approved_demo`，订单只读。
 - 无本地执行器：无法从磁盘读回新增内容、做 Markdown 链接检查或推送。远端目前只读确认已有 `docs/learning/README.md`、`fast_mode_handoff.md`、`langchain.md`；LangGraph/RAG/SQL/FastAPI 四章尚未在远端目录看到。不能声称这些章节已发布。
 - 项目功能测试已有用户截图报告 51 passed 与 WSL 11/11 PASS；本次只有学习材料变更，未运行测试或重建容器。
+
+
+# 2026-11-16 — 学习手册完成与阶段 12 缺口收敛
+
+- 用户截图报告四章学习材料和索引已推送，GitHub 当前 tree 确认 LangChain、LangGraph、RAG、SQL、FastAPI 五章存在。
+- 更新 README 与状态/需求追踪文档：将用户报告的 51 项 pytest、WSL health 200/11 用例通过记录为用户提供证据；修正“待 WSL 验收”等过时文字。当前 WSL/docker/NAT 配置不作任何改动。
+- 新增并发布 `docs/troubleshooting/fault_cases.md`：12 类故障的现象、层次、线索、处理和防复发，并明确哪些覆盖、部分覆盖或待验证。
+- 更新 `AGENTS.md`、`task_plan.md`、`docs/project_status.md`、`docs/requirement_traceability.md`：阶段 11 完成；阶段 12 继续补随机 not_found、Chat Model timeout/429、checkpoint 损坏、Compose 缺 Key 的隔离验证；之后阶段 13 干净克隆。
+- 本会话执行器仍不可用；上述本轮文档没有本地 diff 检查或测试运行。外部 GitHub 只读读取和已授权的文档发布可用。用户原报告的 51 pytest/WSL 11 项验收没有被当作本轮测试结果。
