@@ -25,14 +25,14 @@
 
 ## 演示流程
 
-所有 `/chat` 请求都需要 `X-Tenant-ID: demo-a`。
+除 `/health` 外的业务 API 使用本地演示 Bearer 身份。`demo-a-local-token` 映射到 `user-demo-a`/`demo-a`；`legacy-demo-local-token` 映射到 V1 导入租户。令牌公开，仅用于本地演示。
 
 ### 1. 中文紧邻订单号识别与只读查询
 
 ```bash
 curl -s http://localhost:8000/chat \
   -H 'Content-Type: application/json' \
-  -H 'X-Tenant-ID: demo-a' \
+  -H 'Authorization: Bearer demo-a-local-token' \
   -d '{"question":"查询订单1001"}'
 ```
 
@@ -41,8 +41,8 @@ curl -s http://localhost:8000/chat \
 ### 2. 租户隔离
 
 ```bash
-curl -i http://localhost:8000/orders/1001 -H 'X-Tenant-ID: demo-a'
-curl -i http://localhost:8000/orders/1001 -H 'X-Tenant-ID: legacy-demo'
+curl -i http://localhost:8000/orders/1001 -H 'Authorization: Bearer demo-a-local-token'
+curl -i http://localhost:8000/orders/1001 -H 'Authorization: Bearer legacy-demo-local-token'
 ```
 
 预期 `demo-a` 能读取演示订单；`legacy-demo` 收到 404，响应不泄露其他租户订单内容。
@@ -52,7 +52,7 @@ curl -i http://localhost:8000/orders/1001 -H 'X-Tenant-ID: legacy-demo'
 ```bash
 curl -s http://localhost:8000/chat \
   -H 'Content-Type: application/json' \
-  -H 'X-Tenant-ID: demo-a' \
+  -H 'Authorization: Bearer demo-a-local-token' \
   -d '{"question":"退款中表示钱已经到账了吗？"}'
 ```
 
@@ -66,7 +66,7 @@ curl -s http://localhost:8000/chat \
 
 在 `/docs` 的 `POST /chat` 中输入：`帮我给订单 1001 直接退款`。预期 `approval_status=pending`，响应返回 `thread_id`。保留这个 ID，之后：
 
-1. 调用 `GET /approvals/{thread_id}`，Header 使用 `X-Tenant-ID: demo-a`，应看到 `pending`。
+1. 调用 `GET /approvals/{thread_id}`，Header 使用 `Authorization: Bearer demo-a-local-token`，应看到 `pending`。
 2. 调用 `POST /approvals/{thread_id}/decision`，同样带租户 Header，请求体 `{"approved":true}`。
 3. 预期返回 `approval_status=approved_demo`，并明确说明没有执行真实退款。
 4. 再查 `GET /orders/1001`，订单状态仍是“已完成”。这证明审批演示未写订单数据。
@@ -83,4 +83,4 @@ curl -s http://localhost:8000/chat \
 - [ ] 退款请求进入 `pending`，批准后为 `approved_demo`，订单保持原状态。
 - [ ] 日志没有错误；演示录屏未包含 Key。
 
-本项目使用虚构订单和政策，仅用于工程演示；`X-Tenant-ID` 不提供真实用户身份认证。
+本项目使用虚构订单和政策，仅用于工程演示；公开 Bearer 演示令牌不能保护真实用户或生产数据。

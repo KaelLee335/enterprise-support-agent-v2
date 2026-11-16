@@ -118,3 +118,28 @@
 - 用户为降低重复构建时间并处理 pip 超时，将 Dockerfile 改为先安装依赖、再安装本地源码的缓存分层，并切换到 TUNA pip 源、延长下载超时；该 Dockerfile 已同步在 Windows 工作区。
 - 订单日志实际包含 `question_preview`、`node_start/end` 和 `duration_ms`（route 约 0.5ms、lookup 约 16.9ms）。政策问答日志包含检索来源及距离，POL-06 distance=0.625 为此次最相似来源，生成节点约 756ms、`citation_valid=true`。退款审批暂停记录为 INFO `node_pause`，状态 `pending`。
 - 全程无 ERROR；本机日志脱敏/耗时等回归 39 项通过。用户要求将学习理解问题留到之后统一处理，本轮不追加答题问题。
+# 2026-11-16 — 快速执行通道恢复尝试
+
+- 用户要求快速完成项目，并要求明确写出需要其操作的部分。
+- Windows 执行通道在 `git status`、`git diff --check` 等只读调用开始前报错：`helper_unknown_error: setup refresh had errors`；多次重试仍未恢复。
+- 新增 `docs/learning/fast_mode_handoff.md`，列出用户只需恢复 Codex 项目执行通道并回复“继续”，以及恢复后自动执行的代码审查、全量测试、文档更新和 WSL 验收流程。
+- 最近已知测试记录仅为定向 API/DB 测试 26 项通过；本轮没有运行完整测试，没有同步/重建/验收 WSL。
+- 下一步：恢复执行工具后立即检查真实工作树和完整差异，勿根据摘要猜测待同步文件。
+
+
+# 2026-11-16 — 执行通道交接恢复（WorkBuddy 代执行）
+
+- Codex 执行通道 `setup refresh had errors` 期间，交接清单由 WorkBuddy 代为执行完成。
+- Git 状态：`safe.directory` 已加入全局配置（仓库属主为 CodexSandboxOffline）；工作树 15 个修改文件 + `src/support_agent/auth.py`、`docs/learning/` 两个未跟踪项，全部为 Codex 的身份认证与运行记录改动。
+- 忽略规则复核：`.env`/`.venv`/`.pytest-tmp`/`data/*.db`/`data/*.sqlite*`/`data/vector_store`/`*.egg-info` 全部命中；`.env.example` 未被忽略，可入库。
+- API 身份映射与租户隔离审查：Bearer token → 固定 DemoIdentity（user-demo-a→demo-a、user-legacy-demo→legacy-demo）；`X-Tenant-ID` header 已全线移除，伪造 header 被忽略；`agent_runs` 表带 tenant 外键与状态 CHECK，所有查询 `WHERE run_id AND tenant_id`，运行记录不含 question 明文；故障用例已补齐（缺失 token 401、无效 token 401、伪造 header、跨租户 run 404）。
+- 全量 pytest：**51 passed, 267s**（此前定向测试 26 项），唯一警告为 `.pytest_cache` 权限（已知无害）。`PYTEST_EXIT=0`。
+- WSL 同步与验收：auth.py 等 7 个源码/测试文件同步至 `/opt/project2`，`DEMO_TOKEN_*` 追加至 WSL `.env`，容器重建后 health 200、verify_phase6.sh 11 用例全 PASS。
+# 2026-11-16 — 接收本地与 WSL 验收记录
+
+- 用户截图报告：身份映射/租户隔离审查通过；全量 pytest 51 passed（267 秒）；`progress.md`、`findings.md`、`docs/project_status.md` 已记录实测；WSL 容器重建后 health 200 且 `verify_phase6.sh` 11/11 PASS。
+- 截图另报告 WSL 重启后的 Docker NAT 网段冲突及用户已完成的 daemon `bip` 调整、备份与启动等待逻辑。此为用户主机级变更；本会话不再触碰 WSL、daemon 或网卡配置。
+- 本会话仍无法启动本机命令执行器（`setup refresh had errors`），故以上均按用户截图记录，未独立复跑或核对文件差异。
+- 本会话已将截图中的状态与边界补记到 `AGENTS.md`。GitHub 远端仍是最后读取的旧提交 `6a2c132`；公开仓库是否已接收截图中这批 15+ 文件变更未知，需在本机执行通道恢复后再核查，避免直接通过网页 API 覆盖未审查文件。
+- 下一步：执行通道恢复后核实工作树、确认 51 项测试和文档的真实内容，再决定 GitHub 同步；学习阶段继续 LangChain → LangGraph → RAG → SQL → FastAPI。
+

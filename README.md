@@ -13,7 +13,16 @@ python -m pip install -e ".[dev]"
 uvicorn support_agent.main:app --reload --app-dir src
 ```
 
-打开 <http://127.0.0.1:8000/docs>。健康检查为 `GET /health`；订单查询为 `GET /orders/{order_id}`；Agent 对话为 `POST /chat`，请求头需提供 `X-Tenant-ID`。V1 导入订单使用 `legacy-demo`；固定案例 `1001` 使用 `demo-a`。
+打开 <http://127.0.0.1:8000/docs>。健康检查为 `GET /health`（无需认证）；订单查询为 `GET /orders/{order_id}`；Agent 对话为 `POST /chat`，以及审批和执行记录接口均需 Bearer 演示身份。V1 导入订单使用 `legacy-demo`；固定案例 `1001` 使用 `demo-a`。
+
+### 本地演示身份
+
+默认演示令牌（只用于本地学习，公开且不是生产凭据）：
+
+- `demo-a-local-token` → `user-demo-a` → `demo-a`
+- `legacy-demo-local-token` → `user-legacy-demo` → `legacy-demo`
+
+请求使用 `Authorization: Bearer demo-a-local-token`。服务端从令牌映射用户与租户，不信任调用方传入的 `X-Tenant-ID`。可在本地 `.env` 覆盖 `DEMO_TOKEN_DEMO_A` 和 `DEMO_TOKEN_LEGACY`。该方案是可复现的模拟身份，不提供真实用户认证、密码保护或 Token 轮换。
 
 SQLite 默认写入 `data/support_agent.db`。删除该文件会重建演示数据库；它是本地运行数据，不应提交到 Git。
 
@@ -95,4 +104,4 @@ V1 资产来源、字段差异和 RET-01/QUA-01 对照见 [`docs/migration.md`](
 
 ## 当前边界
 
-`X-Tenant-ID` 仅用于本地租户隔离演示，不是登录身份或生产认证。退款审批只记录演示状态，不执行真实业务操作。Docker Compose 已在 WSL Docker 环境完成用户实测验收。
+Bearer 演示令牌映射到固定虚构用户和租户；它不是生产认证。`GET /agent-runs/{run_id}` 只返回当前身份租户内的最小执行记录，不保存原始问题。退款审批只记录演示状态，不执行真实业务操作。当前新增演示身份接口尚待用户在 WSL 同步后复验。

@@ -23,6 +23,7 @@ class ChatResponse(BaseModel):
     citations_valid: bool | None = None
     error: str | None = None
     thread_id: str
+    run_id: str
     trace_id: str
     approval_status: str | None = None
     pending_action: dict[str, Any] | None = None
@@ -59,4 +60,17 @@ class OrderResponse(BaseModel):
     issue_description: str | None = None
     refund_started_date: str | None = None
     refund_completed_date: str | None = None
+    is_demo: bool
+
+
+class AgentRunResponse(BaseModel):
+    run_id: str
+    trace_id: str
+    user_id: str
+    tenant_id: str
+    intent: str | None = None
+    status: str
+    error_type: str | None = None
+    started_at: str
+    finished_at: str | None = None
     is_demo: bool

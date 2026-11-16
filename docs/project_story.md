@@ -34,7 +34,7 @@ Agent 节点和 State 细节见 [`langgraph_design.md`](langgraph_design.md)，�
 
 | 问题 | 选择 | 原因与边界 |
 |---|---|---|
-| 谁决定权限和路由 | 确定性 Python 路由；SQL 订单查询同时约束 order ID 和 tenant ID | LLM 不承担授权判断；`X-Tenant-ID` 只是演示租户选择，不是真实身份认证 |
+| 谁决定权限和路由 | 本地 Bearer 演示身份映射到固定 user/tenant；SQL 再同时约束 order ID 和 tenant ID | LLM 不承担授权判断；令牌公开且仅用于 Demo，不是真实身份认证 |
 | 如何回答售后政策 | 单政策文件一个检索块，Chroma 持久存储，Top-4 检索 | 当前政策短且完整上下文重要；引用编号校验只验证来源存在，不保证语义完全正确 |
 | 如何处理中断式人工审批 | LangGraph `interrupt()` + SQLite checkpoint | 可展示暂停、批准/拒绝和重启恢复；批准仅记录 `approved_demo`，不调用退款服务 |
 | 如何定位运行步骤 | HTTP `X-Trace-ID`、JSON 结构日志 | 关联 API 和节点耗时；输入以脱敏限长预览记录，不记录模型答复或凭据 |

@@ -149,3 +149,9 @@ V2 中 LangChain 负责拼接政策回答链：`PromptTemplate → Chat Model �
 - [x] 本机 `main` 与 `origin/main` 同步；发布期间未更改虚拟网卡或路由。
 
 阶段 8 已完成。上方遗留的“待连接”小节标题为历史记录，当前状态以本节为准。
+# 2026-11-16 快速执行状态补记
+
+- 用户截图报告 P0 身份/运行记录实现、全量 51 项测试、WSL 重建与 11/11 验收已通过；此会话按用户证据记录，尚未能独立复核。
+- 阶段 11：新增 LangChain 中文初稿 `docs/learning/langchain.md` 和学习路线索引 `docs/learning/README.md`。内容基于本会话可读的公开代码快照；需执行器恢复后对照本机身份改造后的实现、核验代码链接和示例，并补充 LangGraph → RAG → SQL → FastAPI 章节。
+- GitHub 公开仓库最后可读 `main` 为 `6a2c132`，仍未看到本地截图中的 P0 源码或学习目录。待本地 Git 工具恢复后核对是否推送；目前不通过 API 直接发布未经差异审查的内容。
+- 近期阻塞：Windows 执行工具未启动（`helper_unknown_error: setup refresh had errors`），无法检查工作树或重跑测试。不得重复修改 WSL DNS/daemon/网络配置。

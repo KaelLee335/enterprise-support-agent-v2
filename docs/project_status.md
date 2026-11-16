@@ -51,3 +51,16 @@
 - Docker/WSL 运行说明：`docs/wsl_docker_lifecycle.md`
 - 演示步骤：`docs/demo_runbook.md`
 - 项目执行约束和接续说明：`AGENTS.md`
+
+## 2026-11-16 执行通道交接恢复记录
+
+- Codex 执行通道故障期间，交接步骤（git 审查 → 认证/租户审查 → 全量测试 → 文档 → WSL 验收）由 WorkBuddy 代执行完成。
+- 全量 pytest 51 passed；WSL 侧容器重建后 health 200，verify_phase6.sh 11 用例全 PASS。
+- 当前 API 认证为 Demo Bearer token（demo-a-local-token / legacy-demo-local-token），非生产凭据。
+# 最新验收补记（2026-11-16；用户截图提供）
+
+- 本地全量 pytest：51 passed，用时 267 秒；只有已知 `.pytest_cache` 权限警告。
+- 本地身份/租户隔离审查：Bearer token 映射固定演示身份，伪造 `X-Tenant-ID` 无效，跨租户运行记录返回 404，问题明文不进入 `agent_runs`。
+- WSL 重建后：健康检查 200，`verify_phase6.sh` 11/11 PASS。
+- WSL 重启后 Docker NAT 网段冲突及 daemon bridge IP 调整由用户报告完成；本会话没有独立检查主机配置。
+- 本地执行器当前不可用，以上是截图报告值，不代表本会话重新复测。公开 GitHub 当前可读到的 main 仍停在 `6a2c132`，后续需核查本地改动是否尚未推送。

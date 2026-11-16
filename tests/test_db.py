@@ -1,7 +1,14 @@
 import json
 import sqlite3
 
-from support_agent.db import fetch_order, initialize_database
+from support_agent.db import (
+    create_agent_run,
+    delete_agent_run,
+    fetch_agent_run,
+    fetch_order,
+    initialize_database,
+    update_agent_run,
+)
 
 
 def test_initialization_imports_v1_and_fixed_order(tmp_path):
@@ -46,3 +53,23 @@ def test_seed_is_idempotent(tmp_path):
     with sqlite3.connect(db_path) as connection:
         count = connection.execute("SELECT COUNT(*) FROM orders").fetchone()[0]
     assert count == 1
+
+
+def test_agent_run_create_read_update_delete_is_tenant_scoped(tmp_path):
+    seed = tmp_path / "orders.json"
+    seed.write_text(json.dumps({"orders": []}), encoding="utf-8")
+    db_path = tmp_path / "runs.db"
+    initialize_database(db_path, seed)
+
+    create_agent_run(db_path, "run-1", "trace-1", "user-demo-a", "demo-a")
+    assert fetch_agent_run(db_path, "run-1", "legacy-demo") is None
+    assert update_agent_run(db_path, "run-1", "legacy-demo", status="failed") is False
+    assert update_agent_run(
+        db_path, "run-1", "demo-a", status="completed", intent="order_lookup"
+    ) is True
+    run = fetch_agent_run(db_path, "run-1", "demo-a")
+    assert run["status"] == "completed"
+    assert run["intent"] == "order_lookup"
+    assert delete_agent_run(db_path, "run-1", "legacy-demo") is False
+    assert delete_agent_run(db_path, "run-1", "demo-a") is True
+    assert fetch_agent_run(db_path, "run-1", "demo-a") is None

@@ -6,16 +6,24 @@ from uuid import uuid4
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
 from support_agent.agent.graph import build_support_graph
+from support_agent.auth import DemoIdentity, require_demo_identity
 from support_agent.config import get_settings
-from support_agent.db import fetch_order, initialize_database
+from support_agent.db import (
+    create_agent_run,
+    fetch_agent_run,
+    fetch_order,
+    initialize_database,
+    update_agent_run,
+)
 from support_agent.schemas import (
     ApprovalDecision,
     ApprovalResponse,
+    AgentRunResponse,
     ChatRequest,
     ChatResponse,
     OrderResponse,
@@ -103,26 +111,58 @@ def health() -> dict[str, str]:
 def chat(
     chat_request: ChatRequest,
     request: Request,
-    x_tenant_id: str = Header(..., alias="X-Tenant-ID"),
+    identity: DemoIdentity = Depends(require_demo_identity),
 ) -> ChatResponse:
     trace_id = trace_id_var.get() or uuid4().hex
     thread_id = uuid4().hex
+    run_id = uuid4().hex
+    create_agent_run(
+        settings.database_path, run_id, trace_id, identity.user_id, identity.tenant_id
+    )
     logger.info(
         "Agent run started",
         extra={
             "event": "agent_start", "trace_id": trace_id,
-            "tenant_id": x_tenant_id,
+            "tenant_id": identity.tenant_id,
+            "user_id": identity.user_id,
             "question_preview": redact_user_input(chat_request.question),
         },
     )
     config = {"configurable": {"thread_id": thread_id}}
-    state = request.app.state.support_graph.invoke({
-        "question": chat_request.question,
-        "tenant_id": x_tenant_id,
-        "database_path": str(settings.database_path),
-        "thread_id": thread_id,
-        "trace_id": trace_id,
-    }, config=config)
+    try:
+        state = request.app.state.support_graph.invoke({
+            "question": chat_request.question,
+            "tenant_id": identity.tenant_id,
+            "user_id": identity.user_id,
+            "database_path": str(settings.database_path),
+            "thread_id": thread_id,
+            "run_id": run_id,
+            "trace_id": trace_id,
+        }, config=config)
+    except Exception as exc:
+        update_agent_run(
+            settings.database_path,
+            run_id,
+            identity.tenant_id,
+            status="failed",
+            error_type=type(exc).__name__,
+        )
+        logger.exception("Agent run failed")
+        raise
+    approval_status = state.get("approval_status")
+    run_status = (
+        "pending" if approval_status == "pending"
+        else "failed" if state.get("error")
+        else "completed"
+    )
+    update_agent_run(
+        settings.database_path,
+        run_id,
+        identity.tenant_id,
+        status=run_status,
+        intent=state.get("intent"),
+        error_type=state.get("error"),
+    )
     return ChatResponse(
         answer=state.get("answer", "暂时无法处理该请求。"),
         intent=state.get("intent", "unknown"),
@@ -132,6 +172,7 @@ def chat(
         citations_valid=state.get("citations_valid"),
         error=state.get("error"),
         thread_id=thread_id,
+        run_id=run_id,
         trace_id=trace_id,
         approval_status=state.get("approval_status"),
         pending_action=state.get("pending_action"),
@@ -150,9 +191,9 @@ def _approval_snapshot(thread_id: str, tenant_id: str):
 @app.get("/approvals/{thread_id}", response_model=ApprovalResponse)
 def get_approval(
     thread_id: str,
-    x_tenant_id: str = Header(..., alias="X-Tenant-ID"),
+    identity: DemoIdentity = Depends(require_demo_identity),
 ) -> ApprovalResponse:
-    _, _, snapshot = _approval_snapshot(thread_id, x_tenant_id)
+    _, _, snapshot = _approval_snapshot(thread_id, identity.tenant_id)
     values = snapshot.values
     return ApprovalResponse(
         thread_id=thread_id,
@@ -167,9 +208,9 @@ def get_approval(
 def decide_approval(
     thread_id: str,
     decision: ApprovalDecision,
-    x_tenant_id: str = Header(..., alias="X-Tenant-ID"),
+    identity: DemoIdentity = Depends(require_demo_identity),
 ) -> ApprovalResponse:
-    graph, config, snapshot = _approval_snapshot(thread_id, x_tenant_id)
+    graph, config, snapshot = _approval_snapshot(thread_id, identity.tenant_id)
     values = snapshot.values
     if values.get("approval_status") != "pending" or not snapshot.next:
         raise HTTPException(status_code=409, detail="Approval request is not pending")
@@ -177,12 +218,23 @@ def decide_approval(
         "Demo approval decision received",
         extra={
             "event": "approval_decision", "trace_id": trace_id_var.get(),
-            "tenant_id": x_tenant_id,
+            "tenant_id": identity.tenant_id,
+            "user_id": identity.user_id,
             "approval_status": "approved_demo" if decision.approved else "rejected",
             "approval_decision": decision.approved,
         },
     )
     result = graph.invoke(Command(resume={"approved": decision.approved}), config=config)
+    run_id = result.get("run_id")
+    if run_id:
+        update_agent_run(
+            settings.database_path,
+            run_id,
+            identity.tenant_id,
+            status="completed",
+            intent=result.get("intent"),
+            error_type=result.get("error"),
+        )
     return ApprovalResponse(
         thread_id=thread_id,
         approval_status=result.get("approval_status", "unknown"),
@@ -193,9 +245,23 @@ def decide_approval(
 
 
 @app.get("/orders/{order_id}", response_model=OrderResponse)
-def get_order(order_id: str, x_tenant_id: str = Header(..., alias="X-Tenant-ID")) -> OrderResponse:
-    logger.info("Order lookup requested order_id=%s tenant_id=%s", order_id, x_tenant_id)
-    order = fetch_order(settings.database_path, order_id, x_tenant_id)
+def get_order(
+    order_id: str,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> OrderResponse:
+    logger.info("Order lookup requested order_id=%s tenant_id=%s", order_id, identity.tenant_id)
+    order = fetch_order(settings.database_path, order_id, identity.tenant_id)
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found for this tenant")
     return OrderResponse(**order)
+
+
+@app.get("/agent-runs/{run_id}", response_model=AgentRunResponse)
+def get_agent_run_endpoint(
+    run_id: str,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> AgentRunResponse:
+    run = fetch_agent_run(settings.database_path, run_id, identity.tenant_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Agent run not found")
+    return AgentRunResponse(**run)

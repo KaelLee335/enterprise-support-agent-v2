@@ -56,3 +56,11 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 - Be precise about denominators and evidence. Distinguish route accuracy, retrieval recall, citation-ID validation, semantic correctness, and end-to-end task success; do not collapse them into one score.
 - Do not claim a test, API call, deployment, or runtime check unless it actually ran and its result is recorded. Keep Docker acceptance tied to the user's WSL result unless this environment can directly verify it.
 - Make small, reviewable changes. Do not change `RAG_TOP_K=4` without a fresh comparison and a recorded decision.
+
+## Execution handoff (2026-11-16)
+
+- The current local command executor repeatedly failed before launching, with `helper_unknown_error: setup refresh had errors`, including read-only Git checks. Do not infer that the local diff is clean or complete from this session.
+- User supplied screenshots reporting a completed review of 15 modified files plus new `src/support_agent/auth.py` and `docs/learning/`, a full pytest result of 51 passed, documentation updates, and WSL acceptance of 11/11 verifier cases after rebuild. Record these as user-provided evidence; this session could not independently inspect or reproduce them.
+- User-provided WSL report says restarting WSL caused Docker NAT overlap (`172.18.172.0/20` vs Docker bridge `172.18.0.0/16`); it says a backed-up daemon config added `bip=172.19.0.1/16`, a startup wait was added, and health plus all 11 verifier cases passed. Do not make further daemon, WSL, or network changes without explicit approval.
+- Previous-session handoff at `docs/learning/fast_mode_handoff.md` is superseded for status by the user's newer screenshots. Full independent diff review and current GitHub publication status remain unknown; GitHub main was last read as `6a2c132` in this session.
+- This session added `docs/learning/README.md` and `docs/learning/langchain.md`, using the last readable public source snapshot (`6a2c132`) for code-linked explanations. Recheck against the actual local files before treating it as final; tests could not run because the executor remains unavailable.

@@ -3,7 +3,7 @@
 set -euo pipefail
 
 BASE="${BASE_URL:-http://localhost:8000}"
-TENANT="${TENANT_ID:-demo-a}"
+DEMO_TOKEN="${DEMO_TOKEN:-demo-a-local-token}"
 
 health_status=$(curl -sS --max-time 10 -o /dev/null -w '%{http_code}' "$BASE/health")
 if [[ "$health_status" != "200" ]]; then
@@ -25,7 +25,7 @@ check_chat() {
   body=$(python3 -c 'import json,sys; print(json.dumps({"question": sys.argv[1]}, ensure_ascii=False))' "$question")
   response=$(curl -fsS --max-time 90 -X POST \
     -H 'Content-Type: application/json' \
-    -H "X-Tenant-ID: $TENANT" \
+    -H "Authorization: Bearer $DEMO_TOKEN" \
     -d "$body" "$BASE/chat")
 
   RESPONSE_JSON="$response" EXPECTED_INTENT="$expected_intent" \

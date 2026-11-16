@@ -5,6 +5,8 @@ class SupportState(TypedDict, total=False):
     question: str
     trace_id: str
     tenant_id: str
+    user_id: str
+    run_id: str
     database_path: str
     intent: str
     order_id: str | None

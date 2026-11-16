@@ -165,3 +165,23 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 新版要求每个模块有 `docs/learning/` 中文材料（代码位置、数据流图、可运行示例、必懂/了解内容、5–10 题），并建立统一故障案例库；这些尚未系统完成，列为后续 P0 交付材料。
 - 记忆已同步至 `AGENTS.md`、`task_plan.md`、`docs/project_status.md`、`docs/requirement_traceability.md`、README、项目故事和面试材料。当前阶段 11 LangChain 应由 Codex 主动产出讲解与学习章节，不等待用户架构方案。
 
+
+## 2026-11-16：Demo 身份认证与运行记录落地（交接代执行确认）
+
+- `auth.py` 用固定 Bearer token 映射两个演示身份，替代 `X-Tenant-ID` header；租户从 token 派生，客户端伪造 header 无效（有测试覆盖）。
+- `agent_runs` 记录运行生命周期（running/pending/completed/failed），含 trace_id/user_id/tenant_id/intent/error_type；跨租户读取返回 404；不存 question 明文，与脱敏日志原则一致。
+- 全量测试 51 项通过（原 26 项定向 + 新增认证/运行记录用例）；verify_phase6.sh 已改用 `Authorization: Bearer`，默认 token 与 config.py 内置默认一致。
+- 遗留：demo token 为公开示例值（.env.example 注明非生产凭据）；生产化需换真实认证，属学习目标差距项。
+
+## 2026-11-16：WSL 重启后容器构建 DNS 失效（已修复）
+
+- 现象：`docker compose up --build` 报 `Temporary failure in name resolution`（buildkit 内解析 TUNA 失败），宿主 curl 正常。
+- 根因：`wsl --shutdown` 后 WSL NAT 本次启动分到 `172.18.172.0/20`，与 docker0 的 `172.18.0.0/16` 子网重叠，容器流量路由被搅乱；此前 NAT 网段未撞上所以长期未暴露。
+- 修复：`/etc/docker/daemon.json` 增加 `"bip": "172.19.0.1/16"`（原文件备份 daemon.json.bak），docker0 迁出冲突段；`start-dockerd.sh` 增加启动前等待 eth0 就绪（最多 30s），避免 dockerd 在网络未就绪时创建网桥。
+- 教训：inbox WSL 每次重启 NAT 网段可能变化，docker 固定子网必须与之隔离；带 `nohup dockerd &` 的 wsl.exe 会话退出会连 dockerd 一起回收，daemon 持有必须用不退出的会话（start-dockerd.sh 的 sleep infinity）。
+# 2026-11-16 补充：验收截图与学习文档
+
+- 用户提供截图报告身份与租户隔离检查通过、51 项全量 pytest 通过、WSL health 200 和 11/11 验收通过；另报告 WSL NAT 网段冲突已通过备份后的 daemon bridge IP 调整修复。该主机修改未经本会话独立检查，禁止继续改 WSL/网卡配置。
+- 本会话只读检查工具仍报 `setup refresh had errors`。GitHub main 最后可读提交为 `6a2c132`；当时远端不存在 `docs/learning/`。因此实际源代码身份改造是否已提交/推送未知。
+- 新增 `docs/learning/langchain.md` 与索引，参考远端可读的 RAG 源文件编写，覆盖 Prompt → Chat Model → StrOutputParser、Retriever、答案约束、引用检查及 LangChain/LangGraph 分工。待本机执行恢复后与实际本地实现对齐并运行示例/相关测试；云端示例仅由用户显式运行。
+

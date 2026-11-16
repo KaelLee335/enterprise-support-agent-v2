@@ -26,29 +26,47 @@ def test_health_and_swagger_routes(client):
 
 
 def test_order_is_returned_only_for_matching_tenant(client):
-    own = client.get("/orders/1001", headers={"X-Tenant-ID": "demo-a"})
-    foreign = client.get("/orders/1001", headers={"X-Tenant-ID": "legacy-demo"})
+    own = client.get("/orders/1001", headers={"Authorization": "Bearer demo-a-local-token"})
+    foreign = client.get("/orders/1001", headers={"Authorization": "Bearer legacy-demo-local-token"})
 
     assert own.status_code == 200
     assert own.json()["issue_description"] == "质量问题"
     assert foreign.status_code == 404
 
 
-def test_tenant_header_is_required(client):
+def test_demo_bearer_token_is_required(client):
     response = client.get("/orders/1001")
-    assert response.status_code == 422
+    assert response.status_code == 401
+
+
+def test_demo_token_sets_tenant_and_ignores_client_tenant_header(client):
+    response = client.get(
+        "/orders/1001",
+        headers={
+            "Authorization": "Bearer legacy-demo-local-token",
+            "X-Tenant-ID": "demo-a",
+        },
+    )
+    assert response.status_code == 404
+
+
+def test_invalid_demo_token_is_rejected(client):
+    response = client.get(
+        "/orders/1001", headers={"Authorization": "Bearer unknown"}
+    )
+    assert response.status_code == 401
 
 
 def test_chat_uses_read_only_tenant_scoped_order_tool(client):
     own = client.post(
         "/chat",
         json={"question": "查订单 1001 的状态"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     foreign = client.post(
         "/chat",
         json={"question": "查订单 1001 的状态"},
-        headers={"X-Tenant-ID": "legacy-demo"},
+        headers={"Authorization": "Bearer legacy-demo-local-token"},
     )
 
     assert own.status_code == 200
@@ -62,11 +80,32 @@ def test_chat_uses_read_only_tenant_scoped_order_tool(client):
 def test_chat_recognizes_chinese_query_without_space_before_order_id(client):
     response = client.post(
         "/chat", json={"question": "查询订单1001"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     assert response.status_code == 200
     assert response.json()["intent"] == "order_lookup"
     assert response.json()["order"]["order_id"] == "1001"
+
+
+def test_chat_writes_minimal_tenant_scoped_agent_run(client):
+    headers = {"Authorization": "Bearer demo-a-local-token"}
+    response = client.post(
+        "/chat", json={"question": "查订单1001"}, headers=headers
+    )
+    run_id = response.json()["run_id"]
+    own = client.get(f"/agent-runs/{run_id}", headers=headers)
+    foreign = client.get(
+        f"/agent-runs/{run_id}",
+        headers={"Authorization": "Bearer legacy-demo-local-token"},
+    )
+    assert response.status_code == 200
+    assert own.status_code == 200
+    assert own.json()["user_id"] == "user-demo-a"
+    assert own.json()["tenant_id"] == "demo-a"
+    assert own.json()["intent"] == "order_lookup"
+    assert own.json()["status"] == "completed"
+    assert "question" not in own.json()
+    assert foreign.status_code == 404
 
 
 @pytest.mark.parametrize(
@@ -81,7 +120,7 @@ def test_chat_recognizes_chinese_query_without_space_before_order_id(client):
 def test_chat_handles_invalid_and_adversarial_routing(client, question, expected_phrase):
     response = client.post(
         "/chat", json={"question": question},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
 
     assert response.status_code == 200
@@ -93,7 +132,7 @@ def test_chat_requires_order_id_before_creating_refund_approval(client):
     response = client.post(
         "/chat",
         json={"question": "帮我直接退款"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
 
     assert response.status_code == 200
@@ -107,7 +146,7 @@ def test_refund_approval_pauses_resumes_and_never_changes_order(client):
     pending = client.post(
         "/chat",
         json={"question": "帮我给订单 1001 直接退款"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     assert pending.status_code == 200
     pending_data = pending.json()
@@ -119,19 +158,19 @@ def test_refund_approval_pauses_resumes_and_never_changes_order(client):
     foreign = client.post(
         f"/approvals/{thread_id}/decision",
         json={"approved": True},
-        headers={"X-Tenant-ID": "legacy-demo"},
+        headers={"Authorization": "Bearer legacy-demo-local-token"},
     )
     assert foreign.status_code == 404
 
     decision = client.post(
         f"/approvals/{thread_id}/decision",
         json={"approved": True},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     status = client.get(
-        f"/approvals/{thread_id}", headers={"X-Tenant-ID": "demo-a"}
+        f"/approvals/{thread_id}", headers={"Authorization": "Bearer demo-a-local-token"}
     )
-    order = client.get("/orders/1001", headers={"X-Tenant-ID": "demo-a"})
+    order = client.get("/orders/1001", headers={"Authorization": "Bearer demo-a-local-token"})
 
     assert decision.status_code == 200
     assert decision.json()["approval_status"] == "approved_demo"
@@ -144,18 +183,18 @@ def test_refund_approval_rejects_duplicate_decision(client):
     pending = client.post(
         "/chat",
         json={"question": "帮我给订单 1001 直接退款"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     ).json()
     thread_id = pending["thread_id"]
     client.post(
         f"/approvals/{thread_id}/decision",
         json={"approved": False},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     duplicate = client.post(
         f"/approvals/{thread_id}/decision",
         json={"approved": True},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
 
     assert duplicate.status_code == 409
@@ -168,7 +207,7 @@ def test_pending_refund_approval_survives_app_restart(tmp_path, monkeypatch):
     ))
     monkeypatch.setattr(main, "SEED_PATH", tmp_path / "orders.json")
     main.SEED_PATH.write_text('{"orders": []}', encoding="utf-8")
-    headers = {"X-Tenant-ID": "demo-a"}
+    headers = {"Authorization": "Bearer demo-a-local-token"}
 
     with TestClient(main.app) as first_client:
         pending = first_client.post(
@@ -191,20 +230,20 @@ def test_pending_refund_approval_survives_app_restart(tmp_path, monkeypatch):
     assert decision.json()["approval_status"] == "approved_demo"
 
 
-def test_chat_validates_request_body_and_requires_tenant(client):
+def test_chat_validates_request_body_and_requires_demo_auth(client):
     missing_tenant = client.post("/chat", json={"question": "查订单"})
     empty_question = client.post(
-        "/chat", json={"question": ""}, headers={"X-Tenant-ID": "demo-a"}
+        "/chat", json={"question": ""}, headers={"Authorization": "Bearer demo-a-local-token"}
     )
 
-    assert missing_tenant.status_code == 422
+    assert missing_tenant.status_code == 401
     assert empty_question.status_code == 422
 
 
 def test_chat_exposes_trace_id_without_echoing_question(client):
     response = client.post(
         "/chat", json={"question": "查订单 1001 的状态"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     assert response.status_code == 200
     assert response.headers["X-Trace-ID"] == response.json()["trace_id"]
@@ -217,7 +256,7 @@ def test_order_database_failure_returns_safe_error(client, monkeypatch):
     monkeypatch.setattr("support_agent.agent.nodes.fetch_order", fail_lookup)
     response = client.post(
         "/chat", json={"question": "查订单 1001 的状态"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     assert response.status_code == 200
     assert response.json()["error"] == "OSError"
@@ -231,7 +270,7 @@ def test_policy_retrieval_failure_returns_safe_answer(client, monkeypatch):
     monkeypatch.setattr("support_agent.agent.nodes.create_siliconflow_embeddings", fail_embeddings)
     response = client.post(
         "/chat", json={"question": "退货规则是什么？"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
     assert response.status_code == 200
     assert response.json()["error"] == "OSError"
@@ -245,7 +284,7 @@ def test_expected_approval_interrupt_is_logged_as_pause(client, caplog):
     caplog.set_level(logging.INFO)
     response = client.post(
         "/chat", json={"question": "帮我给订单 1001 直接退款"},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
 
     assert response.json()["approval_status"] == "pending"
@@ -261,7 +300,7 @@ def test_http_logs_question_preview_redacted_and_request_duration(client, caplog
     question = "查订单1001，联系 13812345678，邮箱 test@example.com，api_key=sk-testsecret123456789"
     response = client.post(
         "/chat", json={"question": question},
-        headers={"X-Tenant-ID": "demo-a"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
     )
 
     assert response.status_code == 200

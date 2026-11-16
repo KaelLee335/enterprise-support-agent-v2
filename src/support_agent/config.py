@@ -29,6 +29,8 @@ def _resolve_env_path(env_name: str, default: str) -> Path:
 @dataclass(frozen=True)
 class Settings:
     database_path: Path
+    demo_token_demo_a: str = "demo-a-local-token"
+    demo_token_legacy: str = "legacy-demo-local-token"
     checkpoint_path: Path = PROJECT_ROOT / "data" / "checkpoints.sqlite"
     log_level: str = "INFO"
     siliconflow_api_key: str | None = None
@@ -54,6 +56,8 @@ def get_settings() -> Settings:
         raise ValueError("RAG_TOP_K must be at least 1")
     return Settings(
         database_path=database_path,
+        demo_token_demo_a=os.getenv("DEMO_TOKEN_DEMO_A", "demo-a-local-token"),
+        demo_token_legacy=os.getenv("DEMO_TOKEN_LEGACY", "legacy-demo-local-token"),
         checkpoint_path=checkpoint_path,
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         siliconflow_api_key=os.getenv("SILICONFLOW_API_KEY") or None,
