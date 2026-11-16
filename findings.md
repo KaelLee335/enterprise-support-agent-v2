@@ -119,13 +119,13 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 故障注入覆盖数据库和 Embedding 服务失败；客户端看到安全提示和异常类型，具体异常栈只留服务端日志。
 - 尚未完成 LLM 语义质量评分、真实模型端到端故障注入、top-k 调整对检索的对照。不要把有限规则评估描述为完整任务成功率。
 - 阶段 6 静态准备：Dockerfile 补入 `data/policies` 和 `data/vector_store`；Compose 使用本地 `.env` 注入模型 Key、挂载 `data/` 并检查 `/health`。YAML 语法校验通过，但 Docker 镜像构建/容器健康/宿主持久化尚未验证。
-- 用户报告 WSL Docker 阶段 6 首轮验收成功：容器健康、`/health` 200、订单查询和 `/chat` 成功；pytest 33 项通过。其容器使用 `/opt/project2` 构建以绕过 `/mnt/d` BuildKit 权限问题，以 `/mnt/d/project_2/data:/app/data` 保留 D 盘数据。
+- 用户报告 WSL Docker 阶段 6 首轮验收成功：容器健康、`/health` 200、订单查询和 `/chat` 成功；pytest 33 项通过。其容器使用 `the WSL project directory` 构建以绕过 `the local Windows-mounted directory` BuildKit 权限问题，以 `the local persistent data directory:/app/data` 保留 D 盘数据。
 - 用户已将 `main.py` 的 seed path 三级回退同步回 Windows 项目，解决 site-packages 布局启动崩溃。
 - 后续识别到订单号正则 `\b` 把“查询订单1001”误判为 clarify。已改为 ASCII token 边界判断，并新增无空格中英文混排 API/路由测试；Windows 工作区 35 项测试通过，安全路由评估 4/4。最终用户在 WSL 同步并重建后确认容器也已通过此用例（见下方最终验收结论）。
 
 ## 阶段 6 最终验收结论（覆盖此前待验证记录）
 
-- 用户最终确认已将改动同步到 `/opt/project2` 并重建。容器健康，`/health` 返回 200；订单路由含“查询订单1001”无空格形式正确命中；退款请求进入 `pending`；政策问答引用 POL-06、`citations_valid=True`；日志 0 error；pytest 35 passed。
+- 用户最终确认已将改动同步到 `the WSL project directory` 并重建。容器健康，`/health` 返回 200；订单路由含“查询订单1001”无空格形式正确命中；退款请求进入 `pending`；政策问答引用 POL-06、`citations_valid=True`；日志 0 error；pytest 35 passed。
 - `config.py` 使用 `_resolve_env_path` 为数据库、checkpoint、向量库解析环境路径：绝对路径原样使用，相对路径优先以运行 CWD 为基准，以避免 pip 安装布局把容器数据解析到 `site-packages`。Docker 工作目录为 `/app`，数据 bind mount 到 `/app/data`。
 - `main.py` 的 seed 文件解析兼容源码、安装包和容器布局，并支持环境变量覆盖。
 - 阶段 0–6 最终验收完成。前文中“需要用户重建以验证最新修复”的状态已由本节最终实测结果取代。
@@ -133,15 +133,15 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - WSL 构建期间 Dockerfile 已分离依赖与源码层以利用缓存，并改用 TUNA pip index 与 120 秒默认超时；当前 Windows 工作区 Dockerfile 与此优化一致。
 - 补充 Agent 评估后，路由标签基线 30/35；坏例包括空输入、多个/非法订单号、个人信息索取和提示注入。修复并回归后可映射路由 35/35；准确订单参数 8/8、工具调用成功 9/9、标注结果 6/6、预期订单字段 5/5，临时数据库快照一致。完整报告和基线对照为 `data/evaluation/v2_agent_routes.json` 与 `data/evaluation/v2_agent_routes_before_fixes.json`。
 - 最新 pytest 47 passed。评估仅覆盖有标签的确定性路由/工具结果；没有自动评判 LLM 答案语义，也没有给 10 个无 route 标签用例强行赋分。
-- 用户最终确认最新 `nodes.py`/`state.py` 在 WSL 容器重建后通过异常订单号、多个订单号、隐私索取和提示注入用例，且正常订单与 POL-06 RAG 回归无误；断言式 `scripts/verify_phase6.sh` 在 `/opt/project2` 全部通过，EXIT=0。
+- 用户最终确认最新 `nodes.py`/`state.py` 在 WSL 容器重建后通过异常订单号、多个订单号、隐私索取和提示注入用例，且正常订单与 POL-06 RAG 回归无误；断言式 `scripts/verify_phase6.sh` 在 `the WSL project directory` 全部通过，EXIT=0。
 - WSL 只读检查：`dockerd` PID 11 存活、`systemctl is-active docker` 为空、`is-enabled docker` 为 `enabled`。只能确认 daemon 当前运行；systemd 管理状态和跨 WSL/Windows 重启后的自动恢复未证实。演示期间应保持 daemon 所在 `inbox` WSL 会话运行。尚未修改 WSL 启动配置，避免与当前手动 daemon 冲突。详见 `docs/wsl_docker_lifecycle.md`。
 - 追加检索评估：同一 36 条有证据标签案例的 Top-2/4/6/8 Hit@k 分别 97.2/100/100/100%，平均 Recall@k 分别 77.3/86.6/89.4/99.1%，完整证据率分别 58.3/72.2/77.8/97.2%。Top-2/6/8 报告在 `data/evaluation/v2_retrieval_top2.json`、`data/evaluation/v2_retrieval_top6.json`、`data/evaluation/v2_retrieval_top8.json`。默认配置仍为 Top-4；调整前还应比较答案语义质量、延迟和 token 成本。
 - Top-4/Top-8 14 条答案生成探索性对照在 `data/evaluation/v2_rag_answers.json`。同模型 Qwen judge 的要点覆盖率为 76.9%/71.8%，引用格式检查两档均 100%。judge 对 KB-04 Top-4 有误判；Top-8 KB-04 答案还把“进液”说成可申请非人为故障保修，与 POL-04 明文规则冲突。不可把同模型 judge 分数当最终准确率；维持 Top-4，后续人工/独立裁判复核。
 - 对 14 组生成答案完成逐项人工审阅，详情在 `docs/rag_answer_manual_review.md`。除 Top-8 KB-04 明显违背 POL-04 外，还发现 KB-01 未提商品条件、KB-05 漏人工退货指引、Top-4 KB-06 漏 1–3 日发起阶段、发票回答未明确聊天内不收集抬头/税号、MVP-KB-BOUNDARY 未充分区分质量问题与无理由退货。
 - 提示优化实验记录：长规则提示导致矛盾答案，已撤销；短规则尝试未能修复质量问题分流，且引入未经证据支持的替代路线，均已撤销。当前 `src/support_agent/rag/answer.py` 仍为用户验收的原提示。`docs/rag_grounding_hardening_plan.md` 提出版本化规则约束层方案。未来改动必须先以可重复的 Bad Case 评估确认有效，再提议同步到 WSL。
 - 经用户批准实施后，政策约束层 v1 在本机完成：`src/support_agent/rag/answer_constraints.py` 包含 POL-04 进液排除、POL-02 质量/无理由边界与退货条件、POL-05 运费指引、POL-06 退款阶段、POL-09 发票隐私/资格边界。关键硬边界用固定政策回复，其余仅补充证据原文要点；执行 ID 进入结构化日志。Top-4/8 14 案例共 28 条答案均通过来源 ID 校验；输出在 `data/evaluation/v2_rag_answers_constraints_v3.json`。此评估没有 LLM judge，不能视为语义准确率。
-- 约束层尚未同步到 WSL Docker；容器仍运行用户先前验收版本。已准备 `scripts/update_wsl_and_verify.sh`，从 `inbox` WSL 会话运行时会将应用源文件及扩充后的 `verify_phase6.sh` 从 D 盘复制到 `/opt/project2`，重建后检查容器健康并运行全部断言。该部署脚本尚未由用户执行。
-- 上条为历史状态，现已被后续实测取代：用户确认 D 盘源码已同步至 `/opt/project2` 并重建容器，扩充版 `verify_phase6.sh` 的 health 检查和 11 个业务用例全部通过，EXIT=0。最新执行证据记录于 `progress.md`，当前状态见 `docs/project_status.md`。
+- 约束层尚未同步到 WSL Docker；容器仍运行用户先前验收版本。已准备 `scripts/update_wsl_and_verify.sh`，从 `inbox` WSL 会话运行时会将应用源文件及扩充后的 `verify_phase6.sh` 从 D 盘复制到 `the WSL project directory`，重建后检查容器健康并运行全部断言。该部署脚本尚未由用户执行。
+- 上条为历史状态，现已被后续实测取代：用户确认 D 盘源码已同步至 `the WSL project directory` 并重建容器，扩充版 `verify_phase6.sh` 的 health 检查和 11 个业务用例全部通过，EXIT=0。最新执行证据记录于 `progress.md`，当前状态见 `docs/project_status.md`。
 # 2026-11-16：原始项目要求与当前产物初步对照
 
 - 仓库已有 `docs/langgraph_design.md` 的 Mermaid 路由图，以及 State、Checkpoint、租户隔离和单轮请求边界说明；`docs/interview_kit.md`、`docs/project_story.md` 已含架构讲解和面试材料。初步文件清单中未发现独立 PNG/SVG 架构图；后续追踪矩阵应区分可渲染 Mermaid 图与独立图片资产。
@@ -176,9 +176,9 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 ## 2026-11-16：WSL 重启后容器构建 DNS 失效（已修复）
 
 - 现象：`docker compose up --build` 报 `Temporary failure in name resolution`（buildkit 内解析 TUNA 失败），宿主 curl 正常。
-- 根因：`wsl --shutdown` 后 WSL NAT 本次启动分到 `172.18.172.0/20`，与 docker0 的 `172.18.0.0/16` 子网重叠，容器流量路由被搅乱；此前 NAT 网段未撞上所以长期未暴露。
-- 修复：`/etc/docker/daemon.json` 增加 `"bip": "172.19.0.1/16"`（原文件备份 daemon.json.bak），docker0 迁出冲突段；`start-dockerd.sh` 增加启动前等待 eth0 就绪（最多 30s），避免 dockerd 在网络未就绪时创建网桥。
-- 教训：inbox WSL 每次重启 NAT 网段可能变化，docker 固定子网必须与之隔离；带 `nohup dockerd &` 的 wsl.exe 会话退出会连 dockerd 一起回收，daemon 持有必须用不退出的会话（start-dockerd.sh 的 sleep infinity）。
+- 根因：`wsl --shutdown` 后 WSL NAT 本次启动分到 `the WSL-assigned private subnet`，与 docker0 的 `the Docker bridge private subnet` 子网重叠，容器流量路由被搅乱；此前 NAT 网段未撞上所以长期未暴露。
+- 修复：`the Docker daemon configuration file` 增加 `"bip": "a separate private Docker bridge range"`（原文件备份 a backup of the daemon configuration），docker0 迁出冲突段；`the Docker startup script` 增加启动前等待 eth0 就绪（最多 30s），避免 dockerd 在网络未就绪时创建网桥。
+- 教训：inbox WSL 每次重启 NAT 网段可能变化，docker 固定子网必须与之隔离；带 `nohup dockerd &` 的 wsl.exe 会话退出会连 dockerd 一起回收，daemon 持有必须用不退出的会话（the Docker startup script 的 sleep infinity）。
 # 2026-11-16 补充：验收截图与学习文档
 
 - 用户提供截图报告身份与租户隔离检查通过、51 项全量 pytest 通过、WSL health 200 和 11/11 验收通过；另报告 WSL NAT 网段冲突已通过备份后的 daemon bridge IP 调整修复。该主机修改未经本会话独立检查，禁止继续改 WSL/网卡配置。
@@ -206,7 +206,7 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 
 - 用户截图报告本地从 origin/main 快进后新增两条测试通过：订单随机 not_found 404 与 Chat Model timeout 安全响应；2 passed in 4.61s。此前全量 pytest 51 passed（267 秒）是独立、更早结果。
 - 阶段 12 按用户明确验收关闭；未覆盖的 checkpoint 文件损坏及 Compose 配置错误继续标记未验证，不能因 2 条通过而扩大结论。
-- 阶段 13 需要干净 clone 实际安装与运行。静态 GitHub tree 未包含 .env、运行数据库、Chroma 向量库或虚拟环境；首次 RAG/容器部署须本地生成索引，Key 只留在 D 盘本地 .env。
+- 阶段 13 需要干净 clone 实际安装与运行。静态 GitHub tree 未包含 .env、运行数据库、Chroma 向量库或虚拟环境；首次 RAG/容器部署须本地生成索引，Key 只留在本机 .env。
 - 当前 Codex 本地执行器无法启动；克隆、pytest 和 HTTP smoke test 等本地结果需要用户在隔离 D 盘目录运行后提供。WSL/Docker 不需参与此阶段。
 
 
@@ -216,3 +216,8 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 全局 pip.ini 的 TUNA simple endpoint 返回 HTTP 403（pip User-Agent）；本次临时添加 Aliyun 镜像选项后安装成功。README 已记录一次性 pip mirror override，避免要求改全局配置。
 - Dockerfile 仍使用 TUNA；仅在之后必要的 Dockerfile 改动中切换 Aliyun 或实现双源回退。本轮没有重建容器。
 - 干净克隆还需跑 health 和带 Bearer 的 /orders/1001 smoke，才能完整确认首次运行路径。当前本地执行工具失败，等待用户在 clone 中执行。
+
+
+## 阶段 13、14 验收更新（用户报告）
+
+用户报告：干净克隆安装依赖后全量 pytest 53 项通过（18.39 秒）；API 首次启动 health 200、带 Bearer 的 demo 订单查询 200、缺少 token 返回 401。文档一致性收尾完成；本会话没有重跑测试或 API。真实 429、checkpoint 损坏和 Compose 缺 Key/路径仍未验证。
