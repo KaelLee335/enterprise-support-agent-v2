@@ -158,3 +158,10 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - SQL 目前围绕 tenants/orders、seed 插入和只读查询；没有 users/agent-run 表，也没有 JOIN、订单 UPDATE/DELETE 业务路径。这是学习目标与当前轻量 Demo 的差距，不建议未经讨论添加无用写操作。
 - 首先建议的用户学习主题是 LangChain：现有 RAG 生成链为 PromptTemplate → Chat Model → StrOutputParser；外层业务流程由 LangGraph 管理。设计是否需要形式化 Tool API，需在用户提出思路后讨论，不预设改造。
 
+## 2026-11-16：采用新版自主开发提示词
+
+- 新版协作分工取代上一版：Codex 负责技术路线、架构和主力开发；用户是学习者，不需要先产出设计或代码。旧的阶段 11 用户设计 gate 已移除，保留用户指定的学习顺序。
+- 新版 P0 明确要求本地模拟身份/权限、用户与租户数据、必要执行记录和基础 CRUD/事务；当前项目只实现租户 header 范围隔离和订单只读，真实身份不存在。这属于待补的 Demo 级 P0，不等于需要引入生产认证或开放订单写操作。
+- 新版要求每个模块有 `docs/learning/` 中文材料（代码位置、数据流图、可运行示例、必懂/了解内容、5–10 题），并建立统一故障案例库；这些尚未系统完成，列为后续 P0 交付材料。
+- 记忆已同步至 `AGENTS.md`、`task_plan.md`、`docs/project_status.md`、`docs/requirement_traceability.md`、README、项目故事和面试材料。当前阶段 11 LangChain 应由 Codex 主动产出讲解与学习章节，不等待用户架构方案。
+

@@ -10,6 +10,7 @@
 - 按新提示词更新公开介绍：README 项目定位、项目故事/协作方式、面试包中的 3 分钟自我介绍；GitHub About 描述已更新为端到端 Python Agent 工程学习项目，并明确模拟数据/Demo 边界。实际实现指标未改写，阶段 10 需求追踪尚未开始。
 - 阶段 10 原始要求追踪完成，产物 `docs/requirement_traceability.md`：覆盖定位与 V1 复用、固定案例、Python/FastAPI/SQL、LangChain/RAG/LangGraph、身份/租户权限、评估/追踪、逐项故障注入、Docker、交付物和学习机制。严格区分已实现、部分实现、未实现和未验证；本轮只读，没有运行测试、改业务代码或调用模型。
 - 阶段 11 已开启第一个主题 LangChain。已向用户介绍当前链路边界：RAG 生成链 `PromptTemplate → Chat Model → StrOutputParser`；LangGraph 管理业务状态分支；当前订单节点不是 LangChain `@tool`。待用户先提出设计思路，再决定解释/改造，不会为了技术栈清单自动新增工具封装。
+- 用户提供新版自主开发提示词并要求更新项目记忆：Codex 现在担任技术负责人/主力开发者，用户为学习者；不再要求用户先设计架构或逐模块批准。保留其学习顺序 LangChain → LangGraph → RAG → SQL → FastAPI。每章需写中文代码绑定学习材料（代码位置、数据流图、示例、重点分级、5–10 个问题）。新版 P0 新增 Demo 身份/权限、必要任务记录、受控 CRUD/事务和统一故障案例库；将以模拟身份与隔离数据补齐，不触及真实业务写操作。已更新 `AGENTS.md`、`task_plan.md`、`docs/project_status.md`、追踪矩阵及公开项目介绍。下一步继续阶段 11 LangChain，由 Codex 主动写学习章和相应验证，不等待用户先给设计方案。
 
 ### 2026-11-16：整理项目总路线及阶段 10 计划
 
