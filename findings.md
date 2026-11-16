@@ -191,3 +191,12 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 基于当前远端源码新增 LangGraph、RAG、SQL、FastAPI 学习章节草稿，包含 Mermaid 数据流、代码入口、示例、重点和自测题。它们还没在 GitHub `main` 目录出现，当前发布状态为未推送。
 - 此会话新增章节后没有运行测试；功能验收仍引用用户截图报告的 51 passed、WSL 11/11 PASS。公开源码快照不是本地工作树复核的替代品。
 
+
+
+## 2026-11-16：阶段 12 故障库和验收记录
+
+- 用户报告全量 pytest 51 passed、WSL health 200 / 11 项 verifier 通过；这些是用户截图证据，不代表后续新增故障用例已运行。
+- 新增统一 12 类故障手册 `docs/troubleshooting/fault_cases.md`，清楚区分已有覆盖、部分覆盖和未验证。优先补随机 not_found、Chat Model timeout/429、checkpoint 损坏；Compose 空 Key/路径检查在干净克隆阶段验证。
+- 已完成并推送的学习章节：`docs/learning/{langchain,langgraph,rag,sql,fastapi}.md`。GitHub API 确认这些文件存在。
+- 公开 README 已据用户 WSL 验收更新；阶段计划保留未完项，不把干净克隆或故障注入错误标成完成。
+- 当前下一步需在隔离环境跑有针对性的故障测试，再执行 GitHub 干净克隆。不要在当前 WSL 容器/数据上进行破坏性注入。
