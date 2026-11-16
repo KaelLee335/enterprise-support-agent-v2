@@ -168,3 +168,10 @@
 - 新增并发布 `docs/troubleshooting/fault_cases.md`：12 类故障的现象、层次、线索、处理和防复发，并明确哪些覆盖、部分覆盖或待验证。
 - 更新 `AGENTS.md`、`task_plan.md`、`docs/project_status.md`、`docs/requirement_traceability.md`：阶段 11 完成；阶段 12 继续补随机 not_found、Chat Model timeout/429、checkpoint 损坏、Compose 缺 Key 的隔离验证；之后阶段 13 干净克隆。
 - 本会话执行器仍不可用；上述本轮文档没有本地 diff 检查或测试运行。外部 GitHub 只读读取和已授权的文档发布可用。用户原报告的 51 pytest/WSL 11 项验收没有被当作本轮测试结果。
+
+
+# 2026-11-16 — 阶段 12 两条离线回归已添加
+
+- 新增 tests/test_api.py 随机订单 not_found 断言；新增 tests/test_agent.py 假 Chat Model TimeoutError 安全回答断言。两者均通过 GitHub 文件 API 提交，尚未运行。
+- 更新 fault_cases、requirement_traceability、task_plan、project_status、AGENTS，将状态标为“已添加、待运行”；没有将其计入此前用户报告的 51 passed。
+- 当前唯一需要用户现场操作的是把本机 D:\\project_2 快进到公开 origin/main 并运行 pytest。运行结果回来后继续 checkpoint 隔离注入与阶段 13 干净克隆。
