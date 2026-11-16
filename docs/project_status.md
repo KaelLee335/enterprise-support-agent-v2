@@ -79,10 +79,10 @@
 1. 同步公开仓库最新文档：在本机项目目录运行 `git pull --ff-only origin main`。
 2. 可选决策：是否从本地 Demo 转入生产化阶段 16。若暂不生产化，无需采取其他动作；若启动，再提供部署环境、身份系统和数据合规要求。
 
-当前无需重启 WSL/Docker、配置 API Key 或重跑已验收的 53 项 clean-clone 测试/API smoke；阶段 15 新增的 54 项结果来自 GitHub Actions。
+当前不需要配置 API Key 或重跑已验收的 53 项 clean-clone 测试/API smoke。若要更新正在使用的 WSL 容器，需用户先同步最新 main 再重建；阶段 15 的 55 项结果来自 GitHub Actions。
 
 ## 当前优先级
 
 用户确认先完成主要业务链路，再回头做加固。主链路已由用户验收。阶段 15 可靠性加固现已开始：已新增 GitHub Actions，在干净 Python 3.12 环境全量运行 pytest；新增 checkpoint 损坏预检，损坏文件安全阻止启动且不覆盖原文件。
 
-GitHub Actions 报告 54 passed in 2.98s。下一项是 Compose 配置预检；真实供应商限流、延迟统计和生产化暂缓。
+GitHub Actions 最新报告 55 passed in 3.99s；Compose 模板解析、阿里云源 Docker 构建、临时容器 health/订单/无 Key RAG 安全降级均通过。下一项是将新版本同步到用户现有 WSL 工作区并重建容器；本会话没有操作 WSL。真实供应商限流、延迟统计和生产化暂缓。
