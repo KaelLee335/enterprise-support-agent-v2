@@ -58,14 +58,36 @@ def _resolve_seed_path() -> Path:
 SEED_PATH = _resolve_seed_path()
 
 
+def _open_checkpoint_connection(path: Path) -> sqlite3.Connection:
+    """Open a checkpoint DB only after a read-only integrity preflight.
+
+    Corrupt checkpoint state may contain pending approvals. Fail startup without
+    replacing or mutating that file so an operator can preserve and inspect it.
+    """
+    connection = sqlite3.connect(path, check_same_thread=False)
+    try:
+        result = connection.execute("PRAGMA quick_check").fetchone()
+    except sqlite3.DatabaseError as exc:
+        connection.close()
+        raise RuntimeError(
+            "Checkpoint database is corrupt or unreadable; the file was preserved."
+        ) from exc
+    if result is None or result[0] != "ok":
+        connection.close()
+        raise RuntimeError(
+            "Checkpoint database failed its integrity check; the file was preserved."
+        )
+    return connection
+
+
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    initialize_database(settings.database_path, SEED_PATH)
     settings.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(settings.checkpoint_path, check_same_thread=False)
-    checkpointer = SqliteSaver(connection)
-    application.state.support_graph = build_support_graph(checkpointer)
+    connection = _open_checkpoint_connection(settings.checkpoint_path)
     try:
+        initialize_database(settings.database_path, SEED_PATH)
+        checkpointer = SqliteSaver(connection)
+        application.state.support_graph = build_support_graph(checkpointer)
         yield
     finally:
         connection.close()
