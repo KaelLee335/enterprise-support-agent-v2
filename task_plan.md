@@ -13,7 +13,7 @@
 - [x] 阶段 4：SQLite checkpoint、租户范围审批状态、LangGraph interrupt/resume 演示完成；批准不产生业务写入。
 - [x] 阶段 5：复用 V1 评估集建立 RAG/Agent 路由、工具参数/结果指标；加入 JSON 追踪、故障注入及 Bad Case 修复前后对照；完成 Top-2/4/6/8 检索对照、14 条 Top-4/Top-8 生成对照、逐例人工复核及本机政策约束层评估。
 - [x] 阶段 6：用户确认最新路由加固在 WSL Docker 中通过；health、订单/无空格路由、异常/隐私/提示注入拒答、退款审批、POL-06 RAG、D 盘挂载及节点日志均已验收。
-- [ ] 阶段 7：发布就绪与可复现交接（当前）：修复全新克隆缺少未跟踪向量库时的 Docker 构建依赖；参数化数据目录且保留此设备默认路径；补全 Git/Docker 忽略项；建立本地仓库、审阅可跟踪文件清单、更新首次部署文档；最终需要在 WSL 构建验证。
+- [x] 阶段 7：发布就绪与可复现交接：修复全新克隆缺少未跟踪向量库时的 Docker 构建依赖；参数化数据目录且保留此设备默认路径；补全 Git/Docker 忽略项；更新首次部署文档并在 WSL 构建验证。
 - [x] 部署收尾只读诊断：`systemctl is-active` 为空、`is-enabled` 为 `enabled`，systemd active 未证实。用户随后实测 Ubuntu WSL 为 Stopped 时触发 `Start-ScheduledTask`，`dockerd` ready、项目容器 healthy、health 200；计划任务恢复路径已验证，Windows 完整重启触发仍未验证，主机级配置未改动。
 - [x] 阶段 6 验收脚本已在 WSL `/opt/project2` 运行，全部检查通过，EXIT=0。
 
@@ -35,7 +35,7 @@
 
 阶段 0–6 的原始版本、Docker 功能验收、演示手册和完整面试材料均已完成。阶段 7 发布就绪与可复现交接也已完成：Git 忽略规则与待跟踪清单已审阅，Docker 新克隆构建成功，D 盘数据挂载正确，11 项验收全过。RAG 约束层在本机评估并部署到 WSL；Ubuntu WSL 停止后通过计划任务触发已恢复 Docker 容器并健康；Windows 完整重启后的触发仍未验证。原始需求的学习问答由用户要求暂缓，之后统一处理。
 
-## 阶段 8：GitHub 公开交付（待连接）
+## 阶段 8：GitHub 公开交付（已完成；下方为历史记录）
 
 - [x] 用户选择新建公开仓库。
 - [x] 发布前最终密钥/运行数据检查并审阅首次提交文件清单。
@@ -43,6 +43,15 @@
 - [x] 在 GitHub 创建空白公开仓库 `https://github.com/KaelLee335/enterprise-support-agent-v2`，未初始化额外文件。
 - [x] 添加 origin、推送 `main` 并核对远端仓库可见性、文件树和 README/source/tests 内容。
 - [x] 验证远端默认分支、README/source/tests 展示并提供仓库链接。
+
+## 阶段 9：Windows/WSL Docker 启动可靠性（只读审查完成，等待用户决定是否改设置）
+
+- [x] 只读检查 `WSL-Dockerd-Autostart` 任务的命令、触发器、运行账户和最近结果。
+- [x] 确认任务当前以 `LAPTOP-08OK88SN\\17488` 交互式账户运行，触发器为已启用的 Logon（用户登录），不是 Startup（系统启动）。
+- [ ] 若用户需要登录前开机自启，先取得确认，再评估改为 Startup/服务账户运行的安全性、WSL 启动行为及脚本权限；确认前不修改计划任务、不启动/停止 Docker、不改 WSL/systemd/网卡设置。
+- [ ] 经授权后才验证系统重启/登录前行为；不得用停止当前 daemon 的方式做试验。
+
+当前检查只读取任务属性：任务状态 Running，最近执行时间 2026-11-16 09:58:58，结果代码 267009；未触发或修改任务。此前用户已验证手动触发可从 Ubuntu Stopped 状态恢复到容器 healthy 和 health 200，这与“开机登录前自动恢复”是不同场景。
 
 ## 错误记录
 

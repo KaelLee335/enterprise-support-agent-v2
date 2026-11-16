@@ -85,7 +85,7 @@ docker compose down
 
 容器中的相对路径配置（`DATABASE_PATH`、`CHECKPOINT_DB_PATH`、`VECTOR_STORE_PATH`）按工作目录 `/app` 解析，不依赖 pip 安装后 `site-packages` 中的源码位置。`.env` 从当前工作目录向上加载。
 
-`systemctl is-active docker` 为空而 `is-enabled` 为 `enabled`，systemd 未报告 Docker unit 正在运行。用户实测 Ubuntu WSL 为 Stopped 时触发计划任务后，`dockerd` 就绪、容器 healthy、health 200，证明计划任务可从停止的发行版恢复服务；Windows 完整重启后的计划任务触发设置尚未核实。详情见 [`docs/wsl_docker_lifecycle.md`](docs/wsl_docker_lifecycle.md)。
+`systemctl is-active docker` 为空而 `is-enabled` 为 `enabled`，systemd 未报告 Docker unit 正在运行。用户实测 Ubuntu WSL 为 Stopped 时触发计划任务后，`dockerd` 就绪、容器 healthy、health 200。当前 Windows 计划任务配置为用户登录时触发，不能据此保证登录前自动恢复。详情见 [`docs/wsl_docker_lifecycle.md`](docs/wsl_docker_lifecycle.md)。
 
 ## 迁移说明
 

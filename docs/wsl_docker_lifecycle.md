@@ -6,6 +6,12 @@ WSL Docker 容器功能验收已通过；最新只读检查结果为 `pgrep -a d
 
 用户随后提供的实测截图补充了恢复证据：`wsl -l -v` 显示 Ubuntu 为 `Stopped`；触发 `Start-ScheduledTask` 后日志显示 `dockerd ready`，`pgrep dockerd` 有进程，`docker ps` 显示 `project2-support-agent-1` 为 `Up (healthy)`，`/health` 返回 200。这证明该计划任务可在 Ubuntu 已停止时启动 Docker 并恢复项目服务。
 
+## 2026-11-16 计划任务只读检查
+
+本机任务 `\\WSL-Dockerd-Autostart` 的动作是 `wsl.exe -d Ubuntu -u root -- /usr/local/bin/start-dockerd.sh`。任务当前由 `LAPTOP-08OK88SN\\17488` 交互式账户运行，触发器为已启用的 Logon（用户登录），运行级别 Limited；任务状态为 Running。最近一次运行时间为 2026-11-16 09:58:58，结果代码 267009。
+
+这确认了用户登录触发，不代表 Windows 启动时或用户登录前会触发。此次只读取任务属性，没有运行任务、停止 daemon、修改计划任务、改 WSL/systemd 或调整虚拟网卡。若需要登录前开机自启，应先明确运行账户和后台运行需求，再单独批准并实施任务变更。
+
 尚未验证 Windows 完整重启后的触发行为（例如计划任务是否配置为开机触发、用户未登录时能否运行）。若 Windows 重启后服务不可用，再检查任务触发条件和任务历史。不要为验证而关闭当前 daemon。
 
 项目 Compose 的 `restart: unless-stopped` 只定义 Docker daemon 仍运行时容器的重启策略；它不能启动已停止的 `dockerd`。
