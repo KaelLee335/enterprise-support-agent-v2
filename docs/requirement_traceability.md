@@ -58,10 +58,10 @@
 | 故障：缺订单号、跨租户 | 已实现/有证据 | `tests/test_agent.py`、`test_api.py`、`test_db.py`。 |
 | 故障：RAG 空召回/无可靠来源 | 已实现/有证据 | `tests/test_rag.py::test_rag_answer_does_not_call_model_when_retrieval_is_empty` 和 WSL 断言式验收。 |
 | 故障：错误政策排序或回答违反政策 | 部分实现 | Top-8 冲突在人工审查中发现，约束层已修复高影响规则；尚无完整、独立的语义蕴含自动测试套件。 |
-| 故障：工具 not_found | 部分实现 | 已新增 `tests/test_api.py::test_random_missing_order_is_not_found_for_authenticated_tenant`，尚未运行；原有评估也区分 found/not_found。 |
+| 故障：工具 not_found | 部分实现 | 已新增 `tests/test_api.py::test_random_missing_order_is_not_found_for_authenticated_tenant`；用户报告全量 53 项干净克隆测试通过，包含该用例。原有评估也区分 found/not_found。 |
 | 故障：错误分支/提示注入/隐私索取 | 已实现/有证据 | 路由/API 单测与 WSL 11 项断言验收覆盖多类恶意/异常输入。 |
 | 故障：数据库连接失败 | 已实现/有证据 | `tests/test_api.py::test_order_database_failure_returns_safe_error`。 |
-| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；fake Chat Model timeout 节点单测已添加但尚未运行；429 与 checkpoint 损坏仍待注入测试。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；fake Chat Model timeout 节点单测包含在用户报告通过的 53 项全量测试中；真实 429 与 checkpoint 损坏仍待注入测试。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
 | 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常应用重启恢复和重复审批冲突有测试；损坏文件仍待隔离注入，见 `docs/troubleshooting/fault_cases.md`。 |
 | 故障：Docker 环境变量缺失 | 部分覆盖 | 单测确认缺少 SiliconFlow Key 时构造 Embedding 会报错；Compose 缺变量的启动/健康行为仍未端到端验证，已列入 `docs/troubleshooting/fault_cases.md`。 |
 | 延迟基线、P50/P95 | 未实现 | 有单次节点时延日志；`docs/evaluation_and_observability.md` 记录尚无稳定统计基线。 |
@@ -74,12 +74,12 @@
 | 从 GitHub 干净克隆复现 | 用户报告已通过 | 用户在 D 盘干净 clone，venv/pip 安装成功、53 项 pytest 通过，并验收 health 200、Bearer 订单查询 200、无 token 401。 |
 | 架构图与流程图 | 部分实现 | `docs/project_story.md`、`docs/langgraph_design.md` 含 Mermaid 图；仓库中未发现独立 PNG/SVG 图像资产。Mermaid 可作为源码图，不代表已交付渲染图。 |
 | 演示记录/运行证据 | 部分实现 | `docs/demo_runbook.md`、项目状态和 WSL 实测文字记录完整；没有发现整理进仓库的正式演示截图/视频包。 |
-| Bad Case 分析、架构取舍、面试包 | 已实现/有证据 | `docs/rag_answer_manual_review.md`、`docs/evaluation_and_observability.md`、`docs/project_story.md`、`docs/interview_kit.md`（含 3/10 分钟讲解、20 问、5 个故障案例）。材料未来仍需阶段 14 按最新代码复核。 |
+| Bad Case 分析、架构取舍、面试包 | 已实现/有证据 | `docs/rag_answer_manual_review.md`、`docs/evaluation_and_observability.md`、`docs/project_story.md`、`docs/interview_kit.md`（含 3/10 分钟讲解、20 问、5 个故障案例）。阶段 14 已完成文档一致性复核。 |
 | 自主开发与代码学习 | 学习材料已完成；互动练习待用户参与 | 新提示词由 Codex 主导设计和实现、用户通过代码学习。五章学习材料已发布；在用户安排学习时间后可进行复盘，不作为功能验收阻塞。 |
 
 ## 建议后续顺序
 
-1. **阶段 14：最终材料一致性核对。** 校验 README、项目故事、面试包、演示手册、追踪矩阵与当前代码和用户验收结果一致；清除旧的 47 项/待复验/旧 Header 说法。
+1. 阶段 14 文档一致性复核已完成；阶段 13 的 53 项测试和 API 首次启动验收均按用户报告记录。
 2. 保留案例库中 checkpoint 损坏、Compose Key/路径等未验证边界，不扩大阶段 12 的测试通过结论。
 3. 生产化身份、审批 RBAC、多实例与运行安全不属于本地 Demo 验收，只有用户另行授权时才规划。
 
@@ -97,6 +97,6 @@
 | 适度 CRUD 与事务基础 | 订单数据目前以 seed 插入和只读查询为主，真实订单更新/删除刻意禁止 | 阶段 12 只为安全的模拟任务/审批记录评估受限状态更新与事务；绝不添加真实退款、改址、删除 |
 | 12 项故障案例库，记录现象/层次/根因/日志线索/定位/修复/防复发 | 案例库已完成；验证部分待补 | `docs/troubleshooting/fault_cases.md` 列出 12 类现象、定位、修复和防复发；random not_found、Chat Model timeout、checkpoint 损坏、Compose 缺 Key 等状态明确标为部分覆盖/待验证。 |
 | P0/P1/P2 交付优先级、每阶段测试与自动进入下一阶段 | 已更新长期工作纪律；整体功能已交付，后续是 P0 缺口收尾 | 不被 Web UI、Langfuse/Phoenix、性能统计等 P1 和 Kubernetes/多 Agent 等 P2 拖延 |
-| README 新环境复现、GitHub、面试材料均需完成 | GitHub/学习章节/面试材料已发布；干净克隆未验证 | 下一步阶段 13 隔离 clone，随后阶段 14 核对材料与验收一致性。 |
+| README 新环境复现、GitHub、面试材料均需完成 | 已完成 | 阶段 13 干净克隆及 API 首次启动由用户验收；阶段 14 文档一致性复核已完成。 |
 
 该新版提示词变更了阶段 11 的互动门槛：不再要求用户先提出架构；Codex 需要主动完成设计和开发并同步讲解。此前旧提示词的“用户先给设计方案后再实现”已废止。
