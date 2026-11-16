@@ -65,3 +65,11 @@
 - 用户截图报告 LangChain 源码映射已核对、四章学习材料与索引已推送；本会话读取 GitHub tree 确认 `docs/learning/` 有 README 与 LangChain、LangGraph、RAG、SQL、FastAPI 五章。
 - README、状态、需求追踪、计划、代理说明、进度和发现文档已随公开仓库更新；本轮只改文档，没有变更业务代码或运行测试。
 - 下一阶段是干净克隆复现；该步骤尚未运行，也不应把它描述为完成。
+
+
+## Clean clone 与 pip 镜像记录（2026-11-16）
+
+- 用户报告在 D 盘干净克隆 HEAD 9caa363，安装依赖后 pytest 53 passed / 18.39s / exit 0；这是用户提供的结果，本会话未复跑。
+- 用户遇到全局 TUNA pip simple 返回 403（pip User-Agent 请求），临时加阿里云 `-i https://mirrors.aliyun.com/pypi/simple` 后安装成功。README 已加入单次安装的镜像 fallback。
+- Dockerfile 的 TUNA 源风险记录为下次 Dockerfile 调整事项；本轮未改 Dockerfile，也未触碰 WSL/Docker。
+- 待验收：在该 clean clone 本机启动 API，检查 health 200 和 Bearer 订单 1001 查询；当前 Codex 本地执行工具仍无法启动。
