@@ -13,6 +13,12 @@ python -m pip install -e ".[dev]"
 uvicorn support_agent.main:app --reload --app-dir src
 ```
 
+如果本机 pip 默认镜像返回 HTTP 403（例如 TUNA simple 页面对 pip 的 User-Agent 拒绝），可仅对本次安装覆盖镜像，不必改全局 pip 配置：
+
+```powershell
+python -m pip install -i https://mirrors.aliyun.com/pypi/simple -e ".[dev]"
+```
+
 打开 <http://127.0.0.1:8000/docs>。健康检查为 `GET /health`（无需认证）；订单查询为 `GET /orders/{order_id}`；Agent 对话为 `POST /chat`，以及审批和执行记录接口均需 Bearer 演示身份。V1 导入订单使用 `legacy-demo`；固定案例 `1001` 使用 `demo-a`。
 
 ### 本地演示身份
