@@ -63,5 +63,5 @@
 - 用户截图报告本地身份/租户边界审查通过、全量 pytest 51 passed（267 秒），以及 WSL 重建后 health 200、`verify_phase6.sh` 11/11 PASS；本项目状态文件据此记录，本会话没有重跑业务测试。
 - WSL 重启后出现 Docker NAT 网段冲突；用户截图称通过备份 daemon 配置、调整 Docker bridge CIDR 和启动等待逻辑修复。主机网络改动以用户报告为准，不在本会话继续更改。
 - 用户截图报告 LangChain 源码映射已核对、四章学习材料与索引已推送；本会话读取 GitHub tree 确认 `docs/learning/` 有 README 与 LangChain、LangGraph、RAG、SQL、FastAPI 五章。
-- 当前公开 main 在本次 README 状态修订后为 `ce156a3`。本次 README 修订只同步验收状态说明，没有变更业务代码或运行测试。
+- README、状态、需求追踪、计划、代理说明、进度和发现文档已随公开仓库更新；本轮只改文档，没有变更业务代码或运行测试。
 - 下一阶段是干净克隆复现；该步骤尚未运行，也不应把它描述为完成。
