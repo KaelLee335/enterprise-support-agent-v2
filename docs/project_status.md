@@ -23,10 +23,11 @@
 
 ## 尚未完成 / 后续计划
 
-1. 阶段 0–9 已完成。公开仓库已发布，当前 `main` 与 `origin/main` 同步；WSL Docker 和登录触发任务保持原状。
-2. 阶段 9 已完成：用户确认“开机触发”指 Windows 用户登录时触发；当前 `WSL-Dockerd-Autostart` 配置符合预期并保留。没有更改主机设置；Windows 重启后的自动触发未实测。
-3. 阶段 10 已完成：`docs/requirement_traceability.md` 逐域追踪原始要求与代码、测试、评估、文档和验收证据；本次审计没有运行测试或修改业务代码。
-4. 阶段 11 当前主题为 LangChain，由 Codex 自主推进中文、代码绑定的学习文档；之后按 LangGraph → RAG → SQL → FastAPI 顺序。阶段 12 将补新版 P0 差距，包括本地模拟身份/权限、需要的执行记录和安全范围内 SQL 基础操作，并补充故障注入。阶段 13 干净克隆复现，阶段 14 核对交付材料。生产化单列阶段 15，暂不启动。
+1. 阶段 0–12：核心 Demo、发布就绪、公开 GitHub、演示 Bearer 身份/租户隔离/最小运行记录、评估与 51 项 pytest 已完成；运行结果以最近验收记录为准。
+2. 阶段 11 学习手册已完成并推送：LangChain、LangGraph、RAG、SQL、FastAPI 五章位于 `docs/learning/`；每章包括代码入口、数据流图、示例、重点和自测题。
+3. 阶段 13：从公开 GitHub 做干净克隆，验证 README 首次安装/运行流程；向量库与 API Key 属于本机生成/配置，需按文档建立，不纳入仓库。当前尚未执行。
+4. 阶段 14：核对架构、流程、指标、演示记录和面试材料与实现一致；之后完成最终交接。
+5. 阶段 15 生产化（真实认证、RBAC、多实例、运营安全）不在本地 Demo 范围，单独规划，不默认开展。
 
 ## 阶段 7：发布就绪与可复现交接（已完成）
 
@@ -57,15 +58,10 @@
 - Codex 执行通道故障期间，交接步骤（git 审查 → 认证/租户审查 → 全量测试 → 文档 → WSL 验收）由 WorkBuddy 代执行完成。
 - 全量 pytest 51 passed；WSL 侧容器重建后 health 200，verify_phase6.sh 11 用例全 PASS。
 - 当前 API 认证为 Demo Bearer token（demo-a-local-token / legacy-demo-local-token），非生产凭据。
-# 最新验收补记（2026-11-16；用户截图提供）
+## 最新验收与学习手册状态（2026-11-16）
 
-- 本地全量 pytest：51 passed，用时 267 秒；只有已知 `.pytest_cache` 权限警告。
-- 本地身份/租户隔离审查：Bearer token 映射固定演示身份，伪造 `X-Tenant-ID` 无效，跨租户运行记录返回 404，问题明文不进入 `agent_runs`。
-- WSL 重建后：健康检查 200，`verify_phase6.sh` 11/11 PASS。
-- WSL 重启后 Docker NAT 网段冲突及 daemon bridge IP 调整由用户报告完成；本会话没有独立检查主机配置。
-- 本地执行器当前不可用，以上是截图报告值，不代表本会话重新复测。后续 GitHub 检查确认 main 已推进至 `12338a1`。
-
-## 学习阶段 11 更新（2026-11-16）
-
-- 用户后续截图报告 LangChain 六处源码映射已核对，`dbab8af` 与 `12338a1` 已推到公开 `main`；本会话通过 GitHub API 确认 HEAD 为 `12338a1`。
-- 本会话追加了 LangGraph、RAG、SQL、FastAPI 中文学习章节草稿，基于该 HEAD 的公开源码映射；未运行项目测试，尚未推到 GitHub。需在本地执行器恢复后核对实际工作树并发布。
+- 用户截图报告本地身份/租户边界审查通过、全量 pytest 51 passed（267 秒），以及 WSL 重建后 health 200、`verify_phase6.sh` 11/11 PASS；本项目状态文件据此记录，本会话没有重跑业务测试。
+- WSL 重启后出现 Docker NAT 网段冲突；用户截图称通过备份 daemon 配置、调整 Docker bridge CIDR 和启动等待逻辑修复。主机网络改动以用户报告为准，不在本会话继续更改。
+- 用户截图报告 LangChain 源码映射已核对、四章学习材料与索引已推送；本会话读取 GitHub tree 确认 `docs/learning/` 有 README 与 LangChain、LangGraph、RAG、SQL、FastAPI 五章。
+- 当前公开 main 在本次 README 状态修订后为 `ce156a3`。本次 README 修订只同步验收状态说明，没有变更业务代码或运行测试。
+- 下一阶段是干净克隆复现；该步骤尚未运行，也不应把它描述为完成。
