@@ -73,3 +73,10 @@
 - 用户遇到全局 TUNA pip simple 返回 403（pip User-Agent 请求），临时加阿里云 `-i https://mirrors.aliyun.com/pypi/simple` 后安装成功。README 已加入单次安装的镜像 fallback。
 - Dockerfile 的 TUNA 源风险记录为下次 Dockerfile 调整事项；本轮未改 Dockerfile，也未触碰 WSL/Docker。
 - 用户随后报告该 clean clone 的 health 返回 {"status":"ok"}，带 Bearer 的 GET /orders/1001 返回 200 且租户/虚构数据正确，无 token 返回 401。至此首次启动链路已由用户验收；health 200、带 Bearer 的订单查询 200、无 token 401 均来自用户截图。本会话没有自行运行本地进程。阶段 14 文档一致性复核已完成。
+
+## 用户下一步
+
+1. 同步公开仓库最新文档：在本机项目目录运行 `git pull --ff-only origin main`。
+2. 可选决策：是否从本地 Demo 转入生产化阶段 15。若暂不生产化，无需采取其他动作；若启动，再提供部署环境、身份系统和数据合规要求。
+
+当前无需重启 WSL/Docker、配置 API Key 或重跑已验收的 53 项测试/API smoke。
