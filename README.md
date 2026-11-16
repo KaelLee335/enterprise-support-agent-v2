@@ -55,7 +55,7 @@ python scripts/ask_policy.py "定制商品出现质量问题怎么办？"
 
 运行 `python scripts/evaluate_agent_routes.py` 评估标注路由、订单参数和临时数据库工具结果；运行 `python scripts/evaluate_agent_safety.py` 检查写操作边界；`pytest` 执行故障注入和 API 回归。RAG 评估使用 `python scripts/evaluate_retrieval.py`，需本机配置 SiliconFlow Key。评估口径、已知 Bad Case 和追踪字段见 [`docs/evaluation_and_observability.md`](docs/evaluation_and_observability.md)。每个 API 响应均带 `X-Trace-ID`，日志为 JSON 并输出到标准输出。
 
-RAG 答案层增加了可审计的政策约束规则，详细人工复核和 Top-4/Top-8 输出见 [`docs/rag_answer_manual_review.md`](docs/rag_answer_manual_review.md) 与 `data/evaluation/v2_rag_answers_constraints_v3.json`。约束层当前仅在 Windows 工作区完成评估；需同步到 WSL 并重建后才进入 Docker 验收版本。
+RAG 答案层增加了可审计的政策约束规则，详细人工复核和 Top-4/Top-8 输出见 [`docs/rag_answer_manual_review.md`](docs/rag_answer_manual_review.md) 与 `data/evaluation/v2_rag_answers_constraints_v3.json`。用户于 2026-11-16 报告该约束层已同步到 WSL，健康检查通过且 11 个业务用例全部 PASS。
 
 ## 端到端演示
 
@@ -104,4 +104,4 @@ V1 资产来源、字段差异和 RET-01/QUA-01 对照见 [`docs/migration.md`](
 
 ## 当前边界
 
-Bearer 演示令牌映射到固定虚构用户和租户；它不是生产认证。`GET /agent-runs/{run_id}` 只返回当前身份租户内的最小执行记录，不保存原始问题。退款审批只记录演示状态，不执行真实业务操作。当前新增演示身份接口尚待用户在 WSL 同步后复验。
+Bearer 演示令牌映射到固定虚构用户和租户；它不是生产认证。`GET /agent-runs/{run_id}` 只返回当前身份租户内的最小执行记录，不保存原始问题。退款审批只记录演示状态，不执行真实业务操作。用户于 2026-11-16 报告演示 Bearer 身份接口已同步到 WSL，健康检查通过且 11 个业务用例全部 PASS；这是用户提供的运行验收结果。
