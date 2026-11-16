@@ -200,3 +200,8 @@
 - 同步修正需求追踪矩阵和故障库中两条回归仍写“尚未运行/待运行”的旧状态：用户报告的 53 项全量测试包含随机订单 not_found 404 与 fake Chat Model timeout 安全答复测试；真实 429、checkpoint 损坏和 Compose 缺 Key/路径仍保持未验证/部分覆盖。
 - 复核并更新 README（无过期测试数）、项目故事、面试材料、演示手册、需求追踪、故障库、项目状态、AGENTS、task_plan 与 WSL 生命周期说明。WSL NAT 修复内容仅按用户报告记录；未运行 WSL/Docker、未改主机配置。
 - 阶段 14 文档一致性核查完成。阶段 15 生产化仍为另行定范围的非 Demo 工作；当前项目阶段可交接。
+
+# 2026-11-16 — 优先完成主链路，暂缓加固
+
+- 用户决定先完成主要业务链路，再回头做加固。对照需求追踪与用户验收，主链路已由演示身份/租户校验、FastAPI、LangGraph 路由、订单只读查询/政策 RAG/退款审批演示、答复与运行记录组成；现有 WSL、clean-clone 测试及 API smoke 证据分别记录，不混为一个指标。
+- 已在 `task_plan.md`、`docs/project_status.md` 和 `AGENTS.md` 记录该优先级。真实供应商限流、checkpoint 损坏、Compose 缺配置、延迟统计和生产化暂缓；不扩展真实订单写操作或退款。
