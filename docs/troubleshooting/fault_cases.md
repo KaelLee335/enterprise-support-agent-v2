@@ -82,4 +82,4 @@
 
 - 用户报告：新增的随机 not_found API 与假 Chat Model timeout 回归均通过，2 passed in 4.61s。未重跑完整 51 项套件，也未操作 WSL/Docker。
 - 阶段 12 按用户确认的验收条件完成；checkpoint 文件损坏、Compose 缺 Key/路径边界仍明确列为部分覆盖/未验证，不以本次通过替代。
-- 阶段 13 下一步：全新 clone 的依赖、测试、health/order 复现。向量索引缺省于 Git；如执行索引，需要本机 Key，严禁将其写入仓库。
+- 阶段 13 已由用户验收：干净克隆的依赖安装、全量 53 项测试及 health/order/auth API smoke 均报告通过；这些结果来自不同验收步骤，未由本会话复跑。
