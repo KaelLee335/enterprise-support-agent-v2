@@ -31,7 +31,7 @@
 | FastAPI 依赖注入基础 | 已实现/有证据 | `auth.py` 的 `require_demo_identity` 由 `Depends()` 注入 Bearer 身份；`main.py` 的业务路由据此取得可信 user/tenant。测试覆盖缺 token、无效 token 和伪造 `X-Tenant-ID`。 |
 | 必要 async/await | 部分实现 | 应用 lifespan/middleware 使用异步接口，业务路由是同步函数；尚无异步业务调用链或 I/O 对照练习。 |
 | SQLite、租户/订单表、主外键、索引、参数化查询和初始化 | 已实现/有证据 | `src/support_agent/db.py` 建有 `tenants`、`orders`、外键和租户索引；订单查询用参数化 `WHERE order_id = ? AND tenant_id = ?`。 |
-| JOIN、事务、UPDATE/DELETE 原理与安全边界实践 | 部分实现/未作为功能使用 | 现有业务只需订单查询和幂等 seed 插入；没有 JOIN、订单 UPDATE/DELETE 路径，也运行记录的插入/更新使用 SQLite 事务上下文；订单业务仍只读。JOIN/订单 UPDATE/DELETE 不属于必要功能，继续不添加。 |
+| JOIN、事务、UPDATE/DELETE 原理与安全边界实践 | 部分实现/未作为功能使用 | Agent run 插入/更新使用 SQLite 事务上下文；订单业务仍只读。JOIN 和订单 UPDATE/DELETE 不属于必要功能，不为学习清单添加无用写操作。 |
 | 用户身份表或 Agent 任务表 | Demo 实现并验收；非生产认证 | Bearer demo token 映射固定用户/租户；`demo_users` 和 `agent_runs` 存于 SQLite，执行记录不保存原始问题。用户报告干净克隆 53 项 pytest 通过；另有 WSL 11 项验收通过。实现位置 `src/support_agent/auth.py`、`src/support_agent/db.py`、`src/support_agent/main.py`。 |
 
 ## LangChain、RAG 与 LangGraph
@@ -71,7 +71,7 @@
 | 要求 | 状态 | 证据与边界 |
 |---|---|---|
 | Dockerfile、Compose、环境配置、数据持久化和 WSL 部署 | 已实现/有证据 | `Dockerfile`、`compose.yaml`、README；D 盘数据 bind mount 与 11 项容器验收由用户实测。 |
-| 从 GitHub 干净克隆复现 | 用户报告已通过 | 用户在 D 盘干净 clone，venv/pip 安装成功、53 项 pytest 通过，并验收 health 200、Bearer 订单查询 200、无 token 401。
+| 从 GitHub 干净克隆复现 | 用户报告已通过 | 用户在 D 盘干净 clone，venv/pip 安装成功、53 项 pytest 通过，并验收 health 200、Bearer 订单查询 200、无 token 401。 |
 | 架构图与流程图 | 部分实现 | `docs/project_story.md`、`docs/langgraph_design.md` 含 Mermaid 图；仓库中未发现独立 PNG/SVG 图像资产。Mermaid 可作为源码图，不代表已交付渲染图。 |
 | 演示记录/运行证据 | 部分实现 | `docs/demo_runbook.md`、项目状态和 WSL 实测文字记录完整；没有发现整理进仓库的正式演示截图/视频包。 |
 | Bad Case 分析、架构取舍、面试包 | 已实现/有证据 | `docs/rag_answer_manual_review.md`、`docs/evaluation_and_observability.md`、`docs/project_story.md`、`docs/interview_kit.md`（含 3/10 分钟讲解、20 问、5 个故障案例）。材料未来仍需阶段 14 按最新代码复核。 |
