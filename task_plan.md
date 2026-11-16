@@ -21,7 +21,7 @@
 | 12 | 补齐 P0 演示能力与受控故障注入 | 已完成（用户报告 2 条新增回归通过；部分故障边界继续透明标注未验证） |
 | 13 | 从公开仓库干净克隆，复现 README 首次运行流程 | 已完成（用户报告依赖安装、53 项 pytest、health 200、订单 1001 为 200、无 token 为 401） |
 | 14 | 校验架构/流程/SQL/权限/RAG/评估图文、演示记录和面试材料均与真实实现一致 | 已完成（阶段 13 首次启动证据和故障测试状态已对齐） |
-| 15 | 主链路后的可靠性加固：自动测试、checkpoint 损坏保护、Compose 配置边界 | 进行中：GitHub Actions 54 项通过；checkpoint 损坏保护已通过 CI 验证；下一步验证 Compose 配置 |
+| 15 | 主链路后的离线可靠性加固：自动测试、checkpoint 保护、Compose 与容器启动 | 进行中：CI 55 项通过；Compose 配置、Docker 构建、无 Key 容器 smoke 和 checkpoint 损坏保护均通过；待用户选择同步至 WSL |
 | 16 | 可选生产化：真实身份认证、审批 RBAC/审计、多实例存储、韧性和安全运营 | 非 Demo 范围；需单独定范围与批准 |
 
 ### 路线图边界
@@ -61,9 +61,10 @@
 - [x] 最终交付文档收尾：README、RAG 人工评审、Evaluation、项目状态和接续说明均与 WSL 最新部署/验收结果对齐；历史记录保留并明确标注为已被后续结果取代。
 - [x] 阶段 10：完成需求追踪矩阵，逐条标为已实现、部分实现、未实现、未验证或不适用，并附证据位置与建议优先级；未运行测试。
 - [x] 阶段 11：完成 LangChain、LangGraph、RAG、SQL、FastAPI 五章代码绑定中文手册，位于 docs/learning/；GitHub tree 已确认五章存在。
-- [x] 阶段 12：本地 Demo 身份、租户权限、最小运行记录和 12 项故障库完成；用户报告全量 51 项和 WSL 11/11 通过，并报告新增 not_found 与 fake timeout 两条定向测试 2/2 通过。checkpoint 随机损坏文件已在阶段 15 隔离测试中验证为 fail-fast 且原文件不变；真实供应商 429、Compose 配置边界仍待验证。
+- [x] 阶段 12：本地 Demo 身份、租户权限、最小运行记录和 12 项故障库完成；用户报告全量 51 项和 WSL 11/11 通过，并报告新增 not_found 与 fake timeout 两条定向测试 2/2 通过。checkpoint 随机损坏文件已在阶段 15 隔离测试中验证为 fail-fast 且原文件不变；真实供应商 429/超时和 Compose 缺失 .env 文件行为仍待验证；空 Key 配置已在隔离容器中验证安全降级。
 - [x] 阶段 13：用户报告 D 盘全新 clone、venv/pip 安装、53 项 pytest 通过（18.39s）；API health 200、Bearer 订单 1001 查询 200、无 token 401。此次无 .env、无 API Key、无 WSL/Docker。
 - [x] 阶段 14：已核对 README、项目故事、面试包、演示手册、需求追踪、故障库和项目状态；按用户报告更新 53 项测试及 clean clone API smoke，并保留未验证边界。WSL/Docker 主机记录采用不含机器路径和网络参数的概括描述。
+- [x] 阶段 15 离线加固第一轮：GitHub Actions 55 项通过；临时 checkpoint 损坏 fail-fast/保留文件测试通过；Compose 模板检查、阿里云源 Docker 镜像构建、空 Key 容器的 health/order/RAG safe fallback smoke 全通过。无 Key 和演示数据仅用于 CI 临时环境。
 - [ ] 阶段 16 生产化待单独定范围；学习/面试演练在用户参与阶段逐步开展。
 
 ## 本轮范围
@@ -202,7 +203,7 @@ git pull --ff-only origin main
 
 ### 当前：阶段 15 可靠性加固
 
-主链路已经按用户验收记录完成，现开始处理离线、隔离的可靠性边界。当前已完成 GitHub Actions 自动测试和 checkpoint 损坏文件 fail-fast 保护；下一项是 Compose 配置预检。真实供应商限流/超时演练和生产化继续后置。
+主链路已经按用户验收记录完成，现开始处理离线、隔离的可靠性边界。当前已完成 GitHub Actions 自动测试和 checkpoint 损坏文件 fail-fast 保护；下一项是 Compose 配置预检。Compose 配置解析、镜像构建和无 Key 容器 smoke 已通过；真实供应商限流/超时演练和生产化继续后置。下一项运行环境验收需要用户将 GitHub main 同步到现有 WSL 工作区并重建容器。
 - 稳定延迟基线、语义正确性自动评估和生产级身份/RBAC/运维。
 - 当前 Demo 保持虚构数据、固定演示身份、只读订单和演示审批，不扩展真实业务写操作。
 
