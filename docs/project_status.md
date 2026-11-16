@@ -16,6 +16,8 @@
 
 ## 当前配置和已知限制
 
+- 用户最新 WSL 验收报告：同步 `Dockerfile`、Compose、`main.py`、API 回归测试和 verifier 后，镜像重建、容器重建启动成功，health 200；`verify_phase6.sh` 12/12 PASS，EXIT=0。该项包括此前新增的 auth/clarify/refund/policy 用例。结果来自用户截图，本会话未直接操作 WSL。
+
 - 用户选择保持 `RAG_TOP_K=4`。Top-8 提升证据召回，但基线评估未证明最终回答更好；约束层评估也没有因 Top-8 而切换默认值。
 - LLM judge 指标仅作探索性筛查，不能当作答案准确率。引用 ID 有效也不代表回答的事实都被证据支持。
 - systemd 的 `docker` unit 未报告 active（enabled 标记存在）。用户已实测 Ubuntu WSL 为 `Stopped` 时触发任务后 `dockerd ready`、容器 healthy、health 200。2026-11-16 本机只读检查发现 `the existing scheduled task` 任务是当前用户的交互式 Logon 触发器，不是 Startup 触发器；因此不能保证用户登录前恢复。没有修改计划任务或虚拟网卡。
@@ -79,10 +81,10 @@
 1. 同步公开仓库最新文档：在本机项目目录运行 `git pull --ff-only origin main`。
 2. 可选决策：是否从本地 Demo 转入生产化阶段 16。若暂不生产化，无需采取其他动作；若启动，再提供部署环境、身份系统和数据合规要求。
 
-当前不需要配置 API Key 或重跑已验收的 53 项 clean-clone 测试/API smoke。若要更新正在使用的 WSL 容器，需用户先同步最新 main 再重建；阶段 15 的 55 项结果来自 GitHub Actions。
+当前不需要配置 API Key 或重跑已验收的 53 项 clean-clone 测试/API smoke。最新 WSL 容器已由用户同步重建；阶段 15 的 55 项结果来自 GitHub Actions。
 
 ## 当前优先级
 
 用户确认先完成主要业务链路，再回头做加固。主链路已由用户验收。阶段 15 可靠性加固现已开始：已新增 GitHub Actions，在干净 Python 3.12 环境全量运行 pytest；新增 checkpoint 损坏预检，损坏文件安全阻止启动且不覆盖原文件。
 
-GitHub Actions 最新报告 55 passed in 3.99s；Compose 模板解析、阿里云源 Docker 构建、临时容器 health/订单/无 Key RAG 安全降级均通过。下一项是将新版本同步到用户现有 WSL 工作区并重建容器；本会话没有操作 WSL。真实供应商限流、延迟统计和生产化暂缓。
+GitHub Actions 最新报告 55 passed in 3.99s；Compose 模板解析、阿里云源 Docker 构建、临时容器 health/订单/无 Key RAG 安全降级均通过。WSL 部署与 12 项验收已由用户报告通过；本会话没有操作 WSL。下一项处理尚未覆盖的离线故障边界。真实供应商限流、延迟统计和生产化暂缓。
