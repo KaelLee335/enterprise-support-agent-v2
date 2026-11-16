@@ -60,7 +60,7 @@
 - [x] 最终交付文档收尾：README、RAG 人工评审、Evaluation、项目状态和接续说明均与 WSL 最新部署/验收结果对齐；历史记录保留并明确标注为已被后续结果取代。
 - [x] 阶段 10：完成需求追踪矩阵，逐条标为已实现、部分实现、未实现、未验证或不适用，并附证据位置与建议优先级；未运行测试。
 - [x] 阶段 11：完成 LangChain、LangGraph、RAG、SQL、FastAPI 五章代码绑定中文手册，位于 docs/learning/；GitHub tree 已确认五章存在。
-- [ ] 阶段 12：本地 Demo 身份、租户权限、最小运行记录已由用户报告测试/WSL验收；统一 12 项故障库已建。继续补独立随机订单 not_found、Chat Model timeout、checkpoint 损坏等隔离测试；真实订单只读。
+- [ ] 阶段 12：本地 Demo 身份、租户权限、最小运行记录已由用户报告测试/WSL验收；12 项故障库已建。已新增随机订单 not_found API 与假 Chat Model timeout 两条回归，但本会话无法运行；还需验证这两条、评估 checkpoint 损坏隔离测试，保持真实订单只读。
 - [ ] 阶段 13：从 GitHub main 干净克隆到隔离目录，复现安装、pytest、health/order 和 RAG 索引流程；保护 .env 与现有 WSL 服务。
 - [ ] 阶段 14：核对架构图、请求流程、State/Node/Edge、RAG/SQL/权限设计、指标、Bad Case 和面试材料是否反映代码事实。
 - [ ] 阶段 15 生产化待单独定范围；学习/面试演练在用户参与阶段逐步开展。
