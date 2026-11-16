@@ -38,7 +38,7 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 
 1. Phases 0–9 are complete. Next is phase 10: read-only traceability audit against the user's full project brief, with evidence links across source, tests, evaluations, docs, and WSL acceptance. Do not modify business code or run tests during that audit.
 2. Phase 9 is complete. User clarified that “boot trigger” means starting on Windows user logon; the existing Logon trigger is intended and must remain unchanged. Do not stop the current daemon, start a second daemon, enable systemd, edit `/etc/wsl.conf`, modify network adapters, or restart WSL merely to test it.
-3. The brief requires the user to participate in core design decisions and learn through guided modules; plan this as phase 11 after the audit, one small topic at a time. Do not start a quiz or interview drill during phase 10. Productionization remains a separately scoped phase 15.
+3. The user set the phase 11 learning order: LangChain, LangGraph, RAG, SQL, then FastAPI. Before entering each topic, first explain its system role, current architecture, constraints, and design decisions, then guide the user to propose the design; the user leads ideas and learning, Codex assists and implements after alignment. Do not start this learning loop during phase 10. Productionization remains a separately scoped phase 15.
 
 ## Runtime and data boundaries
 
