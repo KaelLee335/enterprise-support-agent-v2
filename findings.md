@@ -185,3 +185,9 @@ docs/                        # 架构、流程、State、权限、评估、Bad C
 - 本会话只读检查工具仍报 `setup refresh had errors`。GitHub main 最后可读提交为 `6a2c132`；当时远端不存在 `docs/learning/`。因此实际源代码身份改造是否已提交/推送未知。
 - 新增 `docs/learning/langchain.md` 与索引，参考远端可读的 RAG 源文件编写，覆盖 Prompt → Chat Model → StrOutputParser、Retriever、答案约束、引用检查及 LangChain/LangGraph 分工。待本机执行恢复后与实际本地实现对齐并运行示例/相关测试；云端示例仅由用户显式运行。
 
+## 2026-11-16：远端交接已核实，继续学习手册
+
+- 用户新截图纠正先前状态：提交 `dbab8af` 与 `12338a1` 已推送且当时工作树干净；GitHub 只读查询确认 `main` HEAD 为 `12338a156975603bc4452e2fc1985100b312ad4c`。此前“main 仍为 6a2c132”的判断已被取代。
+- 基于当前远端源码新增 LangGraph、RAG、SQL、FastAPI 学习章节草稿，包含 Mermaid 数据流、代码入口、示例、重点和自测题。它们还没在 GitHub `main` 目录出现，当前发布状态为未推送。
+- 此会话新增章节后没有运行测试；功能验收仍引用用户截图报告的 51 passed、WSL 11/11 PASS。公开源码快照不是本地工作树复核的替代品。
+

@@ -144,3 +144,19 @@
 - 下一步：执行通道恢复后核实工作树、确认 51 项测试和文档的真实内容，再决定 GitHub 同步；学习阶段继续 LangChain → LangGraph → RAG → SQL → FastAPI。
 
 - 2026-11-16 补充：Codex 执行器仍不可用，`docs/learning/README.md` 与 `langchain.md` 由 WorkBuddy 对源码核实（6 条代码描述与 answer.py/retrieval.py/index.py/nodes.py 一致）后随身份认证改动一并提交；`dbab8af` 已推送 origin/main，远端与本地同步。
+# 2026-11-16 — 阶段 11 LangGraph 学习材料
+
+- 用户截图补充此前阻塞已解决：手册/代码逐项核对完成；提交 `dbab8af` 与 `12338a1` 已推送；工作树在截图时干净；51 项 pytest 与 WSL 11/11 验收完成。截图记录视作用户提供证据。
+- 本会话通过 GitHub 只读接口独立确认 `main` 当前 HEAD 为 `12338a156975603bc4452e2fc1985100b312ad4c`，父提交为 `dbab8af...`，与截图一致。
+- 已对照远端 `state.py`、`graph.py`、`nodes.py`、`main.py` 编写 `docs/learning/langgraph.md`，涵盖 State/节点/条件边、SQLite checkpoint、`interrupt`/`Command(resume)` 与租户边界；更新 `docs/learning/README.md`。
+- 本会话仍无法启动 Windows 执行工具，故新增文档未能做本地链接/拼写检查、git diff 检查或提交推送；不得声称测试通过。要继续交付该文档，恢复本地终端后应先核对差异，再提交推送。
+- 下一主题是 RAG，按顺序继续；代码讲解保持与远端/本地当前版本一致。
+
+# 2026-11-16 — 阶段 11 后续模块材料初稿
+
+- 已新增 `docs/learning/rag.md`、`sql.md`、`fastapi.md`，学习索引列出 LangChain → LangGraph → RAG → SQL → FastAPI 五章。
+- 三章基于本会话通过 GitHub 只读接口读取的 `main=12338a1` 代码：RAG 的 policies/index/retrieval/answer/constraints/evaluation；SQL 的 schema、参数化 tenant 查询和 run 记录事务；FastAPI 的 Pydantic、Bearer 依赖、trace middleware、路由与测试。
+- 章节说明了哪些命令会访问 SiliconFlow，并避免将个人信息放入示例；退款仍为 `approved_demo`，订单只读。
+- 无本地执行器：无法从磁盘读回新增内容、做 Markdown 链接检查或推送。远端目前只读确认已有 `docs/learning/README.md`、`fast_mode_handoff.md`、`langchain.md`；LangGraph/RAG/SQL/FastAPI 四章尚未在远端目录看到。不能声称这些章节已发布。
+- 项目功能测试已有用户截图报告 51 passed 与 WSL 11/11 PASS；本次只有学习材料变更，未运行测试或重建容器。
+

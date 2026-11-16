@@ -155,3 +155,9 @@ V2 中 LangChain 负责拼接政策回答链：`PromptTemplate → Chat Model �
 - 阶段 11：新增 LangChain 中文初稿 `docs/learning/langchain.md` 和学习路线索引 `docs/learning/README.md`。内容基于本会话可读的公开代码快照；需执行器恢复后对照本机身份改造后的实现、核验代码链接和示例，并补充 LangGraph → RAG → SQL → FastAPI 章节。
 - GitHub 公开仓库最后可读 `main` 为 `6a2c132`，仍未看到本地截图中的 P0 源码或学习目录。待本地 Git 工具恢复后核对是否推送；目前不通过 API 直接发布未经差异审查的内容。
 - 近期阻塞：Windows 执行工具未启动（`helper_unknown_error: setup refresh had errors`），无法检查工作树或重跑测试。不得重复修改 WSL DNS/daemon/网络配置。
+
+## 2026-11-16 后续更新
+
+- GitHub API 已确认截图中两次提交：当前 `origin/main` HEAD 为 `12338a156975603bc4452e2fc1985100b312ad4c`，父提交为 `dbab8af...`。此前“main 仍为 6a2c132”的判断已过期。
+- 阶段 11 LangGraph：已按当前远端源码新增 `docs/learning/langgraph.md`，并将索引从 LangChain 延伸至 LangGraph。它尚未做本地 git diff/测试/推送，待终端恢复后先核对再发布。
+- 后续顺序不变：RAG → SQL → FastAPI。每章包含源码映射、流程图、示例、重点与自测题；完成文档后继续后续阶段，不要求用户先给架构方案。
