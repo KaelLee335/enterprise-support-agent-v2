@@ -1,0 +1,1276 @@
+{
+  "status": "complete",
+  "evaluated_at": "2026-11-15T05:25:53.900484+00:00",
+  "judge_enabled": false,
+  "judge_model": null,
+  "generator_model": "Qwen/Qwen2.5-7B-Instruct",
+  "embedding_model": "BAAI/bge-large-zh-v1.5",
+  "top_k_values": [
+    4,
+    8
+  ],
+  "case_count": 14,
+  "record_count": 28,
+  "summary_by_top_k": {
+    "4": {
+      "answers": 14,
+      "citation_valid_rate": 1.0,
+      "answers_with_constraints": 11,
+      "answers_with_enforced_constraints": 6
+    },
+    "8": {
+      "answers": 14,
+      "citation_valid_rate": 1.0,
+      "answers_with_constraints": 11,
+      "answers_with_enforced_constraints": 7
+    }
+  },
+  "records": [
+    {
+      "case_id": "MVP-KB-DAY8",
+      "category": "complex_policy",
+      "top_k": 4,
+      "question": "11月1日签收的键盘，11月9日可以无理由退吗？",
+      "answer": "根据提供的政策证据，11月1日签收的键盘在11月9日已超过无理由退货的期限。因此，无法进行无理由退货。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.7073149681091309
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8016146421432495
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8229721784591675
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.8945282101631165
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "MVP-KB-DAY8",
+      "category": "complex_policy",
+      "top_k": 8,
+      "question": "11月1日签收的键盘，11月9日可以无理由退吗？",
+      "answer": "根据提供的政策证据，11月1日签收的键盘在11月9日已经超过了无理由退货的申请期限。根据 [POL-02]，无理由退货的申请期限为签收后的第1至第7个自然日。因此，11月9日无法进行无理由退货申请。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.7073149681091309
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8016146421432495
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8229721784591675
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.8945282101631165
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 0.8990963697433472
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.9255093932151794
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9256986975669861
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 0.9595330953598022
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-01",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "11月1日签收的键盘，11月8日可以无理由退吗？",
+      "answer": "根据提供的政策证据，11月1日签收的键盘在11月8日仍在无理由申请期限内，可以申请无理由退货，但申请不是批准，需人工核验。[POL-02]\n\n商品须配件、包装齐全，无人为损坏且不影响再次销售。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.6951574087142944
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8021328449249268
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8355118036270142
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.8785907030105591
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-01",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "11月1日签收的键盘，11月8日可以无理由退吗？",
+      "answer": "根据提供的政策证据，11月1日签收的键盘在11月8日仍然在无理由退货的申请期限内，可以申请无理由退货。但是，申请不代表批准，仍需人工核验商品和包装是否齐全且无人为损坏，是否影响再次销售。[POL-02]\n\n商品须配件、包装齐全，无人为损坏且不影响再次销售。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.6951574087142944
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8021328449249268
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8355118036270142
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.8785907030105591
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 0.8949832916259766
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.923623263835907
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9293946027755737
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 0.9632443189620972
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-02",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "11月1日签收，11月9日不喜欢颜色，能无理由退吗？",
+      "answer": "根据提供的政策证据，11月1日签收，11月9日已超过7天无理由退货期限，因此无法进行无理由退货。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.7677341103553772
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8608521819114685
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 0.9530237913131714
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.9552090764045715
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-02",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "11月1日签收，11月9日不喜欢颜色，能无理由退吗？",
+      "answer": "根据提供的政策证据，11月1日签收的商品在11月9日已超过无理由退货的申请期限。因此，无法进行无理由退货。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.7677341103553772
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8608521819114685
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 0.9530237913131714
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.9552090764045715
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 0.9562804102897644
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.9686528444290161
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 1.0351207256317139
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.052963137626648
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-03",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "11月1日签收，11月16日发现非人为故障可以换吗？",
+      "answer": "根据提供的政策证据，11月1日签收，11月16日发现非人为故障可以申请换货，但需人工检测确认。[POL-03]",
+      "sources": [
+        {
+          "source_id": "POL-03",
+          "distance": 0.7450429797172546
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 0.8527806997299194
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.8732895851135254
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 0.9800549149513245
+        }
+      ],
+      "citations": [
+        "POL-03"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-03",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "11月1日签收，11月16日发现非人为故障可以换吗？",
+      "answer": "根据提供的政策证据，11月1日签收，11月16日发现非人为故障可以申请换货，但需要人工检测确认。[POL-03]",
+      "sources": [
+        {
+          "source_id": "POL-03",
+          "distance": 0.7450429797172546
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 0.8527806997299194
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.8732895851135254
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 0.9800549149513245
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9847797751426697
+        },
+        {
+          "source_id": "POL-10",
+          "distance": 0.9890409111976624
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 0.9959042072296143
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0287524461746216
+        }
+      ],
+      "citations": [
+        "POL-03"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-04",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "鼠标买了3个月，进水坏了可以免费保修吗？",
+      "answer": "POL-04 明确规定，进液导致的损坏不在免费保修范围。维修方案和时间需检测后确认，不能仅凭描述承诺。如需了解可行方案，请联系人工售后核验。[POL-04]",
+      "sources": [
+        {
+          "source_id": "POL-04",
+          "distance": 0.6454601287841797
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.947869062423706
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.008406400680542
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.0872987508773804
+        }
+      ],
+      "citations": [
+        "POL-04"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL04_LIQUID_EXCLUSION"
+      ],
+      "enforced_constraint_ids": [
+        "POL04_LIQUID_EXCLUSION"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-04",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "鼠标买了3个月，进水坏了可以免费保修吗？",
+      "answer": "POL-04 明确规定，进液导致的损坏不在免费保修范围。维修方案和时间需检测后确认，不能仅凭描述承诺。如需了解可行方案，请联系人工售后核验。[POL-04]",
+      "sources": [
+        {
+          "source_id": "POL-04",
+          "distance": 0.6454601287841797
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.947869062423706
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.008406400680542
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.0872987508773804
+        },
+        {
+          "source_id": "POL-10",
+          "distance": 1.0895700454711914
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 1.0983012914657593
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.143097162246704
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.1963242292404175
+        }
+      ],
+      "citations": [
+        "POL-04"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL04_LIQUID_EXCLUSION"
+      ],
+      "enforced_constraint_ids": [
+        "POL04_LIQUID_EXCLUSION"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-05",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "不喜欢颜色退货，寄回运费谁出？",
+      "answer": "不喜欢颜色退货，寄回运费由用户承担 [POL-05]。在申请退货前，请先联系人工获取退货指引。",
+      "sources": [
+        {
+          "source_id": "POL-05",
+          "distance": 0.725143313407898
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.0200392007827759
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.0413415431976318
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0643575191497803
+        }
+      ],
+      "citations": [
+        "POL-05"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL05_SHIPPING_AND_GUIDANCE"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-05",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "不喜欢颜色退货，寄回运费谁出？",
+      "answer": "不喜欢颜色退货，寄回运费由用户承担 [POL-05]。用户需要先联系人工获取退货指引，不得直接寄付到付件。",
+      "sources": [
+        {
+          "source_id": "POL-05",
+          "distance": 0.725143313407898
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.0200392007827759
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.0413415431976318
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0643575191497803
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 1.1103253364562988
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.1285086870193481
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 1.1367394924163818
+        },
+        {
+          "source_id": "POL-10",
+          "distance": 1.146605372428894
+        }
+      ],
+      "citations": [
+        "POL-05"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL05_SHIPPING_AND_GUIDANCE"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-06",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "检测通过后退款多久能到？",
+      "answer": "检测通过后退款通常在1至3个工作日内发起，发起后1至5个工作日到账。具体到账时间无法确定。[POL-06]",
+      "sources": [
+        {
+          "source_id": "POL-06",
+          "distance": 0.6445422172546387
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.9116861820220947
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 0.9131967425346375
+        },
+        {
+          "source_id": "POL-07",
+          "distance": 0.9470109343528748
+        }
+      ],
+      "citations": [
+        "POL-06"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL06_REFUND_STAGES"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-06",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "检测通过后退款多久能到？",
+      "answer": "检测通过后退款通常在1至3个工作日内发起，发起后1至5个工作日到账。具体到账时间无法确定，取决于支付渠道。[POL-06]",
+      "sources": [
+        {
+          "source_id": "POL-06",
+          "distance": 0.6445422172546387
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.9116861820220947
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 0.9131967425346375
+        },
+        {
+          "source_id": "POL-07",
+          "distance": 0.9470109343528748
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.955778956413269
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 0.9776042699813843
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 0.9791852235794067
+        },
+        {
+          "source_id": "POL-08",
+          "distance": 1.0836877822875977
+        }
+      ],
+      "citations": [
+        "POL-06"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL06_REFUND_STAGES"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-07",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "付款后多久发货，能保证明天到吗？",
+      "answer": "已付款订单通常在付款后2个工作日内发货；发货后预计3至5个自然日送达，但无法保证明天一定到货。[POL-07]",
+      "sources": [
+        {
+          "source_id": "POL-07",
+          "distance": 0.7503877878189087
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 0.9641445875167847
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 0.991487443447113
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.0587973594665527
+        }
+      ],
+      "citations": [
+        "POL-07"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-07",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "付款后多久发货，能保证明天到吗？",
+      "answer": "无法保证明天送达。根据政策 [POL-07]，已付款订单通常在付款后2个工作日内发货，已发货后通常3至5个自然日送达，仅为预计，不承诺具体到货日。",
+      "sources": [
+        {
+          "source_id": "POL-07",
+          "distance": 0.7503877878189087
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 0.9641445875167847
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 0.991487443447113
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.0587973594665527
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.0936076641082764
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.1141357421875
+        },
+        {
+          "source_id": "POL-10",
+          "distance": 1.1917756795883179
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 1.2225104570388794
+        }
+      ],
+      "citations": [
+        "POL-07"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-09",
+      "category": "no_answer",
+      "top_k": 4,
+      "question": "你们保证多久开专票？",
+      "answer": "当前资料未规定专票资格或开票时效，无法确认；需人工核验订单。发票抬头与税号仅在人工受理渠道提交，本聊天不收集。[POL-09]",
+      "sources": [
+        {
+          "source_id": "POL-09",
+          "distance": 0.6899374127388
+        },
+        {
+          "source_id": "POL-07",
+          "distance": 0.9983354210853577
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.0814290046691895
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0924837589263916
+        }
+      ],
+      "citations": [
+        "POL-09"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "enforced_constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-09",
+      "category": "no_answer",
+      "top_k": 8,
+      "question": "你们保证多久开专票？",
+      "answer": "当前资料未规定专票资格或开票时效，无法确认；需人工核验订单。发票抬头与税号仅在人工受理渠道提交，本聊天不收集。[POL-09]",
+      "sources": [
+        {
+          "source_id": "POL-09",
+          "distance": 0.6899374127388
+        },
+        {
+          "source_id": "POL-07",
+          "distance": 0.9983354210853577
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.0814290046691895
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0924837589263916
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.1188751459121704
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.1246005296707153
+        },
+        {
+          "source_id": "POL-10",
+          "distance": 1.1379162073135376
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 1.2055262327194214
+        }
+      ],
+      "citations": [
+        "POL-09"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "enforced_constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-10",
+      "category": "no_answer",
+      "top_k": 4,
+      "question": "海外购买的二手设备支持全球联保吗？",
+      "answer": "无法从当前资料确认海外购买的二手设备是否支持全球联保。根据[POL-01]，本政策只适用于星桥办公设备演示商城购买的全新办公设备，二手设备不在本演示政策范围。建议联系原销售渠道确认相关服务政策。",
+      "sources": [
+        {
+          "source_id": "POL-10",
+          "distance": 0.9839906692504883
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 1.0566518306732178
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.064740538597107
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.082923173904419
+        }
+      ],
+      "citations": [
+        "POL-01"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "KB-10",
+      "category": "no_answer",
+      "top_k": 8,
+      "question": "海外购买的二手设备支持全球联保吗？",
+      "answer": "无法从当前资料确认海外购买的二手设备是否支持全球联保。根据政策 [POL-01]，本政策只适用于星桥办公设备演示商城购买的全新办公设备，二手商品不在本演示政策范围。建议您联系原销售渠道获取相关信息。[POL-01]",
+      "sources": [
+        {
+          "source_id": "POL-10",
+          "distance": 0.9839906692504883
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 1.0566518306732178
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.064740538597107
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.082923173904419
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 1.146775245666504
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.150675654411316
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.2241674661636353
+        },
+        {
+          "source_id": "POL-09",
+          "distance": 1.2449787855148315
+        }
+      ],
+      "citations": [
+        "POL-01"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "D3-KB-01",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "键盘无理由退货期限和拆封条件是什么？",
+      "answer": "键盘无理由退货的期限为签收日后的第1至第7个自然日 [POL-02]。商品须配件、包装齐全，无人为损坏且不影响再次销售 [POL-02]。拆封本身不自动拒绝，是否影响再次销售由人工检查 [POL-02]。申请不是批准；需人工核验 [POL-02]。",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.7789721488952637
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8389101028442383
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9114248752593994
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.9263247847557068
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "D3-KB-01",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "键盘无理由退货期限和拆封条件是什么？",
+      "answer": "键盘无理由退货的期限为签收后的第1至第7个自然日，期间商品须配件、包装齐全且无人为损坏，不影响再次销售。是否影响再次销售由人工检查决定。申请不是批准，需人工核验。[POL-02]\n\n拆封本身不自动拒绝；是否影响再次销售由人工检查。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.7789721488952637
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8389101028442383
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9114248752593994
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 0.9263247847557068
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.9376722574234009
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 0.9925780296325684
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 1.0147279500961304
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0314929485321045
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "enforced_constraint_ids": [
+        "POL02_RETURN_CONDITIONS"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "D4-NA-01",
+      "category": "no_answer",
+      "top_k": 4,
+      "question": "你们保证多久开专票？",
+      "answer": "当前资料未规定专票资格或开票时效，无法确认；需人工核验订单。发票抬头与税号仅在人工受理渠道提交，本聊天不收集。[POL-09]",
+      "sources": [
+        {
+          "source_id": "POL-09",
+          "distance": 0.6899374127388
+        },
+        {
+          "source_id": "POL-07",
+          "distance": 0.9983354210853577
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.0814290046691895
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0924837589263916
+        }
+      ],
+      "citations": [
+        "POL-09"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "enforced_constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "D4-NA-01",
+      "category": "no_answer",
+      "top_k": 8,
+      "question": "你们保证多久开专票？",
+      "answer": "当前资料未规定专票资格或开票时效，无法确认；需人工核验订单。发票抬头与税号仅在人工受理渠道提交，本聊天不收集。[POL-09]",
+      "sources": [
+        {
+          "source_id": "POL-09",
+          "distance": 0.6899374127388
+        },
+        {
+          "source_id": "POL-07",
+          "distance": 0.9983354210853577
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.0814290046691895
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.0924837589263916
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.1188751459121704
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.1246005296707153
+        },
+        {
+          "source_id": "POL-10",
+          "distance": 1.1379162073135376
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 1.2055262327194214
+        }
+      ],
+      "citations": [
+        "POL-09"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "enforced_constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "V6-KB-INVOICE-01",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "发票抬头写错了，可以重新开具吗？",
+      "answer": "当前政策未明确能否重开发票抬头，需人工核验订单。发票抬头与税号仅在人工受理渠道提交，本聊天不收集。[POL-09]",
+      "sources": [
+        {
+          "source_id": "POL-09",
+          "distance": 0.8488218188285828
+        },
+        {
+          "source_id": "POL-08",
+          "distance": 1.1906623840332031
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 1.2247868776321411
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.2416355609893799
+        }
+      ],
+      "citations": [
+        "POL-09"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "enforced_constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "V6-KB-INVOICE-01",
+      "category": "knowledge_qa",
+      "top_k": 8,
+      "question": "发票抬头写错了，可以重新开具吗？",
+      "answer": "当前政策未明确能否重开发票抬头，需人工核验订单。发票抬头与税号仅在人工受理渠道提交，本聊天不收集。[POL-09]",
+      "sources": [
+        {
+          "source_id": "POL-09",
+          "distance": 0.8488218188285828
+        },
+        {
+          "source_id": "POL-08",
+          "distance": 1.1906623840332031
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 1.2247868776321411
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.2416355609893799
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.2684637308120728
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 1.296002745628357
+        },
+        {
+          "source_id": "POL-10",
+          "distance": 1.3341498374938965
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 1.3521342277526855
+        }
+      ],
+      "citations": [
+        "POL-09"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "enforced_constraint_ids": [
+        "POL09_INVOICE_PRIVACY_AND_SCOPE"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "MVP-KB-BOUNDARY",
+      "category": "complex_policy",
+      "top_k": 4,
+      "question": "11月1日签收的键盘，11月8日发现按键失灵，可以申请退货吗？",
+      "answer": "你描述的是质量问题，不能仅按无理由退货期限判断。POL-02 规定质量问题按 POL-04/POL-05 规则处理；申请不等于批准，需人工核验。当前资料不足以承诺退货或换货获批。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.8468899726867676
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8500792980194092
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8775572776794434
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9531159400939941
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_QUALITY_ROUTE"
+      ],
+      "enforced_constraint_ids": [
+        "POL02_QUALITY_ROUTE"
+      ],
+      "judge": null,
+      "judge_error": null
+    },
+    {
+      "case_id": "MVP-KB-BOUNDARY",
+      "category": "complex_policy",
+      "top_k": 8,
+      "question": "11月1日签收的键盘，11月8日发现按键失灵，可以申请退货吗？",
+      "answer": "你描述的是质量问题，不能仅按无理由退货期限判断。POL-02 规定质量问题按 POL-04/POL-05 规则处理；申请不等于批准，需人工核验。当前资料不足以承诺退货或换货获批。[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.8468899726867676
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8500792980194092
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8775572776794434
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9531159400939941
+        },
+        {
+          "source_id": "POL-06",
+          "distance": 0.9824768304824829
+        },
+        {
+          "source_id": "QUA-01",
+          "distance": 1.0082545280456543
+        },
+        {
+          "source_id": "POL-05",
+          "distance": 1.024146318435669
+        },
+        {
+          "source_id": "RET-01",
+          "distance": 1.0297119617462158
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "constraint_ids": [
+        "POL02_QUALITY_ROUTE"
+      ],
+      "enforced_constraint_ids": [
+        "POL02_QUALITY_ROUTE"
+      ],
+      "judge": null,
+      "judge_error": null
+    }
+  ]
+}

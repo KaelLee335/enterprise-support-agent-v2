@@ -1,0 +1,15 @@
+.git
+.venv
+.pytest_cache
+.pytest-tmp
+__pycache__
+*.py[cod]
+.env
+*.egg-info
+build
+dist
+data/evaluation
+data/vector_store
+data/*.db
+data/*.sqlite*
+tests

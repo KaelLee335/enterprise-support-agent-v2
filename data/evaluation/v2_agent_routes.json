@@ -1,0 +1,257 @@
+{
+  "evaluated_at": "2026-11-14T13:26:46.856716+00:00",
+  "source_dataset": "v1_eval_cases.json",
+  "evaluation": "deterministic_route_and_order_id_extraction",
+  "total_cases": 45,
+  "route_scored": 35,
+  "route_passed": 35,
+  "route_accuracy": 1.0,
+  "route_by_expected_label": {
+    "clarify_invalid_order_id": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "clarify_multiple_order_ids": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "clarify_or_safe_fallback": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "clarify_or_split_topics": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "clarify_order_intent": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "direct": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "else_llm_policy_answer": {
+      "scored": 14,
+      "passed": 14,
+      "accuracy": 1.0
+    },
+    "insufficient_evidence_reply": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "order_lookup": {
+      "scored": 7,
+      "passed": 7,
+      "accuracy": 1.0
+    },
+    "order_reply": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "privacy_refusal": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "prompt_injection_refusal": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "read_only_refusal": {
+      "scored": 3,
+      "passed": 3,
+      "accuracy": 1.0
+    },
+    "safe_read_only_lookup_or_reject": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    }
+  },
+  "order_parameter_scored": 8,
+  "order_parameter_passed": 8,
+  "order_parameter_accuracy": 1.0,
+  "route_failures": [],
+  "parameter_failures": [],
+  "expected_tool_calls": 9,
+  "tool_calls_succeeded": 9,
+  "tool_call_success_rate": 1.0,
+  "tool_outcomes_scored": 6,
+  "tool_outcomes_passed": 6,
+  "tool_outcome_accuracy": 1.0,
+  "business_order_cases_scored": 5,
+  "business_order_cases_passed": 5,
+  "business_order_field_accuracy": 1.0,
+  "read_only_database_unchanged": true,
+  "tool_cases": [
+    {
+      "case_id": "ORD-01",
+      "called": true,
+      "order_id": "DEMO2026110001",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "ORD-02",
+      "called": true,
+      "order_id": "DEMO2026110006",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "ORD-03",
+      "called": true,
+      "order_id": "DEMO2026110007",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "ORD-04",
+      "called": true,
+      "order_id": "DEMO2026110010",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "ORD-05",
+      "called": true,
+      "order_id": "DEMO2026110099",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "ORD-06",
+      "called": true,
+      "order_id": "DEMO2026110002",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "ABN-04",
+      "called": true,
+      "order_id": "DEMO2026110006",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "D3-ORD-01",
+      "called": true,
+      "order_id": "DEMO2026110006",
+      "error": null,
+      "passed": true
+    },
+    {
+      "case_id": "MVP-V76-ORDER",
+      "called": true,
+      "order_id": "DEMO2026110006",
+      "error": null,
+      "passed": true
+    }
+  ],
+  "tool_outcomes": [
+    {
+      "case_id": "ORD-01",
+      "expected": "found",
+      "actual": "found",
+      "passed": true
+    },
+    {
+      "case_id": "ORD-02",
+      "expected": "found",
+      "actual": "found",
+      "passed": true
+    },
+    {
+      "case_id": "ORD-03",
+      "expected": "found",
+      "actual": "found",
+      "passed": true
+    },
+    {
+      "case_id": "ORD-04",
+      "expected": "found",
+      "actual": "found",
+      "passed": true
+    },
+    {
+      "case_id": "ORD-05",
+      "expected": "not_found",
+      "actual": "not_found",
+      "passed": true
+    },
+    {
+      "case_id": "ORD-06",
+      "expected": "found",
+      "actual": "found",
+      "passed": true
+    }
+  ],
+  "business_order_fields": [
+    {
+      "case_id": "ORD-01",
+      "expected_field_count": 13,
+      "mismatched_fields": [],
+      "passed": true
+    },
+    {
+      "case_id": "ORD-02",
+      "expected_field_count": 13,
+      "mismatched_fields": [],
+      "passed": true
+    },
+    {
+      "case_id": "ORD-03",
+      "expected_field_count": 13,
+      "mismatched_fields": [],
+      "passed": true
+    },
+    {
+      "case_id": "ORD-04",
+      "expected_field_count": 13,
+      "mismatched_fields": [],
+      "passed": true
+    },
+    {
+      "case_id": "ORD-06",
+      "expected_field_count": 13,
+      "mismatched_fields": [],
+      "passed": true
+    }
+  ],
+  "unscored": {
+    "route_case_count": 10,
+    "route_case_ids": [
+      "CP-01",
+      "CP-02",
+      "CP-03",
+      "CP-04",
+      "CP-05",
+      "NA-01",
+      "NA-02",
+      "NA-03",
+      "NA-04",
+      "NA-03B"
+    ],
+    "order_parameter_case_count": 37,
+    "task_success_and_answer_semantics": "not automatically scored; require rubric/manual evaluation",
+    "unmapped_route_labels": []
+  },
+  "routes_seen": {
+    "approval_required": 3,
+    "policy_qa": 16,
+    "order_lookup": 9,
+    "request_rejected": 1,
+    "clarify": 3,
+    "write_request": 3
+  }
+}

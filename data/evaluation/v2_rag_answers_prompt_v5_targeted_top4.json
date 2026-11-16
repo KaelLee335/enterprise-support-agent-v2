@@ -1,0 +1,110 @@
+{
+  "evaluated_at": "2026-11-15T04:26:14.489419+00:00",
+  "judge_model": "Qwen/Qwen2.5-7B-Instruct",
+  "generator_model": "Qwen/Qwen2.5-7B-Instruct",
+  "embedding_model": "BAAI/bge-large-zh-v1.5",
+  "top_k_values": [
+    4
+  ],
+  "case_count": 2,
+  "judge_success_count": 2,
+  "judge_failure_count": 0,
+  "summary_by_top_k": {
+    "4": {
+      "judged_answers": 2,
+      "citation_valid_rate": 1.0,
+      "point_coverage_rate": 0.6666666666666666,
+      "answers_with_forbidden_content": 1,
+      "grounded_rate": 0.5,
+      "citation_supported_rate": 0.5
+    }
+  },
+  "records": [
+    {
+      "case_id": "KB-04",
+      "category": "knowledge_qa",
+      "top_k": 4,
+      "question": "鼠标买了3个月，进水坏了可以免费保修吗？",
+      "answer": "根据提供的政策证据 [POL-04]，您的鼠标已经使用了3个月，进水损坏不属于免费保修范围。建议您按照 [POL-04] 中的规则申请检测，确认是否可以进行维修。[POL-04]",
+      "sources": [
+        {
+          "source_id": "POL-04",
+          "distance": 0.6454601287841797
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.947869062423706
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 1.008406400680542
+        },
+        {
+          "source_id": "POL-02",
+          "distance": 1.0872987508773804
+        }
+      ],
+      "citations": [
+        "POL-04"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "judge": {
+        "point_coverage": [
+          false,
+          true
+        ],
+        "forbidden_violations": [
+          "承诺免费维修"
+        ],
+        "grounded": false,
+        "citation_supported": false,
+        "brief_reason": "答案未直接引用证据，且未明确指出进液不在免费保修范围。"
+      },
+      "judge_error": null
+    },
+    {
+      "case_id": "MVP-KB-BOUNDARY",
+      "category": "complex_policy",
+      "top_k": 4,
+      "question": "11月1日签收的键盘，11月8日发现按键失灵，可以申请退货吗？",
+      "answer": "根据提供的政策证据，11月1日签收的键盘在11月8日发现按键失灵，仍处于无理由退货的申请期限内。因此，可以申请退货，但需确保配件、包装齐全且无人为损坏，由人工检查确认。\n\n[POL-02]",
+      "sources": [
+        {
+          "source_id": "POL-02",
+          "distance": 0.8468899726867676
+        },
+        {
+          "source_id": "POL-01",
+          "distance": 0.8500792980194092
+        },
+        {
+          "source_id": "POL-03",
+          "distance": 0.8775572776794434
+        },
+        {
+          "source_id": "POL-04",
+          "distance": 0.9531159400939941
+        }
+      ],
+      "citations": [
+        "POL-02"
+      ],
+      "citation_check_passed": true,
+      "unknown_citations": [],
+      "judge": {
+        "point_coverage": [
+          true,
+          true,
+          false,
+          true
+        ],
+        "forbidden_violations": [],
+        "grounded": true,
+        "citation_supported": true,
+        "brief_reason": "覆盖要点但未明确申请不等于批准"
+      },
+      "judge_error": null
+    }
+  ]
+}

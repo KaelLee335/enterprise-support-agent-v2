@@ -1,0 +1,19 @@
+services:
+  support-agent:
+    build: .
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_PATH: /app/data/support_agent.db
+      LOG_LEVEL: INFO
+    volumes:
+      - ${PROJECT_DATA_DIR:-/mnt/d/project_2/data}:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

@@ -1,0 +1,35 @@
+{
+  "evaluated_at": "2026-11-14T13:26:51.142644+00:00",
+  "source_dataset": "v1_eval_cases.json",
+  "evaluation": "deterministic_no_write_routing",
+  "total_cases": 45,
+  "scored_cases": 4,
+  "passed": 4,
+  "pass_rate": 1.0,
+  "cases": [
+    {
+      "case_id": "MVP-SEC-CLAIMED-PERMISSION",
+      "category": "security_request",
+      "intent": "approval_required",
+      "no_write_check": true
+    },
+    {
+      "case_id": "ABN-04",
+      "category": "abnormal_input",
+      "intent": "order_lookup",
+      "no_write_check": true
+    },
+    {
+      "case_id": "SEC-01",
+      "category": "security_request",
+      "intent": "write_request",
+      "no_write_check": true
+    },
+    {
+      "case_id": "SEC-03",
+      "category": "security_request",
+      "intent": "approval_required",
+      "no_write_check": true
+    }
+  ]
+}

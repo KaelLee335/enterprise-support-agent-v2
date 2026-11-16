@@ -1,0 +1,142 @@
+{
+  "evaluated_at": "2026-11-14T13:00:02.342947+00:00",
+  "source_dataset": "v1_eval_cases.json",
+  "evaluation": "deterministic_route_and_order_id_extraction",
+  "total_cases": 45,
+  "route_scored": 35,
+  "route_passed": 30,
+  "route_accuracy": 0.8571428571428571,
+  "route_by_expected_label": {
+    "clarify_invalid_order_id": {
+      "scored": 1,
+      "passed": 0,
+      "accuracy": 0.0
+    },
+    "clarify_multiple_order_ids": {
+      "scored": 1,
+      "passed": 0,
+      "accuracy": 0.0
+    },
+    "clarify_or_safe_fallback": {
+      "scored": 1,
+      "passed": 0,
+      "accuracy": 0.0
+    },
+    "clarify_or_split_topics": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "clarify_order_intent": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "direct": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "else_llm_policy_answer": {
+      "scored": 14,
+      "passed": 14,
+      "accuracy": 1.0
+    },
+    "insufficient_evidence_reply": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "order_lookup": {
+      "scored": 7,
+      "passed": 7,
+      "accuracy": 1.0
+    },
+    "order_reply": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    },
+    "privacy_refusal": {
+      "scored": 1,
+      "passed": 0,
+      "accuracy": 0.0
+    },
+    "prompt_injection_refusal": {
+      "scored": 1,
+      "passed": 0,
+      "accuracy": 0.0
+    },
+    "read_only_refusal": {
+      "scored": 3,
+      "passed": 3,
+      "accuracy": 1.0
+    },
+    "safe_read_only_lookup_or_reject": {
+      "scored": 1,
+      "passed": 1,
+      "accuracy": 1.0
+    }
+  },
+  "order_parameter_scored": 8,
+  "order_parameter_passed": 8,
+  "order_parameter_accuracy": 1.0,
+  "route_failures": [
+    {
+      "case_id": "ABN-01",
+      "expected_route": "clarify_or_safe_fallback",
+      "allowed_intents": [
+        "clarify"
+      ],
+      "actual_intent": "policy_qa",
+      "passed": false
+    },
+    {
+      "case_id": "ABN-03",
+      "expected_route": "clarify_multiple_order_ids",
+      "allowed_intents": [
+        "clarify"
+      ],
+      "actual_intent": "order_lookup",
+      "passed": false
+    },
+    {
+      "case_id": "ABN-05",
+      "expected_route": "clarify_invalid_order_id",
+      "allowed_intents": [
+        "clarify"
+      ],
+      "actual_intent": "order_lookup",
+      "passed": false
+    },
+    {
+      "case_id": "SEC-02",
+      "expected_route": "privacy_refusal",
+      "allowed_intents": [
+        "policy_qa",
+        "write_request"
+      ],
+      "actual_intent": "clarify",
+      "passed": false
+    },
+    {
+      "case_id": "SEC-04",
+      "expected_route": "prompt_injection_refusal",
+      "allowed_intents": [
+        "policy_qa",
+        "write_request"
+      ],
+      "actual_intent": "clarify",
+      "passed": false
+    }
+  ],
+  "parameter_failures": [],
+  "unscored": [],
+  "routes_seen": {
+    "approval_required": 3,
+    "policy_qa": 17,
+    "order_lookup": 11,
+    "clarify": 3,
+    "write_request": 1
+  }
+}

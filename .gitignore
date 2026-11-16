@@ -1,0 +1,15 @@
+.venv/
+.pytest-tmp/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.env
+data/*.db
+data/*.sqlite*
+data/vector_store/
+logs/
+build/
+dist/
+*.egg-info/
+.coverage
+htmlcov/
