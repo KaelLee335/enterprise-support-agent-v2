@@ -58,10 +58,10 @@
 | 故障：缺订单号、跨租户 | 已实现/有证据 | `tests/test_agent.py`、`test_api.py`、`test_db.py`。 |
 | 故障：RAG 空召回/无可靠来源 | 已实现/有证据 | `tests/test_rag.py::test_rag_answer_does_not_call_model_when_retrieval_is_empty` 和 WSL 断言式验收。 |
 | 故障：错误政策排序或回答违反政策 | 部分实现 | Top-8 冲突在人工审查中发现，约束层已修复高影响规则；尚无完整、独立的语义蕴含自动测试套件。 |
-| 故障：工具 not_found | 部分实现 | 代码及 Agent 离线评估区分 `found/not_found`，但未找到明确的 API 端到端 not_found 故障注入用例。 |
+| 故障：工具 not_found | 部分实现 | 已新增 `tests/test_api.py::test_random_missing_order_is_not_found_for_authenticated_tenant`，尚未运行；原有评估也区分 found/not_found。 |
 | 故障：错误分支/提示注入/隐私索取 | 已实现/有证据 | 路由/API 单测与 WSL 11 项断言验收覆盖多类恶意/异常输入。 |
 | 故障：数据库连接失败 | 已实现/有证据 | `tests/test_api.py::test_order_database_failure_returns_safe_error`。 |
-| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；Chat Model timeout/429 与 checkpoint 损坏仍待注入测试。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
+| 故障：模型 API 不可用/真实超时/限流 | 部分实现 | Embedding/检索错误可注入并返回安全答复；fake Chat Model timeout 节点单测已添加但尚未运行；429 与 checkpoint 损坏仍待注入测试。统一 12 类场景索引见 `docs/troubleshooting/fault_cases.md`。 |
 | 故障：checkpoint 恢复失败或状态损坏 | 部分实现 | 正常应用重启恢复和重复审批冲突有测试；损坏文件仍待隔离注入，见 `docs/troubleshooting/fault_cases.md`。 |
 | 故障：Docker 环境变量缺失 | 部分覆盖 | 单测确认缺少 SiliconFlow Key 时构造 Embedding 会报错；Compose 缺变量的启动/健康行为仍未端到端验证，已列入 `docs/troubleshooting/fault_cases.md`。 |
 | 延迟基线、P50/P95 | 未实现 | 有单次节点时延日志；`docs/evaluation_and_observability.md` 记录尚无稳定统计基线。 |
