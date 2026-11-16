@@ -310,3 +310,13 @@ def test_http_logs_question_preview_redacted_and_request_duration(client, caplog
     assert "sk-testsecret123456789" not in request_record.question_preview
     http_record = next(record for record in caplog.records if getattr(record, "event", None) == "http_request")
     assert http_record.duration_ms >= 0
+
+def test_random_missing_order_is_not_found_for_authenticated_tenant(client):
+    response = client.get(
+        "/orders/NO-SUCH-ORDER",
+        headers={"Authorization": "Bearer demo-a-local-token"},
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "Order not found for this tenant"
+
