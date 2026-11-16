@@ -175,3 +175,12 @@
 - 新增 tests/test_api.py 随机订单 not_found 断言；新增 tests/test_agent.py 假 Chat Model TimeoutError 安全回答断言。两者均通过 GitHub 文件 API 提交，尚未运行。
 - 更新 fault_cases、requirement_traceability、task_plan、project_status、AGENTS，将状态标为“已添加、待运行”；没有将其计入此前用户报告的 51 passed。
 - 当前唯一需要用户现场操作的是把本机 D:\\project_2 快进到公开 origin/main 并运行 pytest。运行结果回来后继续 checkpoint 隔离注入与阶段 13 干净克隆。
+
+
+# 2026-11-16 — 阶段 12 验收与阶段 13 交接
+
+- 用户截图报告 `git pull --ff-only origin main` 成功；两条新增定向测试 PASS：随机订单 not_found 和 Chat Model timeout 安全答复，2 passed in 4.61s。未重跑此前全量 51 项，也未触碰 WSL/Docker。
+- 按用户确认关闭阶段 12；checkpoint 损坏与 Compose 缺 Key/路径仍在 `docs/troubleshooting/fault_cases.md` 明确标注为部分覆盖/未验证。
+- 公开 README、案例库、追踪矩阵、task plan、project status、AGENTS、progress、findings 已通过 GitHub 文档更新反映当前阶段；文档变更未修改业务运行代码。
+- 阶段 13 干净克隆静态预检：GitHub tree 包含五章学习手册和故障库；未包含 .env、数据库、向量库或虚拟环境。
+- 当前本会话本机执行器仍返回 `setup refresh had errors`，因此不能替用户克隆/安装/运行。下一步需在 D 盘隔离目录完成 README 复现；不覆盖现有项目、密钥、数据或 WSL 服务。
