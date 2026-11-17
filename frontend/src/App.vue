@@ -10,7 +10,7 @@ const error = ref("");
 const conversations = ref({ requester: [], approver: [] });
 const messages = ref(conversations.value[role.value] || []);
 const pending = ref(null);
-const suggestions = ["查询订单1001", "退款多久能到账？", "定制商品有质量问题怎么办？"];
+const suggestions = ["查询订单1001", "退款多久能到账？", "定制商品有质量问题怎么办？", "帮我申请订单1001退款"];
 const ready = computed(() => Boolean(token.value.trim()) && !loading.value);
 
 function authHeaders() {
@@ -98,7 +98,7 @@ function selectRole() {
       <div class="chat-panel">
         <div class="panel-heading"><div><strong>对话</strong><span>基于订单数据与政策知识库</span></div><span class="online"><i></i> API</span></div>
         <div class="conversation" aria-live="polite">
-          <div v-if="messages.length === 0" class="welcome"><div class="sparkle">✳</div><h2>你好，需要什么帮助？</h2><p>试试查询订单，或询问退货、退款和质量问题。</p><div class="suggestions"><button v-for="item in suggestions" :key="item" @click="ask(item)">{{ item }} <span>↗</span></button></div></div>
+          <div v-if="messages.length === 0" class="welcome"><div class="sparkle">✳</div><h2>{{ role === 'approver' ? (pending ? '有一笔待审批任务' : '当前没有待审批任务') : '你好，需要什么帮助？' }}</h2><p>{{ role === 'approver' ? (pending ? '请查看下方任务卡并决定；批准只记录演示状态。' : '先切换到请求人，发送“帮我申请订单1001退款”，再切回审批人处理任务。') : '试试查询订单，或询问退货、退款和质量问题。' }}</p><div v-if="role === 'requester'" class="suggestions"><button v-for="item in suggestions" :key="item" @click="ask(item)">{{ item }} <span>↗</span></button></div></div>
           <template v-for="(message, index) in messages" :key="index">
             <div v-if="message.role === 'user'" class="user-message">{{ message.text }}</div>
             <article v-else class="assistant-message"><div class="assistant-avatar">S</div><div class="answer-card"><div class="answer-meta">Support Agent <span>{{ message.data.intent }}</span></div><p>{{ message.data.answer }}</p>

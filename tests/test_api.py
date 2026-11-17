@@ -217,6 +217,19 @@ def test_refund_approval_pauses_resumes_and_never_changes_order(client):
     assert order.json()["status"] == "已完成"
 
 
+def test_chat_creates_pending_approval_for_natural_application_phrase(client):
+    response = client.post(
+        "/chat",
+        json={"question": "帮我申请订单 1001 退款"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["intent"] == "approval_required"
+    assert response.json()["approval_status"] == "pending"
+    assert response.json()["pending_action"]["order_id"] == "1001"
+
+
 def test_refund_approval_rejects_duplicate_decision(client):
     pending = client.post(
         "/chat",

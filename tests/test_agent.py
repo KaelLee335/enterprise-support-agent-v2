@@ -1,3 +1,5 @@
+import pytest
+
 from support_agent.agent.nodes import generate_policy_answer, route_request
 
 
@@ -31,6 +33,26 @@ def test_router_sends_refund_intent_to_approval_before_order_lookup():
 
     assert result["intent"] == "approval_required"
     assert result["order_id"] == "DEMO2026110006"
+
+
+@pytest.mark.parametrize("question", [
+    "帮我申请订单 1001 退款",
+    "申请订单1001退款",
+    "我要申请订单1001退款",
+    "给订单1001申请退款",
+])
+def test_router_recognizes_natural_refund_application_phrases(question):
+    result = route_request({"question": question})
+
+    assert result["intent"] == "approval_required"
+    assert result["order_id"] == "1001"
+
+
+def test_router_does_not_route_refund_progress_question_to_approval():
+    result = route_request({"question": "帮我查一下订单1001的退款进度"})
+
+    assert result["intent"] == "order_lookup"
+    assert result["order_id"] == "1001"
 
 
 def test_router_rejects_claimed_permission_write_request():

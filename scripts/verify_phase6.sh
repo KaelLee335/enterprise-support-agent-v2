@@ -92,7 +92,7 @@ check_chat "invoice privacy boundary" "你们保证多久开专票？" "policy_q
 
 pending_response=$(curl -fsS --max-time 15 -X POST \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $DEMO_TOKEN" \
-  -d '{"question":"帮我给订单1001直接退款"}' "$BASE/chat")
+  -d '{"question":"帮我申请订单1001退款"}' "$BASE/chat")
 thread_id=$(PENDING_RESPONSE="$pending_response" python3 -c 'import json,os; print(json.loads(os.environ["PENDING_RESPONSE"])["thread_id"])')
 
 requester_result=$(curl -sS --max-time 10 -w '\n%{http_code}' -X POST \
