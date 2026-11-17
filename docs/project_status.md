@@ -2,19 +2,17 @@
 
 更新日期：2026-11-17
 
-## 当前阶段：V2.1 本地演示加固（WSL 集成验收完成）
+## 当前阶段：V2.1 本地演示加固（已完成）
 
 - 新增同租户独立 requester/approver 演示身份；requester 自批 403、跨租户审批读取 404、独立 approver 可记录 `approved_demo`。仍是公开 Demo token，不是真实认证。
 - 新增 LangGraph 物流查询分支；先按 tenant 从 SQLite 确认订单，再经带演示服务标记的 HTTP client 请求静态 mock 服务。只含虚构单号与轨迹，不访问商业快递 API。
 - 新增 `uv.lock`；CI 用 `uv sync --locked` 检查锁文件一致性，Dockerfile 用 `uv sync --frozen` 按锁文件安装，避免构建时受 Aliyun 索引元数据重新解析影响。CI 触发路径已包含政策、seed、前端、脚本和文档，并添加 Vue 构建及 Compose 内物流 API smoke。
-- 本机验收：65 项 pytest 通过；Vue `npm run build` 通过；`docker compose config --quiet` 通过；Python 源码编译通过。此前本机 Docker 镜像构建曾在拉取阶段返回 `unexpected EOF`；之后用户在 WSL 完成同步和重建，该结果已由下条实机验收覆盖。
+- V2.1 初始本机验收：65 项 pytest 通过；Vue build、Compose 静态配置和 Python 编译通过。后续退款路由修复的定向回归通过，审批 UI 改动的 Vue build 通过。
 - WSL 部署由用户报告已完成：更新脚本同步 `uv.lock` 与源码到 `/opt/project2`，两容器 healthy，阶段 6 与 V2.1 新增 verifier 用例全部 PASS。此为用户提供的实机结果，本会话没有操作 WSL。
-- 发布后的 GitHub Actions run 19（commit `46d089a`）已通过：锁文件安装、Python 全量测试、Vue 构建、无密钥 Compose 校验、Docker 镜像构建和无 Key 容器烟测。
-- 后续修复角色切换时复用同一段对话的问题：请求人与审批人分开显示各自历史，待审批任务作为跨角色任务卡保留；审批结果同步回请求人历史。修复后的 `npm run build` 通过，浏览器交互需刷新页面确认。
-- 根据最新截图新增修正：`帮我申请订单 1001 退款` 原先被路由为 `order_lookup`，现已补充自然退款申请表达并加入审批回归；审批人无任务时显示下一步引导。19 项 router 测试、该自然说法的 API 审批测试和 Vue 构建通过。用户随后报告 `update_wsl_and_verify.sh` 已完成，双容器 healthy、扩展 verifier 全 PASS（EXIT=0），路由修正已生效。
-- 后续 UI 收口：待审批卡片与批准/拒绝按钮只在审批人页面显示；请求人仅在本方对话中看到待审批状态。此为前端改动，不需要重建后端容器。
-- 前端审批卡可见范围修正已推送为 `12aaf4d`；其 GitHub Actions run `44077476920` 已完成并通过。
-- 用户已在浏览器确认最终流程通过：请求人与审批人对话隔离；待审批卡片和决策按钮只出现在审批人页面。
+- GitHub Actions run `44077476920`（代码提交 `12aaf4d`）已通过，涵盖 Python 测试、Vue 构建、Compose 配置、Docker 镜像构建和无 Key 容器 smoke。
+- 请求人与审批人分开显示各自历史；待审批任务和决策按钮只在审批人页面显示；申请人只在本方对话看到待审批状态。用户已确认浏览器验收通过。
+- `帮我申请订单 1001 退款` 已改为创建 `pending` 审批，而不是进入 `order_lookup`；19 项 router 测试和新增 API 审批回归通过。用户报告同步脚本执行后双容器 healthy、扩展 verifier 全 PASS（EXIT=0）。
+- 最新浏览器验收确认请求人/审批人各自显示独立对话，待审批卡与决定按钮只显示在审批人页面。代码提交 `12aaf4d`，后续项目状态记录提交 `a928573` 已推送。
 - Dockerfile 使用 `uv sync --frozen` 避免构建时按 Aliyun 源重新解析；CI 使用 `uv sync --locked` 验证锁文件一致性。
 
 ## 已完成并验收
@@ -32,7 +30,7 @@
 ## 当前配置和已知限制
 
 - 阶段 15 可靠性加固已完成。阶段 17 Vue 前端首版完成；用户报告安装、页面和真实 `/api/chat` 链路通过，本机 production build 通过。
-- 用户已明确无需生产化，阶段 16 暂停。V2.1 四阶段实现与 WSL 集成验收均已完成（WSL 结果由用户报告）；实现已由 `c8879bf` 推送到 `origin/main`。完整方案见 [`docs/v2_1_demo_reinforcement_plan.md`](v2_1_demo_reinforcement_plan.md)。
+- 用户已明确无需生产化，阶段 16 暂停。V2.1 实现、WSL 集成和浏览器验收均已完成；代码与文档已推送至公开 `main`。完整方案见 [`docs/v2_1_demo_reinforcement_plan.md`](v2_1_demo_reinforcement_plan.md)。
 
 - 用户最新 WSL 验收报告：同步 `Dockerfile`、Compose、`main.py`、API 回归测试和 verifier 后，镜像重建、容器重建启动成功，health 200；`verify_phase6.sh` 12/12 PASS，EXIT=0。该项包括此前新增的 auth/clarify/refund/policy 用例。结果来自用户截图，本会话未直接操作 WSL。
 
@@ -41,13 +39,12 @@
 - systemd 的 `docker` unit 未报告 active（enabled 标记存在）。用户已实测 Ubuntu WSL 为 `Stopped` 时触发任务后 `dockerd ready`、容器 healthy、health 200。2026-11-16 本机只读检查发现 `the existing scheduled task` 任务是当前用户的交互式 Logon 触发器，不是 Startup 触发器；因此不能保证用户登录前恢复。没有修改计划任务或虚拟网卡。
 - 学习/面试问答按用户要求暂存。
 
-## 尚未完成 / 后续计划
+## 暂缓项与明确边界
 
-1. 阶段 0–14 已完成。阶段 15 现有 CI 为 55 passed，WSL 12/12 验收由用户报告；本机阶段 15 四条离线回归也已复核通过（4/4，3.35 秒：timeout 安全答复、无 Embedding Key、checkpoint 损坏保护、无 Key API 降级）。2026-11-17 隔离 Compose 检查确认缺少 `.env` 会明确配置失败；错误数据路径在 `config` 阶段不创建。`compose.yaml` 使用 `create_host_path: false`；临时服务的运行态错误挂载验收也通过。真实供应商 429/timeout 未验证，暂不属于当前本地 Demo 验收范围。
-2. 阶段 11 学习手册已完成并推送：LangChain、LangGraph、RAG、SQL、FastAPI 五章位于 `docs/learning/`；每章包括代码入口、数据流图、示例、重点和自测题。
-3. 阶段 13 已完成：用户报告 D 盘干净克隆依赖安装成功、全量 53 项 pytest 通过，并完成 API health/order 首次启动验收。
-4. 阶段 14 已完成：复核 README、项目故事、面试包、演示手册、需求追踪、故障库和 WSL 生命周期说明；过期待验收状态已修正，主机级配置仅以概括形式记录。
-5. 阶段 15 离线加固已完成；缺少 `.env` 的配置错误、错误 bind 路径防误建和运行态失败均已隔离验证。阶段 16 生产化依用户指示暂停；V2.1 只推进本地 persona、演示审批角色、模拟物流 API 和交付一致性。
+- 阶段 16 真实生产化按用户要求暂停，不属于当前交付；不接真实身份服务、真实客户数据、商业物流 API、真实退款或生产数据库。
+- 真实模型供应商 429/timeout 尚未实测；没有明确演示需求时，不额外发送请求或触发额度消耗。
+- 独立语义裁判、成熟事实级 grounding 自动指标、延迟 P50/P95 基线不在当前演示验收范围；保留人工 Bad Case 复核与明确的证据边界。
+- 学习互动按用户时间安排；五章材料已完成，不主动开始测验。
 
 ## 阶段 7：发布就绪与可复现交接（已完成）
 
@@ -96,10 +93,4 @@
 
 ## 当前推进
 
-V2.1 本地实现及 WSL 集成验收均已完成（部署/验收结果由用户报告）。不要配置真实 API Key、外部身份服务或云资源；也不需要重跑已验收的 53 项 clean-clone 测试/API smoke。阶段 15 的 55 项结果来自 GitHub Actions。
-
-## 当前优先级
-
-用户确认先完成主要业务链路，再回头做加固。主链路已由用户验收。阶段 15 可靠性加固现已开始：已新增 GitHub Actions，在干净 Python 3.12 环境全量运行 pytest；新增 checkpoint 损坏预检，损坏文件安全阻止启动且不覆盖原文件。
-
-GitHub Actions 最新报告 55 passed in 3.99s；Compose 模板解析、阿里云源 Docker 构建、临时容器 health/订单/无 Key RAG 安全降级均通过。WSL 部署与 12 项验收已由用户报告通过；本会话没有操作 WSL。2026-11-17 Compose v2.39.1 临时配置检查：无 `.env` 时 `config` 非零退出并报告文件缺失；错误数据目录配置可解析且配置命令不会创建目录。Compose 短格式 bind mount 默认会自动创建缺失源目录，因此 `compose.yaml` 已改成长语法并设置 `create_host_path: false`。桥接恢复后，唯一临时 Compose 项目验证不存在路径会使服务启动失败，daemon 明确返回 `bind source path does not exist`，宿主路径未创建；资源已清理且原项目容器仍 healthy。真实供应商限流、延迟统计和生产化暂缓。
+图中列出的 V2.1 演示改进与用户验收均已完成。下一步若继续项目工作，应进入用户安排的 LangChain/LangGraph 学习复盘，或另行确定新的 Demo 改进目标；不把暂停的生产化事项自动纳入当前范围。

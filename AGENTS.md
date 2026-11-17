@@ -52,6 +52,7 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 - Follow-up UI visibility fix: pending approval task card and decision buttons render only for the approver role; requester still sees the pending status in their own transcript. Vue build is the relevant local verification; no backend/WSL change is required.
 - GitHub Actions for commit `12aaf4d` completed successfully (run `44077476920`).
 - User manually confirmed the browser flow after the visibility fix: requester/approver separation behaves as intended and passes acceptance.
+- Post-release documentation audit aligned the status/traceability dashboard with completed V2.1 acceptance; remaining notes are explicitly deferred scope (productionization, real provider fault drills, semantic judge/latency baseline, and learner-led practice).
 - User reports the external `update_wsl_and_verify.sh` run synced `uv.lock` and source to `/opt/project2`, both containers became healthy, and the expanded phase 6 + V2.1 verifier passed. The live demo is therefore on V2.1 per user report.
 - A prior local Docker image build attempt ended with daemon `unexpected EOF` during image pull; the later WSL result supersedes that attempt. Do not retry from the Windows-mounted project directory.
 - User changed both Dockerfile sync commands from `--locked` to `--frozen`: the container uses the committed resolution without re-resolving against Aliyun metadata; CI retains `--locked` to detect a stale lockfile. Preserve this distinction.

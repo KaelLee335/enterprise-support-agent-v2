@@ -66,6 +66,7 @@
 - [x] WSL 集成回归：用户报告已运行 `bash /mnt/d/project_2/scripts/update_wsl_and_verify.sh`；后端路由及更新验收脚本已同步至 `/opt/project2`，双容器 healthy，扩展 verifier 全 PASS（EXIT=0），截图中的申请表达已正确生效。
 - [x] 审批任务 UI 可见范围：任务卡和决定按钮限定为审批人页面；请求人仅保留自己的待审批答复。Vue production build 通过。
 - [x] 用户浏览器验收：请求人/审批人页面隔离及审批卡仅审批人可见，用户确认通过。
+- [x] 发布后图示建议复核：V2.1 交付一致性、模拟身份/审批人、本地物流 API、演示迁移说明均已完成；项目看板中的旧阶段状态已校准。
 - **验收边界：**所有身份、物流和客户信息均为虚构；不触发真实外部 API，不把公开 Demo token 描述为认证；保留 `RAG_TOP_K=4` 和只读订单/演示审批边界。
 
 - [x] 阶段 7.1：文档、忽略规则和 Docker 构建输入审查；用户 WSL build 成功证实 Compose 可解析。
