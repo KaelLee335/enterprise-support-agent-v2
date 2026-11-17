@@ -36,6 +36,8 @@ flowchart LR
 
 Vue 只调用本地 FastAPI；模型 Key 保留在后端 `.env`。订单查询为只读；退款批准只记录演示状态 `approved_demo`。Docker/WSL 用于运行后端与持久化数据，开发前端单独通过 Vite 启动。
 
+项目重视真实理解与工程取舍，不堆叠技术；通过代码、运行观察和评估展示完整链路。当前使用模拟数据，不是生产客服系统，不执行真实退款、改址或删除操作。
+
 ## 本地运行
 
 ```powershell
@@ -129,7 +131,7 @@ RAG 答案层增加了可审计的政策约束规则，详细人工复核和 Top
 
 ## Docker（WSL）
 
-确保项目根目录已有本机 `.env`（SiliconFlow Key 不要写入镜像）。为避开 `/mnt/d` 上的 BuildKit 权限问题，在 WSL 中从 `/opt/project2` 构建；Compose 将数据目录绝对挂载到 Windows 同源的 `/mnt/d/project_2/data`：
+确保项目根目录已有本机 `.env`。为避开 `/mnt/d` 上的 BuildKit 权限问题，在 WSL 中从 `/opt/project2` 构建；Compose 将数据目录绝对挂载到 Windows 同源的 `/mnt/d/project_2/data`：
 
 ```bash
 cd /opt/project2
