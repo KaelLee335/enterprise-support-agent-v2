@@ -29,6 +29,7 @@ npm run dev
 
 - `/chat` 对话，显示意图、答复、订单卡片、政策引用和可展开证据。
 - `approval_status=pending` 时显示批准/拒绝按钮，调用 `/approvals/{thread_id}/decision`。批准只记录 `approved_demo`，不执行真实退款。
+- 请求人和审批人拥有独立的前端对话历史；切换角色后显示该角色自己的对话。待审批任务以单独任务卡跨角色保留，审批完成后请求人历史中的状态也会更新。
 - Bearer 演示令牌可在密码框修改，并保存在浏览器 `localStorage`；它不是生产认证。
 - 不在 Vue/Vite 环境变量中配置 SiliconFlow API Key。真实模型请求由 FastAPI 后端发起。
 

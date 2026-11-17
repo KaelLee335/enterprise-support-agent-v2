@@ -293,3 +293,9 @@
 - 发布前核对 `.env.example` 的 SiliconFlow Key 为空；`.env`、数据库、向量库、前端依赖/构建产物未纳入提交。发现 Vite 本地日志后已加入 `.gitignore` 并排除。
 - 本地既有记录为 pytest 65 passed、Vue build 通过、Compose 静态配置与 Python 编译通过；本轮未重跑测试。远端最初查询曾遇到当前沙箱 Git 凭证不可用，后续获准 Git 推送成功。
 - 推送后 GitHub Actions run 19（commit `46d089a`）完成并通过：锁文件安装、Python 测试、Vue build、无密钥 Compose 校验、Docker 镜像构建及无 Key 容器 smoke。
+
+## 2026-11-17 — 前端角色会话隔离修复
+
+- 用户反馈切换到审批人后仍看到请求人对话。根因是角色切换只更换 Demo token，没有切换会话列表。
+- Vue 前端现在按 requester/approver 分别保留本次页面会话中的对话；未决审批以独立任务卡跨角色显示，批准/拒绝后清除任务卡并同步结果到请求人对话。角色切换期间若请求仍在处理中则禁止切换。
+- `npm run build` 通过。未操作 WSL/Docker、未调用模型；页面需刷新后确认实际交互效果。

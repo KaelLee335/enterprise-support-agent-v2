@@ -3,10 +3,12 @@ import { computed, ref } from "vue";
 
 const token = ref(localStorage.getItem("demo-token") || "demo-a-local-token");
 const role = ref(localStorage.getItem("demo-role") || "requester");
+const activeRole = ref(role.value);
 const question = ref("");
 const loading = ref(false);
 const error = ref("");
-const messages = ref([]);
+const conversations = ref({ requester: [], approver: [] });
+const messages = ref(conversations.value[role.value] || []);
 const pending = ref(null);
 const suggestions = ["查询订单1001", "退款多久能到账？", "定制商品有质量问题怎么办？"];
 const ready = computed(() => Boolean(token.value.trim()) && !loading.value);
@@ -22,7 +24,6 @@ async function ask(text = question.value) {
   if (!prompt || !ready.value) return;
   question.value = "";
   error.value = "";
-  pending.value = null;
   messages.value.push({ role: "user", text: prompt });
   loading.value = true;
   try {
@@ -48,7 +49,16 @@ async function decide(approved) {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || `审批请求失败 (${response.status})`);
-    messages.value.push({ role: "assistant", data: { answer: data.answer, intent: "approval", approval_status: data.approval_status, thread_id: data.thread_id } });
+    const decisionMessage = { role: "assistant", data: { answer: data.answer, intent: "approval", approval_status: data.approval_status, thread_id: data.thread_id } };
+    messages.value.push(decisionMessage);
+    conversations.value.approver = messages.value;
+    const requesterMessage = [...conversations.value.requester].reverse().find(
+      (message) => message.role === "assistant" && message.data.thread_id === data.thread_id,
+    );
+    if (requesterMessage) {
+      requesterMessage.data.answer = data.answer;
+      requesterMessage.data.approval_status = data.approval_status;
+    }
     pending.value = null;
   } catch (e) {
     error.value = e.message;
@@ -58,6 +68,13 @@ async function decide(approved) {
 }
 
 function selectRole() {
+  if (loading.value) {
+    role.value = activeRole.value;
+    return;
+  }
+  conversations.value[activeRole.value] = messages.value;
+  activeRole.value = role.value;
+  messages.value = conversations.value[activeRole.value] || [];
   token.value = role.value === "approver" ? "demo-a-approver-local-token" : "demo-a-local-token";
   localStorage.setItem("demo-role", role.value);
   localStorage.setItem("demo-token", token.value);
@@ -94,13 +111,13 @@ function selectRole() {
             </div></article>
           </template>
           <div v-if="loading" class="typing"><i></i><i></i><i></i><span>正在处理</span></div>
-          <div v-if="pending" class="approval-box"><strong>需要演示审批</strong><p>请求人和审批人为两个不同的演示身份。请在右侧切换到审批人后操作；批准只记录演示状态。</p><div v-if="role === 'approver'"><button class="approve" :disabled="loading" @click="decide(true)">演示批准</button><button class="reject" :disabled="loading" @click="decide(false)">拒绝</button></div><small v-else>当前为请求人身份，不能审批自己的请求。</small></div>
+          <div v-if="pending" class="approval-box"><strong>待处理演示审批</strong><p>订单 {{ pending.pending_action?.order_id || '—' }} 的退款申请。请求人与审批人的对话分开显示；这张待审批任务卡会保留给审批人处理。</p><div class="order-title">原订单状态：{{ pending.pending_action?.order_status || '—' }} <span>{{ pending.approval_status }}</span></div><div v-if="role === 'approver'"><button class="approve" :disabled="loading" @click="decide(true)">演示批准</button><button class="reject" :disabled="loading" @click="decide(false)">拒绝</button></div><small v-else>当前为请求人身份，不能审批自己的请求。</small></div>
         </div>
         <div v-if="error" class="error-banner">{{ error }}</div>
         <form class="composer" @submit.prevent="ask()"><textarea v-model="question" rows="1" maxlength="4000" placeholder="输入你的售后问题…" @keydown.enter.exact.prevent="ask()"></textarea><button class="send" :disabled="!question.trim() || loading" aria-label="发送">↑</button><small>Enter 发送 · 内容会发送至当前配置的模型服务</small></form>
       </div>
 
-      <aside class="side-panel"><div class="side-card"><div class="side-icon">⌘</div><h3>演示身份</h3><p>固定映射的本地演示身份，不是真实认证。请求人与审批人为两个同租户虚构用户。</p><label for="role">当前角色</label><select id="role" v-model="role" @change="selectRole"><option value="requester">请求人（demo-a）</option><option value="approver">审批人（demo-a）</option></select><label for="token">Demo Token</label><input id="token" v-model="token" type="password" autocomplete="off" placeholder="本地演示令牌"/><small>仅发送给当前本地 API。物流信息来自本机模拟 HTTP 服务。</small></div><div class="side-card flow-card"><h3>处理流程</h3><ol><li>确定性规则识别意图</li><li>订单只读查询、政策 RAG 或模拟物流 API</li><li>返回答复、证据或轨迹</li><li>退款请求暂停，独立演示身份作出决定</li></ol></div><div class="demo-note">演示项目 · 使用虚构数据<br/>物流服务为本地 mock · 不调用商业快递 API</div></aside>
+      <aside class="side-panel"><div class="side-card"><div class="side-icon">⌘</div><h3>演示身份</h3><p>固定映射的本地演示身份，不是真实认证。请求人与审批人为两个同租户虚构用户。</p><label for="role">当前角色</label><select id="role" v-model="role" :disabled="loading" @change="selectRole"><option value="requester">请求人（demo-a）</option><option value="approver">审批人（demo-a）</option></select><label for="token">Demo Token</label><input id="token" v-model="token" type="password" autocomplete="off" placeholder="本地演示令牌"/><small>两种角色各自保留独立对话；待审批任务会跨角色显示。仅发送给当前本地 API。物流信息来自本机模拟 HTTP 服务。</small></div><div class="side-card flow-card"><h3>处理流程</h3><ol><li>确定性规则识别意图</li><li>订单只读查询、政策 RAG 或模拟物流 API</li><li>返回答复、证据或轨迹</li><li>退款请求暂停，独立演示身份作出决定</li></ol></div><div class="demo-note">演示项目 · 使用虚构数据<br/>物流服务为本地 mock · 不调用商业快递 API</div></aside>
     </section>
     <footer>Enterprise Support Agent V2 <span>用于学习与本地演示</span></footer>
   </main>

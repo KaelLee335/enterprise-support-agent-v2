@@ -80,7 +80,7 @@ curl -s http://localhost:8000/chat \
 在 `/docs` 的 `POST /chat` 中输入：`帮我给订单 1001 直接退款`。预期 `approval_status=pending`，响应返回 `thread_id`。保留这个 ID，之后：
 
 1. 调用 `GET /approvals/{thread_id}`，Header 使用 `Authorization: Bearer demo-a-local-token`，应看到 `pending`。
-2. 请求人令牌尝试决定时应返回 403。改用 `Authorization: Bearer demo-a-approver-local-token` 调用 `POST /approvals/{thread_id}/decision`，请求体 `{"approved":true}`。
+2. 请求人令牌尝试决定时应返回 403。前端演示可切换到审批人：对话历史会切换到审批人自己的会话，待审批任务则保留为独立任务卡；随后改用 `Authorization: Bearer demo-a-approver-local-token` 调用 `POST /approvals/{thread_id}/decision`，请求体 `{"approved":true}`。
 3. 预期返回 `approval_status=approved_demo`，并明确说明没有执行真实退款。
 4. 再查 `GET /orders/1001`，订单状态仍是“已完成”。这证明审批演示未写订单数据。
 
