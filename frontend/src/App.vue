@@ -111,7 +111,7 @@ function selectRole() {
             </div></article>
           </template>
           <div v-if="loading" class="typing"><i></i><i></i><i></i><span>正在处理</span></div>
-          <div v-if="pending" class="approval-box"><strong>待处理演示审批</strong><p>订单 {{ pending.pending_action?.order_id || '—' }} 的退款申请。请求人与审批人的对话分开显示；这张待审批任务卡会保留给审批人处理。</p><div class="order-title">原订单状态：{{ pending.pending_action?.order_status || '—' }} <span>{{ pending.approval_status }}</span></div><div v-if="role === 'approver'"><button class="approve" :disabled="loading" @click="decide(true)">演示批准</button><button class="reject" :disabled="loading" @click="decide(false)">拒绝</button></div><small v-else>当前为请求人身份，不能审批自己的请求。</small></div>
+          <div v-if="pending && role === 'approver'" class="approval-box"><strong>待处理演示审批</strong><p>订单 {{ pending.pending_action?.order_id || '—' }} 的退款申请。任务卡仅向审批人显示。</p><div class="order-title">原订单状态：{{ pending.pending_action?.order_status || '—' }} <span>{{ pending.approval_status }}</span></div><button class="approve" :disabled="loading" @click="decide(true)">演示批准</button><button class="reject" :disabled="loading" @click="decide(false)">拒绝</button></div>
         </div>
         <div v-if="error" class="error-banner">{{ error }}</div>
         <form class="composer" @submit.prevent="ask()"><textarea v-model="question" rows="1" maxlength="4000" placeholder="输入你的售后问题…" @keydown.enter.exact.prevent="ask()"></textarea><button class="send" :disabled="!question.trim() || loading" aria-label="发送">↑</button><small>Enter 发送 · 内容会发送至当前配置的模型服务</small></form>

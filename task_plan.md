@@ -64,6 +64,7 @@
 - [x] 前端角色切换修复：requester/approver 分离对话历史，审批任务单独跨角色保留，决定结果同步回请求人会话；Vue production build 通过。
 - [x] 自然退款申请表达修复：`帮我申请订单 1001 退款` 等说法创建 `pending` 审批，而不是进入只读订单查询；审批人空状态新增引导。定向测试与前端构建通过。
 - [x] WSL 集成回归：用户报告已运行 `bash /mnt/d/project_2/scripts/update_wsl_and_verify.sh`；后端路由及更新验收脚本已同步至 `/opt/project2`，双容器 healthy，扩展 verifier 全 PASS（EXIT=0），截图中的申请表达已正确生效。
+- [x] 审批任务 UI 可见范围：任务卡和决定按钮限定为审批人页面；请求人仅保留自己的待审批答复。Vue production build 通过。
 - **验收边界：**所有身份、物流和客户信息均为虚构；不触发真实外部 API，不把公开 Demo token 描述为认证；保留 `RAG_TOP_K=4` 和只读订单/演示审批边界。
 
 - [x] 阶段 7.1：文档、忽略规则和 Docker 构建输入审查；用户 WSL build 成功证实 Compose 可解析。

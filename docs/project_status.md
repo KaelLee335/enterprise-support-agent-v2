@@ -12,6 +12,7 @@
 - 发布后的 GitHub Actions run 19（commit `46d089a`）已通过：锁文件安装、Python 全量测试、Vue 构建、无密钥 Compose 校验、Docker 镜像构建和无 Key 容器烟测。
 - 后续修复角色切换时复用同一段对话的问题：请求人与审批人分开显示各自历史，待审批任务作为跨角色任务卡保留；审批结果同步回请求人历史。修复后的 `npm run build` 通过，浏览器交互需刷新页面确认。
 - 根据最新截图新增修正：`帮我申请订单 1001 退款` 原先被路由为 `order_lookup`，现已补充自然退款申请表达并加入审批回归；审批人无任务时显示下一步引导。19 项 router 测试、该自然说法的 API 审批测试和 Vue 构建通过。用户随后报告 `update_wsl_and_verify.sh` 已完成，双容器 healthy、扩展 verifier 全 PASS（EXIT=0），路由修正已生效。
+- 后续 UI 收口：待审批卡片与批准/拒绝按钮只在审批人页面显示；请求人仅在本方对话中看到待审批状态。此为前端改动，不需要重建后端容器。
 - Dockerfile 使用 `uv sync --frozen` 避免构建时按 Aliyun 源重新解析；CI 使用 `uv sync --locked` 验证锁文件一致性。
 
 ## 已完成并验收
