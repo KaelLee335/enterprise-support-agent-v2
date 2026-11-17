@@ -63,5 +63,5 @@ Acceptance: a logistics question follows LangGraph → shipping client → local
 - Stage 4 docs/UI are updated locally: README, runbook, project story, interview kit, LangGraph/FastAPI learning chapters, Vue role selector and fictional tracking display.
 - A local Docker image build attempt returned `unexpected EOF` while pulling; the later user-reported WSL rebuild and verifier success supersede that local attempt. Per project instructions, do not build from the Windows-mounted checkout.
 - Dockerfile uses `uv sync --frozen` twice to install from the committed lock without re-resolving against Aliyun index metadata. CI intentionally keeps `uv sync --locked` as a stale-lock check.
-- Existing worktree changes were preserved. The user has authorized committing and pushing the reviewed V2.1 delivery, including the Dockerfile `--frozen` adjustment.
+- Existing worktree changes were preserved. The reviewed V2.1 delivery, including the Dockerfile `--frozen` adjustment, was committed as `c8879bf` and pushed to `origin/main`.
 - Prior confirmed constraints remain: SQLite demo persistence, WSL Docker runtime, D-drive data mount, public repository, and no real provider/customer data for this task.

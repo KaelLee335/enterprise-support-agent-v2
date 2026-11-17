@@ -285,3 +285,10 @@
 - 验收：`uv lock --check --offline` 成功；全量 `pytest` 65 passed；Vue production build 成功；`docker compose config --quiet` 和 Python compileall 成功。WSL 两容器实际 HTTP 集成仍需用户同步及重建。
 - 本机 Docker 镜像构建尝试未完成，远端 daemon 在拉取阶段返回 `unexpected EOF`；之后用户报告已在 WSL 成功同步并重建，两容器 healthy，阶段 6 + V2.1 verifier 全 PASS，覆盖了本机无法完成的容器间集成验收。
 - 未提交、未推送，保留已有工作树改动。
+
+## 2026-11-17 — V2.1 发布完成
+
+- 用户报告 WSL `/opt/project2` 已同步最新 `uv.lock`、源码并重建，两个容器 healthy；阶段 6 与 V2.1 新增 verifier 用例全部 PASS。此 WSL 结果由用户提供，本会话未直接操作 WSL。
+- 审阅并提交 V2.1 全量交付（含 Dockerfile `uv sync --frozen` 修正、Vue 前端、物流模拟服务、独立演示审批角色、锁文件、CI、测试与文档），提交 `c8879bf`；推送到公开仓库 `origin/main` 成功。
+- 发布前核对 `.env.example` 的 SiliconFlow Key 为空；`.env`、数据库、向量库、前端依赖/构建产物未纳入提交。发现 Vite 本地日志后已加入 `.gitignore` 并排除。
+- 本地既有记录为 pytest 65 passed、Vue build 通过、Compose 静态配置与 Python 编译通过；本轮未重跑测试。远端最初查询曾遇到当前沙箱 Git 凭证不可用，后续获准 Git 推送成功。

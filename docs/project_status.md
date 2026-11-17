@@ -26,7 +26,7 @@
 ## 当前配置和已知限制
 
 - 阶段 15 可靠性加固已完成。阶段 17 Vue 前端首版完成；用户报告安装、页面和真实 `/api/chat` 链路通过，本机 production build 通过。
-- 用户已明确无需生产化，阶段 16 暂停。V2.1 四阶段实现与 WSL 集成验收均已完成（WSL 结果由用户报告）；当前收尾是提交并推送已审阅改动。完整方案见 [`docs/v2_1_demo_reinforcement_plan.md`](v2_1_demo_reinforcement_plan.md)。
+- 用户已明确无需生产化，阶段 16 暂停。V2.1 四阶段实现与 WSL 集成验收均已完成（WSL 结果由用户报告）；实现已由 `c8879bf` 推送到 `origin/main`。完整方案见 [`docs/v2_1_demo_reinforcement_plan.md`](v2_1_demo_reinforcement_plan.md)。
 
 - 用户最新 WSL 验收报告：同步 `Dockerfile`、Compose、`main.py`、API 回归测试和 verifier 后，镜像重建、容器重建启动成功，health 200；`verify_phase6.sh` 12/12 PASS，EXIT=0。该项包括此前新增的 auth/clarify/refund/policy 用例。结果来自用户截图，本会话未直接操作 WSL。
 
