@@ -75,7 +75,7 @@ RAG 答案层增加了可审计的政策约束规则，详细人工复核和 Top
 
 ## Docker（WSL）
 
-确保项目根目录已有本机 `.env`（SiliconFlow Key 不要写入镜像）。为避开 `/mnt/d` 上的 BuildKit 权限问题，在 WSL 中从 `/opt/project2` 构建；Compose 将数据目录绝对挂载到 Windows 同源的 `/mnt/d/project_2/data`：
+确保项目根目录已有本机 `.env`。为避开 `/mnt/d` 上的 BuildKit 权限问题，在 WSL 中从 `/opt/project2` 构建；Compose 将数据目录绝对挂载到 Windows 同源的 `/mnt/d/project_2/data`：
 
 ```bash
 cd /opt/project2
