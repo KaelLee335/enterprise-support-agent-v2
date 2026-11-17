@@ -12,6 +12,7 @@ from support_agent.config import get_settings
 class DemoIdentity:
     user_id: str
     tenant_id: str
+    role: str = "requester"
 
 
 _bearer = HTTPBearer(auto_error=False)
@@ -29,6 +30,9 @@ def require_demo_identity(
     settings = get_settings()
     identities = {
         settings.demo_token_demo_a: DemoIdentity("user-demo-a", "demo-a"),
+        settings.demo_token_demo_a_approver: DemoIdentity(
+            "user-demo-a-approver", "demo-a", "approver"
+        ),
         settings.demo_token_legacy: DemoIdentity("user-legacy-demo", "legacy-demo"),
     }
     identity = identities.get(credentials.credentials)

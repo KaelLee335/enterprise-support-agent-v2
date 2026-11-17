@@ -2,7 +2,7 @@
 
 ## 演示前检查
 
-1. 在 WSL 中确认 `/opt/project2` 是最新项目副本，并启动容器：
+1. 在 WSL 中确认 `/opt/project2` 是最新项目副本，`.env` 存在且 `PROJECT_DATA_DIR` 指向已存在的数据目录，再启动容器：
 
    ```bash
    cd /opt/project2
@@ -12,6 +12,8 @@
    ```
 
    容器应为 `healthy`，健康检查返回 HTTP 200。Swagger 在 <http://localhost:8000/docs>。
+
+   Compose 不会为错误的 bind mount 路径自动创建空目录；若启动时报挂载源路径不存在，先核对 `PROJECT_DATA_DIR`，不要改动现有持久数据目录。
 
 2. 查看日志：
 
@@ -25,7 +27,7 @@
 
 ## 演示流程
 
-除 `/health` 外的业务 API 使用本地演示 Bearer 身份。`demo-a-local-token` 映射到 `user-demo-a`/`demo-a`；`legacy-demo-local-token` 映射到 V1 导入租户。令牌公开，仅用于本地演示。
+除 `/health` 外的业务 API 使用本地演示 Bearer 身份。`demo-a-local-token` 是租户 `demo-a` 的请求人；`demo-a-approver-local-token` 是同租户另一位虚构审批人；`legacy-demo-local-token` 映射到 V1 导入租户。公开令牌只是演示身份选择器，不是真实认证。
 
 ### 1. 中文紧邻订单号识别与只读查询
 
@@ -62,16 +64,27 @@ curl -s http://localhost:8000/chat \
 
 在 `/docs` 的 `POST /chat` 中输入：`帮我把订单 1001 地址改一下`。预期 `intent=write_request`，回答明确表示不能改地址；不应返回“修改成功”。
 
-### 5. 退款人工审批暂停与恢复
+### 5. 本地模拟物流 API
+
+```bash
+curl -s http://localhost:8000/chat \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer demo-a-local-token' \
+  -d '{"question":"查询订单1001物流到哪了"}'
+```
+
+预期 `intent=logistics_lookup`，`shipment.demo_only=true`。LangGraph 先从租户范围内的 SQLite 核对订单，再通过内部 HTTP 网络调用 `mock-logistics`；数据为静态虚构轨迹。跨租户找不到订单时不会访问物流服务。该服务不调用商业快递 API。
+
+### 6. 退款人工审批暂停与恢复
 
 在 `/docs` 的 `POST /chat` 中输入：`帮我给订单 1001 直接退款`。预期 `approval_status=pending`，响应返回 `thread_id`。保留这个 ID，之后：
 
 1. 调用 `GET /approvals/{thread_id}`，Header 使用 `Authorization: Bearer demo-a-local-token`，应看到 `pending`。
-2. 调用 `POST /approvals/{thread_id}/decision`，同样带 `Authorization: Bearer demo-a-local-token`，请求体 `{"approved":true}`。
+2. 请求人令牌尝试决定时应返回 403。改用 `Authorization: Bearer demo-a-approver-local-token` 调用 `POST /approvals/{thread_id}/decision`，请求体 `{"approved":true}`。
 3. 预期返回 `approval_status=approved_demo`，并明确说明没有执行真实退款。
 4. 再查 `GET /orders/1001`，订单状态仍是“已完成”。这证明审批演示未写订单数据。
 
-也可将 `approved` 设为 `false` 演示拒绝分支。跨租户审批访问应返回 404；重复提交决定应返回 409。
+也可将 `approved` 设为 `false` 演示拒绝分支。同一审批人发起后自批会返回 403；跨租户审批访问应返回 404；重复提交决定应返回 409。批准不执行退款，订单保持不变。
 
 ## 验收清单
 
@@ -80,6 +93,8 @@ curl -s http://localhost:8000/chat \
 - [ ] 当前租户查到订单，其他租户无法读取。
 - [ ] 政策问题返回 `POL-06` 证据和有效引用标记。
 - [ ] 改址等写操作被拒绝。
+- [ ] 物流查询显示标记为虚构数据的模拟轨迹。
+- [ ] 请求人自批返回 403，独立审批人可记录演示决定。
 - [ ] 退款请求进入 `pending`，批准后为 `approved_demo`，订单保持原状态。
 - [ ] 日志没有错误；演示录屏未包含 Key。
 

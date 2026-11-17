@@ -30,7 +30,11 @@ def _resolve_env_path(env_name: str, default: str) -> Path:
 class Settings:
     database_path: Path
     demo_token_demo_a: str = "demo-a-local-token"
+    demo_token_demo_a_approver: str = "demo-a-approver-local-token"
     demo_token_legacy: str = "legacy-demo-local-token"
+    logistics_api_base_url: str = "http://127.0.0.1:8091"
+    logistics_api_key: str = "demo-logistics-local-key"
+    logistics_timeout_seconds: float = 3.0
     checkpoint_path: Path = PROJECT_ROOT / "data" / "checkpoints.sqlite"
     log_level: str = "INFO"
     siliconflow_api_key: str | None = None
@@ -54,10 +58,30 @@ def get_settings() -> Settings:
     top_k = int(os.getenv("RAG_TOP_K", "4"))
     if top_k < 1:
         raise ValueError("RAG_TOP_K must be at least 1")
+    demo_tokens = (
+        os.getenv("DEMO_TOKEN_DEMO_A", "demo-a-local-token"),
+        os.getenv("DEMO_TOKEN_DEMO_A_APPROVER", "demo-a-approver-local-token"),
+        os.getenv("DEMO_TOKEN_LEGACY", "legacy-demo-local-token"),
+    )
+    if len(set(demo_tokens)) != len(demo_tokens):
+        raise ValueError("Each demo persona must use a distinct token")
+    logistics_timeout = float(os.getenv("LOGISTICS_TIMEOUT_SECONDS", "3"))
+    if logistics_timeout <= 0:
+        raise ValueError("LOGISTICS_TIMEOUT_SECONDS must be positive")
     return Settings(
         database_path=database_path,
         demo_token_demo_a=os.getenv("DEMO_TOKEN_DEMO_A", "demo-a-local-token"),
+        demo_token_demo_a_approver=os.getenv(
+            "DEMO_TOKEN_DEMO_A_APPROVER", "demo-a-approver-local-token"
+        ),
         demo_token_legacy=os.getenv("DEMO_TOKEN_LEGACY", "legacy-demo-local-token"),
+        logistics_api_base_url=os.getenv(
+            "LOGISTICS_API_BASE_URL", "http://127.0.0.1:8091"
+        ).rstrip("/"),
+        logistics_api_key=os.getenv(
+            "MOCK_LOGISTICS_API_KEY", "demo-logistics-local-key"
+        ),
+        logistics_timeout_seconds=logistics_timeout,
         checkpoint_path=checkpoint_path,
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         siliconflow_api_key=os.getenv("SILICONFLOW_API_KEY") or None,

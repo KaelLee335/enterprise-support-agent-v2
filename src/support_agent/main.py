@@ -147,6 +147,7 @@ def chat(
             "event": "agent_start", "trace_id": trace_id,
             "tenant_id": identity.tenant_id,
             "user_id": identity.user_id,
+            "user_role": identity.role,
             "question_preview": redact_user_input(chat_request.question),
         },
     )
@@ -156,6 +157,7 @@ def chat(
             "question": chat_request.question,
             "tenant_id": identity.tenant_id,
             "user_id": identity.user_id,
+            "user_role": identity.role,
             "database_path": str(settings.database_path),
             "thread_id": thread_id,
             "run_id": run_id,
@@ -189,6 +191,7 @@ def chat(
         answer=state.get("answer", "暂时无法处理该请求。"),
         intent=state.get("intent", "unknown"),
         order=state.get("order"),
+        shipment=state.get("shipment"),
         evidence=state.get("evidence", []),
         citations=state.get("citations", []),
         citations_valid=state.get("citations_valid"),
@@ -234,6 +237,10 @@ def decide_approval(
 ) -> ApprovalResponse:
     graph, config, snapshot = _approval_snapshot(thread_id, identity.tenant_id)
     values = snapshot.values
+    if identity.role != "approver":
+        raise HTTPException(status_code=403, detail="Demo approver role required")
+    if values.get("user_id") == identity.user_id:
+        raise HTTPException(status_code=403, detail="Requester cannot approve own request")
     if values.get("approval_status") != "pending" or not snapshot.next:
         raise HTTPException(status_code=409, detail="Approval request is not pending")
     logger.info(
@@ -242,6 +249,9 @@ def decide_approval(
             "event": "approval_decision", "trace_id": trace_id_var.get(),
             "tenant_id": identity.tenant_id,
             "user_id": identity.user_id,
+            "user_role": identity.role,
+            "requester_user_id": values.get("user_id"),
+            "thread_id": thread_id,
             "approval_status": "approved_demo" if decision.approved else "rejected",
             "approval_decision": decision.approved,
         },

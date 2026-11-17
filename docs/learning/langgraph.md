@@ -10,6 +10,8 @@ LangGraph 在 LangChain 链路外层编排完整业务请求。它把一个 `Sup
 flowchart TD
   S([START]) --> R[route_request]
   R -->|order_lookup| O[lookup_order]
+  R -->|logistics_lookup| L[lookup_logistics]
+  L --> LS[本地模拟物流 HTTP API]
   R -->|policy_qa| P[retrieve_policy]
   P -->|有证据| G[generate_policy_answer]
   P -->|无证据| E([END])
@@ -21,6 +23,7 @@ flowchart TD
   I -. interrupt 暂停并等待人工 .-> H[API 收到审批决定]
   H -. Command(resume) .-> I
   O --> E
+  LS --> L --> E
   G --> E
   W --> E
   C --> E
@@ -34,6 +37,7 @@ flowchart TD
 - `src/support_agent/agent/state.py`：`SupportState` 是跨节点共享的数据结构。字段可选，但本次运行的初始输入由 API 提供，例如问题、用户/租户、订单库路径、`run_id` 和 `trace_id`。
 - `src/support_agent/agent/graph.py`：`build_support_graph()` 建立 StateGraph，注册节点，用 `START`、条件边和 `END` 连线，最后 `compile(checkpointer=...)`。
 - `src/support_agent/agent/nodes.py`：节点是读取 State 并返回增量更新的函数。例如 `route_request()` 写入 intent，`retrieve_policy()` 写 evidence，`generate_policy_answer()` 写 answer/citations。
+- 物流查询分支是 `route_request()` → `lookup_logistics()`：节点先按 tenant 查询 SQLite 订单，确认订单存在后才调用 `src/support_agent/logistics.py`；该 HTTP 客户端访问 Compose 内的 `mock-logistics` 服务，并用 Pydantic 校验响应。测试替换 transport，不访问外部承运商。
 - `src/support_agent/main.py`：API 用 `support_graph.invoke(initial_state, config=...)` 启动一次运行；审批 API 用 `Command(resume=...)` 从暂停点恢复。
 - `src/support_agent/observability.py`：节点被 `traced_node` 包装，记录开始、结束和耗时。
 
@@ -50,7 +54,7 @@ def route_after_retrieval(state: SupportState) -> Literal["generate_policy_answe
 
 ## 暂停与恢复
 
-退款节点先校验订单必须属于当前租户。校验成功后，`wait_for_refund_approval()` 调用 `interrupt(...)`，Graph 将执行挂起并由 SQLite checkpointer 保存该线程状态。API 返回待审批；之后只有同租户通过审批端点，才会以同一个 `thread_id` 和 `Command(resume={"approved": ...})` 恢复。
+退款节点先校验订单必须属于当前租户。校验成功后，`wait_for_refund_approval()` 调用 `interrupt(...)`，Graph 将执行挂起并由 SQLite checkpointer 保存该线程状态。API 返回待审批；恢复时还会检查同租户的模拟 approver 角色，并阻止同一用户自批，再以同一个 `thread_id` 和 `Command(resume={"approved": ...})` 恢复。两枚公开 Demo token 仅演示授权判断，不是真实认证。
 
 ```python
 from langgraph.types import Command

@@ -7,6 +7,7 @@ from langgraph.types import interrupt
 
 from support_agent.config import get_settings
 from support_agent.db import fetch_order
+from support_agent.logistics import fetch_shipment
 from support_agent.rag.answer import create_siliconflow_chat_model, generate_answer_from_evidence
 from support_agent.rag.retrieval import (
     RetrievedPolicy,
@@ -35,6 +36,7 @@ WRITE_PATTERNS = tuple(re.compile(pattern) for pattern in (
     r"(?:给|对)\s*(?:订单\s*)?[A-Z0-9][A-Z0-9-]{3,}.{0,8}(?:退款|退钱|改地址|修改地址|取消)",
 ))
 ORDER_LOOKUP_TERMS = ("查", "查询", "订单", "状态", "物流", "退款到哪")
+LOGISTICS_TERMS = ("物流", "快递", "运到哪", "到哪了", "配送进度")
 
 
 def route_request(state: dict[str, Any]) -> dict[str, Any]:
@@ -76,6 +78,10 @@ def route_request(state: dict[str, Any]) -> dict[str, Any]:
 
     order_match = ORDER_ID_PATTERN.search(question.upper())
     wants_order_status = any(term in question for term in ORDER_LOOKUP_TERMS)
+    if order_match and any(term in question for term in LOGISTICS_TERMS):
+        result = {"intent": "logistics_lookup", "order_id": order_match.group(0)}
+        logger.info("Request routed", extra={"event": "agent_route", "trace_id": state.get("trace_id"), "tenant_id": state.get("tenant_id"), "intent": result["intent"]})
+        return result
     if order_match and wants_order_status:
         result = {"intent": "order_lookup", "order_id": order_match.group(0)}
         logger.info("Request routed", extra={"event": "agent_route", "trace_id": state.get("trace_id"), "tenant_id": state.get("tenant_id"), "intent": result["intent"]})
@@ -114,6 +120,37 @@ def lookup_order(state: dict[str, Any]) -> dict[str, Any]:
         "answer": (
             f"订单 {order['order_id']} 是只读演示查询，当前状态：{order['status']}。"
             "查询不会执行退款或修改操作。"
+        ),
+        "error": None,
+    }
+
+
+def lookup_logistics(state: dict[str, Any]) -> dict[str, Any]:
+    """Tenant-check the fictional order before calling the mock shipping service."""
+    settings = get_settings()
+    try:
+        order = fetch_order(
+            Path(state.get("database_path", str(settings.database_path))),
+            str(state["order_id"]),
+            state["tenant_id"],
+        )
+        if order is None:
+            return {"order": None, "shipment": None, "answer": "未找到当前租户下的该订单。", "error": None}
+        shipment = fetch_shipment(str(state["order_id"]), settings)
+    except Exception as exc:
+        logger.exception("Demo logistics lookup failed")
+        return {
+            "order": None,
+            "shipment": None,
+            "answer": "演示物流服务暂时不可用，请稍后再试；未获取真实物流信息。",
+            "error": type(exc).__name__,
+        }
+    return {
+        "order": order,
+        "shipment": shipment.model_dump(),
+        "answer": (
+            f"订单 {shipment.order_id} 的演示物流状态：{shipment.status}。"
+            f"演示运单号：{shipment.tracking_number}。该信息为本地虚构数据。"
         ),
         "error": None,
     }

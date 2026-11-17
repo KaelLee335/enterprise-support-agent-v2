@@ -87,6 +87,38 @@ def test_chat_recognizes_chinese_query_without_space_before_order_id(client):
     assert response.json()["order"]["order_id"] == "1001"
 
 
+def test_logistics_intent_is_tenant_scoped_and_uses_demo_http_client(client, monkeypatch):
+    from support_agent.logistics import Shipment
+
+    calls = []
+
+    def fake_shipment(order_id, settings=None):
+        calls.append(order_id)
+        return Shipment(
+            order_id=order_id,
+            tracking_number=f"DEMO-SHIP-{order_id}",
+            status="运输中",
+            events=[],
+        )
+
+    monkeypatch.setattr("support_agent.agent.nodes.fetch_shipment", fake_shipment)
+    own = client.post(
+        "/chat", json={"question": "查询订单1001物流到哪了"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
+    )
+    foreign = client.post(
+        "/chat", json={"question": "查询订单1001物流到哪了"},
+        headers={"Authorization": "Bearer legacy-demo-local-token"},
+    )
+
+    assert own.status_code == 200
+    assert own.json()["intent"] == "logistics_lookup"
+    assert own.json()["shipment"]["tracking_number"] == "DEMO-SHIP-1001"
+    assert own.json()["shipment"]["demo_only"] is True
+    assert foreign.json()["shipment"] is None
+    assert calls == ["1001"]
+
+
 def test_chat_writes_minimal_tenant_scoped_agent_run(client):
     headers = {"Authorization": "Bearer demo-a-local-token"}
     response = client.post(
@@ -162,17 +194,23 @@ def test_refund_approval_pauses_resumes_and_never_changes_order(client):
     )
     assert foreign.status_code == 404
 
-    decision = client.post(
+    requester_decision = client.post(
         f"/approvals/{thread_id}/decision",
         json={"approved": True},
         headers={"Authorization": "Bearer demo-a-local-token"},
     )
+    decision = client.post(
+        f"/approvals/{thread_id}/decision",
+        json={"approved": True},
+        headers={"Authorization": "Bearer demo-a-approver-local-token"},
+    )
     status = client.get(
-        f"/approvals/{thread_id}", headers={"Authorization": "Bearer demo-a-local-token"}
+        f"/approvals/{thread_id}", headers={"Authorization": "Bearer demo-a-approver-local-token"}
     )
     order = client.get("/orders/1001", headers={"Authorization": "Bearer demo-a-local-token"})
 
     assert decision.status_code == 200
+    assert requester_decision.status_code == 403
     assert decision.json()["approval_status"] == "approved_demo"
     assert "未执行真实退款" in decision.json()["answer"]
     assert status.json()["approval_status"] == "approved_demo"
@@ -189,15 +227,64 @@ def test_refund_approval_rejects_duplicate_decision(client):
     client.post(
         f"/approvals/{thread_id}/decision",
         json={"approved": False},
-        headers={"Authorization": "Bearer demo-a-local-token"},
+        headers={"Authorization": "Bearer demo-a-approver-local-token"},
     )
     duplicate = client.post(
         f"/approvals/{thread_id}/decision",
         json={"approved": True},
-        headers={"Authorization": "Bearer demo-a-local-token"},
+        headers={"Authorization": "Bearer demo-a-approver-local-token"},
     )
 
     assert duplicate.status_code == 409
+
+
+def test_approver_role_is_required_and_approver_is_a_distinct_demo_user(client):
+    pending = client.post(
+        "/chat",
+        json={"question": "帮我给订单 1001 直接退款"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
+    ).json()
+    thread_id = pending["thread_id"]
+
+    legacy_requester = client.post(
+        f"/approvals/{thread_id}/decision",
+        json={"approved": True},
+        headers={"Authorization": "Bearer legacy-demo-local-token"},
+    )
+    approver_reads = client.get(
+        f"/approvals/{thread_id}",
+        headers={"Authorization": "Bearer demo-a-approver-local-token"},
+    )
+
+    assert legacy_requester.status_code == 404
+    assert approver_reads.status_code == 200
+    assert approver_reads.json()["approval_status"] == "pending"
+
+    own_request = client.post(
+        "/chat",
+        json={"question": "帮我给订单 1001 直接退款"},
+        headers={"Authorization": "Bearer demo-a-approver-local-token"},
+    ).json()
+    self_approval = client.post(
+        f"/approvals/{own_request['thread_id']}/decision",
+        json={"approved": True},
+        headers={"Authorization": "Bearer demo-a-approver-local-token"},
+    )
+    assert self_approval.status_code == 403
+
+
+def test_unknown_order_logistics_never_calls_external_demo_service(client, monkeypatch):
+    def unexpected_call(*args, **kwargs):
+        raise AssertionError("logistics service must not be called before tenant order check")
+
+    monkeypatch.setattr("support_agent.agent.nodes.fetch_shipment", unexpected_call)
+    response = client.post(
+        "/chat", json={"question": "查询订单1001物流"},
+        headers={"Authorization": "Bearer legacy-demo-local-token"},
+    )
+    assert response.status_code == 200
+    assert response.json()["shipment"] is None
+    assert "未找到" in response.json()["answer"]
 
 
 def test_pending_refund_approval_survives_app_restart(tmp_path, monkeypatch):
@@ -222,7 +309,7 @@ def test_pending_refund_approval_survives_app_restart(tmp_path, monkeypatch):
         decision = restarted_client.post(
             f"/approvals/{thread_id}/decision",
             json={"approved": True},
-            headers=headers,
+            headers={"Authorization": "Bearer demo-a-approver-local-token"},
         )
 
     assert status.status_code == 200

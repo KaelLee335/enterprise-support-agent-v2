@@ -15,9 +15,20 @@ if [[ ! -d "$TARGET_ROOT" || ! -f "$TARGET_ROOT/compose.yaml" ]]; then
 fi
 
 FILES=(
-  "src/support_agent/rag/answer.py"
-  "src/support_agent/rag/answer_constraints.py"
+  "Dockerfile"
+  "compose.yaml"
+  "pyproject.toml"
+  "uv.lock"
+  "src/support_agent/main.py"
+  "src/support_agent/auth.py"
+  "src/support_agent/config.py"
+  "src/support_agent/db.py"
+  "src/support_agent/schemas.py"
+  "src/support_agent/logistics.py"
+  "src/support_agent/mock_logistics.py"
   "src/support_agent/agent/nodes.py"
+  "src/support_agent/agent/graph.py"
+  "src/support_agent/agent/state.py"
   "scripts/verify_phase6.sh"
 )
 

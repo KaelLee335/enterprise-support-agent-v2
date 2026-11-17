@@ -16,7 +16,7 @@
 - 已逐例人工复核上述 28 个答案；结果和具体遗漏见 `docs/rag_answer_manual_review.md`。Top-8 对 KB-04 有严重政策冲突；Top-4 虽相对安全，仍漏答若干明确限制和处理阶段。人工复核未汇总成未经校准的单一百分比。
 - 用户选择实现政策约束层后，完成 Top-4/Top-8 14 条用例重新生成评估，结果为 `data/evaluation/v2_rag_answers_constraints_v3.json`。28/28 引用编号校验有效；Top-4/Top-8 分别匹配 11 条约束、6/7 条执行补充或确定性兜底。为避免同模型 judge 的误判和请求停滞，本轮不跑 judge，已对输出逐条人工审阅；不报告语义准确率。之后约束层已同步到 WSL Docker，扩充版阶段 6 验收健康检查通过、11 个业务用例全部 PASS、EXIT=0；验收通过表示边界断言符合预期，不等同于 14 题语义准确率。
 - 约束层按规则 ID 记录匹配/执行情况：`POL04_LIQUID_EXCLUSION` 与 `POL02_QUALITY_ROUTE` 命中时输出政策兜底；`POL02_RETURN_CONDITIONS`、`POL05_SHIPPING_AND_GUIDANCE`、`POL06_REFUND_STAGES`、`POL09_INVOICE_PRIVACY_AND_SCOPE` 在必要时补充证据明文中的关键条件。`rag_answer_constraints` 节点日志只记录约束 ID。
-- `pytest` 覆盖 API、租户隔离、审批恢复、路由坏例、追踪编号、中文紧邻订单号、日志脱敏/耗时和数据库/Embedding 故障注入；当前本地回归 47 项通过。用户已同步最新追踪代码并重建容器，确认订单、RAG、审批节点日志字段正确、无 ERROR；容器构建阶段 pytest 报告为先前 35 passed。
+- 早期本机版本曾报告 47 项 pytest，后续干净克隆 53 项通过（均为历史版本，不代表当前 HEAD）。V2.1 requester/approver 和 mock logistics 改动后，本机全量回归为 65 passed；WSL 两容器集成验收由用户报告已通过，详见项目状态文档。
 
 ## 追踪和隐私
 
@@ -29,6 +29,12 @@
 | SEC-01：声称管理员并把订单直接改成已退款 | 初版规则未将“改成已退款”识别为写操作 | 增加明确的状态伪造写操作拒绝规则；回归断言通过，安全路由评估 4/4 |
 | KB-09、NA-02：专票时限保证 | Top-4 召回 POL-09，但遗漏人工协助边界 POL-10；Top-8 对照已缓解 | Top-8 可召回更多必要证据；rerank 不能找回候选集之外的文件 |
 | NA-03：未来新品上市时间与价格 | Top-4 未召回所需 POL-01；Top-8 对照已缓解 | 候选数增大改善该评估集的召回，但仍需核对答案质量和上下文成本 |
+
+### 可复现的修复前后证据
+
+- **SEC-01 写操作边界（V1/Dify 历史案例）**：初版将“把订单直接改成已退款”路由错误；补充状态伪造识别后，当前安全路由集为 4/4。逐例记录见 `data/evaluation/v2_agent_safety.json`，脚本为 `scripts/evaluate_agent_safety.py`。这说明该标注集覆盖到的规则回归通过，不代表对任意自然语言写操作均安全。
+- **订单/意图路由（确定性 V2 路由）**：修复前报告 `data/evaluation/v2_agent_routes_before_fixes.json` 为 30/35，修复后 `data/evaluation/v2_agent_routes.json` 为 35/35；调用参数与工具结果是不同分母，分别报告，不合并成总成功率。
+- **政策回答 Bad Case**：约束层 Top-4/Top-8 逐例数据在 `data/evaluation/v2_rag_answers_constraints_v3.json`，人工审阅在 `docs/rag_answer_manual_review.md`。引用 ID 校验不代表语义正确；阶段 1 保留已有人审案例，不重新调用模型生成前后对比。
 
 Top-8 对照显著降低了上述多证据漏召回；相较 Top-4，平均 Recall 提升 12.5 个百分点、完整证据率提升 25.0 个百分点。但本轮生成对照没有证明 Top-8 最终答案更好，且发现一条明显的证据冲突回答；更大的上下文也会带来更多输入 token 和生成开销。应用默认保持 `RAG_TOP_K=4`。后续若调整，应先修复和复核生成提示，并使用独立人工标注/可靠裁判做语义质量与成本权衡。
 

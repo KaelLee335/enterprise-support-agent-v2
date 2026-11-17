@@ -228,3 +228,60 @@
 - 用户运行 `verify_phase6.sh`，12 个用例全部 PASS，EXIT=0。新验收包含 health、澄清/认证拒答、订单查询、policy QA、退款两阶段与政策边界用例。该结果为用户现场报告，本会话未运行或操作 WSL。
 - 同步脚本曾因 CRLF 造成 `pipefail` 报错；用户报告去除行尾回车后通过，并已修改脚本避免重现。
 - 阶段 15 当前已由 CI 和用户 WSL 两侧完成部署验收；剩余真实供应商故障、恢复和其他可选边界仍需隔离验证。
+
+# 2026-11-16 — 阶段 15 本机离线回归复核
+
+- 使用项目虚拟环境并将 pytest basetemp 指向项目内临时目录，复跑四项：模型 timeout 安全答复、缺少 Embedding Key、checkpoint 损坏保护、无 Key API 安全降级。
+- 结果：4 passed in 3.35s。第一次使用系统 Python 因缺少 LangGraph/LangChain 依赖无法收集测试；随后改用项目虚拟环境。项目内临时目录避开了系统 Temp 权限问题，测试代码无失败。
+- 未调用真实模型/API，未操作 WSL/Docker。Compose 缺少 `.env` 文件与错误挂载路径仍待隔离验证；工作树原有 `pyproject.toml` 修改未触碰。
+
+# 2026-11-16 — 阶段 15 Compose 静态检查与真实 API 提醒
+
+- 本机未发现 Docker/Docker Compose CLI，因此无法执行 Compose runtime failure injection。使用项目虚拟环境的 PyYAML 只读解析 `compose.yaml`：YAML 有效、服务声明 `.env` env_file、数据挂载采用 `PROJECT_DATA_DIR` 配置变量。
+- 缺少 `.env` 和错误 bind mount 的实际 Docker 行为继续标为待验证，不将静态解析说成容器验收。
+- 用户说明后续会配置真实 API 做演示。已在项目执行计划和 AGENTS 写明：首次配置凭据或发送请求前先提醒服务商、数据范围、费用/额度和本地 `.env` 操作；Key 不进入聊天。
+# 2026-11-17 — Vue 演示前端首版
+
+- 新增 `frontend/` Vue 3 + Vite 页面：聊天输入/历史、订单卡片、政策引用和证据、演示审批批准/拒绝、Demo Token 输入；Vite `/api` 代理转发至本地 FastAPI，不在前端配置云端 Key。
+- 用户报告 npm install 成功、页面 200、`/api/chat` 经代理连接现有容器并收到 SiliconFlow 真实模型答复。此为用户现场验证；本机 `npm run build` 使用已安装依赖，Vite 6.4.6 构建通过（1.18 秒）。
+- 增加全局 `node_modules/` 忽略；没有改动后端接口或重建容器。
+
+# 2026-11-17 — 阶段 15 Compose 配置边界与 bind mount 防误建
+
+- 在项目内随机临时目录复制 `compose.yaml` 做隔离验证；缺少 `.env` 时 `docker compose config --quiet` 返回退出码 1，并报告具体临时 `.env` 文件不存在。测试使用 `.env.example` 的模板副本，不读取或输出真实 `.env`。
+- 使用不存在的临时 `PROJECT_DATA_DIR` 运行 Compose v2.39.1 `config`：退出码 0，命令不创建目录。进一步检查 `config --format json`：`true` 显式解析为 `bind.create_host_path: true`，`false` 解析为不带该字段（Compose 长格式的 false 默认值）。
+- Docker 官方 Compose 文档说明短格式 bind mount 默认会在源路径不存在时创建目录；已将 `compose.yaml` 切换为长格式并设置 `bind.create_host_path: false`，避免错误路径静默建成空数据目录。README、演示手册和故障库已补充先决条件及排障方式。
+- `docker compose version` 为 v2.39.1；访问 daemon 的 `docker ps` 与镜像查询均因 `127.0.0.1:2375` 连接被远端关闭而失败。未启动/停止容器、未重启 WSL、未触碰现有持久数据。错误挂载实际 `up` 失败提示仍待 daemon bridge 恢复后用临时 Compose 项目验证。
+- 临时目录已删除。这里只运行了 Compose 配置验证，未运行 pytest 或构建镜像。
+
+# 2026-11-17 — 阶段 15 Compose 错误挂载运行态验收
+
+- 用户确认 Docker 桥接恢复后，先检查 `docker ps`：既有 `project2-support-agent-1` 为 healthy，BusyBox 镜像已本地存在。
+- 在唯一临时目录创建独立 Compose 项目，使用 BusyBox、无端口映射和 `network_mode: none`，bind 到一个不存在的 `/mnt/d/project_2/.compose-runtime-<id>/missing-data` 路径，并保持 `create_host_path: false`。
+- `docker compose up` 以退出码 1 失败；错误明确为 `invalid mount config for type "bind": bind source path does not exist: <临时路径>`。Windows 对应宿主路径仍不存在。
+- `docker compose down --volumes --remove-orphans` 清理成功，临时项目目录删除。再次检查时仅看到原项目容器，仍为 healthy；端口 8000、WSL 设置和持久数据未触碰。
+- 对真实项目目录运行 `docker compose config --quiet` 成功。`git diff --check` 通过；未运行 pytest、未重建镜像。
+
+# 2026-11-17 — 阶段 16.0 模拟外部客户生产化规划
+
+- 按用户要求以全虚构的两个租户、三类首批 persona（客户、客服、主管）规划可在本地完成的阶段；不使用真实姓名、电话、地址或真实账号，不调用模型服务。
+- 对照当前代码确认身份来自固定 Demo token → user/tenant 映射；订单只按 tenant 查询；SQLite `demo_users` 无 role/membership；LangGraph 审批接口仅校验同租户，未做审批角色授权；run 记录查询也需要细化客户本人范围。
+- 当时短暂新增 `docs/productionization_plan.md`；用户随后明确“无需生产化”，该文件已删除，生产化路线不再执行。后续只按 V2.1 本地模拟计划推进。
+- 更新 task plan、project status 和 AGENTS。没有改业务代码、数据库、前端或外部服务；没有运行测试。
+
+# 2026-11-17 — V2.1 Demo 工程加固计划
+
+- 用户澄清“无需生产化”，并给出 V2.1 计划：交付一致性、审批身份边界、模拟物流 API 和面试迁移说明。
+- 新建 `docs/v2_1_demo_reinforcement_plan.md`，将外部业务 API 限定为本地模拟 HTTP 服务；禁止真实商业物流 API、真实身份系统、生产数据库和真实退款。
+- 当前工作树已有用户未提交修改（如 `.gitignore`、`pyproject.toml`、README、Compose、前端）；执行前将逐文件审阅，保留既有内容，不整体暂存或提交。
+- 初步读码：Demo 身份目前只有 user/tenant，没有 role；审批 endpoint 验证 tenant 但没有 approver role；CI path filter 当前未覆盖政策/seed/frontend；Python 依赖为范围约束，尚无已识别的 Python lockfile；前端已有 `package-lock.json`。阶段 1 正式修改前继续核实锁文件工具与 README/Bad Case 证据。
+
+## 2026-11-17 — V2.1 本地演示加固实现
+
+- 阶段 1：生成 `uv.lock`，Python CI 与 Docker 安装改为 locked sync；固定 setuptools build backend；CI 覆盖 seed/policies/frontend/scripts/docs 并构建 Vue。Bad Case 文档明确保留路由修复前后 30/35 → 35/35，同时区分召回、引用 ID 与语义正确。
+- 阶段 2：加入 `user-demo-a-approver` 模拟同租户审批身份；决策端点先做 tenant 404，再校验 approver role 和发起人不自批；审批日志记录 approver、requester、thread 与演示决定。SQLite `demo_users` 初始化新增虚构审批人。
+- 阶段 3：加入 `logistics_lookup` LangGraph 分支、HTTPX/Pydantic typed client、固定虚构轨迹的本地 FastAPI mock service 和 Compose 服务依赖。节点先验证订单 tenant；服务标记、状态码、超时及错误 JSON 由 mock transport/服务测试覆盖。
+- 阶段 4：Vue 增加 requester/approver 切换和模拟物流轨迹；README、runbook、项目故事、面试材料与 LangGraph/FastAPI 学习章节同步更新；WSL 同步脚本和阶段验收脚本扩展到新业务分支。
+- 验收：`uv lock --check --offline` 成功；全量 `pytest` 65 passed；Vue production build 成功；`docker compose config --quiet` 和 Python compileall 成功。WSL 两容器实际 HTTP 集成仍需用户同步及重建。
+- 本机 Docker 镜像构建尝试未完成，远端 daemon 在拉取阶段返回 `unexpected EOF`；之后用户报告已在 WSL 成功同步并重建，两容器 healthy，阶段 6 + V2.1 verifier 全 PASS，覆盖了本机无法完成的容器间集成验收。
+- 未提交、未推送，保留已有工作树改动。

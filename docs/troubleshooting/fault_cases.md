@@ -17,7 +17,7 @@
 | 9 | Embedding/检索服务失败 | RAG 外部依赖 | 注入式检索异常有测试；真实超时/限流未验证 |
 | 10 | Chat Model 超时、限流或不可用 | 生成层 | 假 timeout 单测由用户报告通过（1/1）；真实供应商限流未测试 |
 | 11 | Checkpoint 缺失、损坏或恢复冲突 | LangGraph 持久化 | 隔离损坏文件测试通过：启动 fail-fast、原文件字节不变、业务 DB 未初始化；真实备份恢复仍未验证 |
-| 12 | Compose 缺少 Key 或路径错误 | 配置/容器 | Compose 模板校验、Docker 构建及空 Key 临时容器 smoke 通过；缺少 .env 文件/数据路径错误未验证 |
+| 12 | Compose 缺少 Key 或路径错误 | 配置/容器 | 缺少 `.env` 的隔离 `compose config` 明确报文件不存在；无 Key 降级测试通过；错误 bind 路径临时运行态验收返回明确错误且未创建宿主目录 |
 
 ## 统一定位流程
 
@@ -72,16 +72,16 @@
 - **状态：**正常恢复与重复冲突已有覆盖；新增临时损坏文件测试确认启动时拒绝并保留文件，GitHub Actions 54 项通过。未模拟真实运行数据库损坏或备份恢复。
 
 ### 12. Compose 缺 Key 或路径错误
-- **症状：**健康检查正常但 RAG 不工作，或 .env 缺失导致 Compose 不启动；挂载错会让向量库看似为空。
+- **症状：**健康检查正常但 RAG 不工作，或 `.env` 缺失导致 Compose 配置失败；数据目录路径错误会让容器因 bind mount 源不存在而启动失败。
 - **根因：**本机未从模板创建 .env、Key 缺失、PROJECT_DATA_DIR 错、向量库未建或 bind mount 不对。
-- **定位：**分别检查 Compose 配置、容器 health、Embedding 配置和 docker inspect 的 data mount；health 200 不等于 RAG 正常。
+- **定位：**分别检查 Compose 配置、`PROJECT_DATA_DIR`、容器 health、Embedding 配置和 `docker inspect` 的 data mount；health 200 不等于 RAG 正常。
 - **处理：**仅在本机 .env 配置 Key；向量索引在首次部署前建立；用隔离目录验证配置错误路径。
-- **证据/状态：**缺 Key 的 Embedding 构造路径有单测；Compose 缺变量和干净 clone 尚未端到端验证。
+- **证据/状态：**缺 Key 的 Embedding 构造路径有单测；隔离 `compose config` 已验证缺 `.env` 会以非零状态明确报错，错误数据路径不会在配置解析时创建目录。Compose 已设置 `bind.create_host_path: false`。唯一临时项目的运行态演练返回 `bind source path does not exist`、没有创建宿主路径；清理后原项目容器仍 healthy。
 
 ## 阶段状态
 
 - 用户报告：新增的随机 not_found API 与假 Chat Model timeout 回归均通过，2 passed in 4.61s。未重跑完整 51 项套件，也未操作 WSL/Docker。
-- 阶段 12 按用户确认的验收条件完成。阶段 15 隔离 checkpoint 损坏用例已通过；Compose 缺 Key/路径和真实供应商限流仍为部分覆盖/未验证。
+- 阶段 12 按用户确认的验收条件完成。阶段 15 隔离 checkpoint 损坏用例已通过；Compose 缺 `.env` 配置失败、缺失 bind 路径防误建与运行态启动错误均已覆盖。真实供应商限流仍未验证。
 - 阶段 13 已由用户验收：干净克隆的依赖安装、全量 53 项测试及 health/order/auth API smoke 均报告通过；这些结果来自不同验收步骤，未由本会话复跑。
 
 

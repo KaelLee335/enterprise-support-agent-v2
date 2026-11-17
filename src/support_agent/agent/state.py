@@ -6,6 +6,7 @@ class SupportState(TypedDict, total=False):
     trace_id: str
     tenant_id: str
     user_id: str
+    user_role: str
     run_id: str
     database_path: str
     intent: str
@@ -13,6 +14,7 @@ class SupportState(TypedDict, total=False):
     clarify_reason: str | None
     refusal_reason: str | None
     order: dict[str, Any] | None
+    shipment: dict[str, Any] | None
     evidence: list[dict[str, Any]]
     answer: str
     citations: list[str]

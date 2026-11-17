@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=75"]
+requires = ["setuptools==80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -9,6 +9,7 @@ description = "Code-first enterprise after-sales support agent learning project"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.115,<1.0",
+    "httpx>=0.27,<1.0",
     "uvicorn[standard]>=0.30,<1.0",
     "python-dotenv>=1.0,<2.0",
     "langchain>=1.2,<2.0",
@@ -24,6 +25,10 @@ dev = ["pytest>=8.0,<9.0", "httpx>=0.27,<1.0"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# 把 pytest 的 tmp_path 根目录固定在项目内（已 gitignore）。
+# 原因：本机 Codex Windows 沙箱会限制对系统临时目录的写入，
+# 导致 tmp_path 夹具在 setup 阶段抛 PermissionError（测试本身没跑）。
+addopts = ["--basetemp=.pytest-tmp"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

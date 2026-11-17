@@ -1,4 +1,19 @@
 services:
+  mock-logistics:
+    build: .
+    command: ["/app/.venv/bin/uvicorn", "support_agent.mock_logistics:app", "--host", "0.0.0.0", "--port", "8091"]
+    environment:
+      MOCK_LOGISTICS_API_KEY: ${MOCK_LOGISTICS_API_KEY:-demo-logistics-local-key}
+    expose:
+      - "8091"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8091/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   support-agent:
     build: .
     env_file:
@@ -8,8 +23,17 @@ services:
     environment:
       DATABASE_PATH: /app/data/support_agent.db
       LOG_LEVEL: INFO
+      LOGISTICS_API_BASE_URL: http://mock-logistics:8091
+      MOCK_LOGISTICS_API_KEY: ${MOCK_LOGISTICS_API_KEY:-demo-logistics-local-key}
+    depends_on:
+      mock-logistics:
+        condition: service_healthy
     volumes:
-      - ${PROJECT_DATA_DIR:-/mnt/d/project_2/data}:/app/data
+      - type: bind
+        source: ${PROJECT_DATA_DIR:-/mnt/d/project_2/data}
+        target: /app/data
+        bind:
+          create_host_path: false
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/health', timeout=3)"]

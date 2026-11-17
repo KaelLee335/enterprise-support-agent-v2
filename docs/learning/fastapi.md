@@ -13,7 +13,7 @@ sequenceDiagram
   participant D as SQLite
   C->>F: Authorization: Bearer ...
   F->>A: Depends(require_demo_identity)
-  A-->>F: 固定 user_id / tenant_id
+  A-->>F: 固定 user_id / tenant_id / demo role
   F->>D: 带 tenant_id 的只读查询
   F->>G: /chat: 问题 + 可信身份
   G-->>F: State 结果
@@ -23,7 +23,7 @@ sequenceDiagram
 ## 代码映射
 
 - `src/support_agent/main.py`：创建 FastAPI app、lifespan 资源、trace middleware、health/chat/order/approval/run 路由。
-- `src/support_agent/auth.py`：HTTP Bearer 解析固定本地演示身份；无 token 或无效 token 返回 401。token 是公开示例值，不是安全凭证。
+- `src/support_agent/auth.py`：HTTP Bearer 解析固定本地演示身份与 requester/approver 角色；无 token 或无效 token 返回 401。token 是公开示例值，不是安全凭证。
 - `src/support_agent/schemas.py`：Pydantic 请求与响应模型，例如 `ChatRequest` 长度约束、`ChatResponse` 字段、`AgentRunResponse`。
 - `src/support_agent/config.py`：读取数据库、checkpoint、模型和演示 token 配置。
 - `tests/test_api.py`：通过 FastAPI `TestClient` 验证认证、租户隔离、路由、审批中断/恢复和运行记录范围。
@@ -33,7 +33,7 @@ sequenceDiagram
 1. Pydantic 先将 body 解析为 `ChatRequest`，限制问题非空且长度不超过 4000。
 2. `Depends(require_demo_identity)` 校验 Bearer token，并映射到固定 user/tenant。
 3. 路由创建 `run_id` 和 `thread_id`，保存不含原问题明文的最小 run 记录。
-4. 把问题、可信身份和追踪信息放进 LangGraph 初始 State。
+4. 把问题、可信 user/tenant/role 和追踪信息放进 LangGraph 初始 State。
 5. 根据 Graph 输出构造 `ChatResponse`；Pending approval 保持演示状态，错误响应不泄露密钥。
 6. Middleware 为请求建立 `trace_id`，记录请求耗时，并将 ID 放进响应头。
 
@@ -59,7 +59,7 @@ Bearer 值是公开演示 token，只能在本地 demo 使用。实际 policy_qa
 ## 必须理解
 
 - Pydantic Schema 是 API 数据契约：校验请求并限制响应形状。
-- `Depends()` 将认证等横切逻辑注入路由，避免每条路由重复解析 Authorization。
+- `Depends()` 将本地演示身份解析注入路由；审批端点仍需在业务操作处检查 approver 角色与非自批约束。
 - 身份/租户必须从可信认证凭证映射；客户端提供的 `X-Tenant-ID` 不能覆盖 token 对应租户。
 - 401 表示未认证或凭证无效；404 可避免向其他租户泄露资源是否存在；409 表示审批不在 pending 状态。
 - `/health` 是公开健康检查；业务 API 需要 Bearer 演示身份。

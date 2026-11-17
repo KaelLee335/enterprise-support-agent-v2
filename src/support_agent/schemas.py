@@ -18,6 +18,7 @@ class ChatResponse(BaseModel):
     answer: str
     intent: str
     order: dict[str, Any] | None = None
+    shipment: dict[str, Any] | None = None
     evidence: list[EvidenceResponse] = Field(default_factory=list)
     citations: list[str] = Field(default_factory=list)
     citations_valid: bool | None = None

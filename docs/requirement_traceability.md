@@ -45,7 +45,8 @@
 | 无可靠证据时拒答，防止引用伪造 | 已实现/有证据 | 空召回不调模型的测试、检索/生成错误安全答复、引用编号校验、`answer_constraints.py`、WSL policy QA 验收。引用 ID 有效不等于语义必然正确。 |
 | 语义 grounding/最终回答事实正确性自动评估 | 部分实现 | 有 14 条逐例人工审阅和规则约束评估；同模型 LLM judge 被明确标为探索性且存在误判。尚无独立裁判或成熟事实级自动指标。 |
 | State、Node、Edge、条件路由、checkpoint、interrupt/resume、单 Agent 执行轨迹 | 已实现/有证据 | `src/support_agent/agent/state.py`、`graph.py`、`nodes.py`；`docs/langgraph_design.md`；审批跨应用重启恢复测试与 WSL 验收。 |
-| Tool 权限、身份与租户授权 | Demo 范围已验收；生产 RBAC 不适用 | 本地演示身份固定映射租户，后端 SQL 强制租户条件；用户报告身份边界测试及最新 WSL 12 项验收通过。公开 Demo token 不是生产认证，审批接口没有真实审批人 RBAC。 |
+| Tool 权限、身份与租户授权 | Demo 范围已实现；本机测试及用户报告的 WSL 验收通过 | 本地演示身份映射固定 user/tenant/role；审批决定要求同租户 approver 并阻止 requester 自批，跨租户仍 404。公开 Demo token 不是生产认证。`tests/test_api.py` 定向回归包含在当前 65 项全量测试中。 |
+| 外部业务 API 集成 | 本地模拟实现；容器间 WSL 验收由用户报告通过 | LangGraph logistics intent → tenant-scoped SQLite 预检 → HTTPX client → Compose `mock-logistics` FastAPI；静态虚构 JSON、服务标记、timeout/status/JSON contract 测试。没有商业承运商访问。 |
 | LangChain/LangGraph 学习材料 | 已完成 | `docs/learning/` 含 LangChain、LangGraph、RAG、SQL、FastAPI 五章；中文材料链接实际代码，包含流程图、示例、重点和自测题。互动问答由用户安排后再开展。 |
 
 ## 评估、追踪与故障注入
@@ -94,7 +95,7 @@
 |---|---|---|
 | Codex 是技术负责人和主力开发者；用户主要学习理解，不应等待用户先交架构/代码 | 已更新 `AGENTS.md`、`task_plan.md` 与公开介绍 | 按自主开发继续；仅在真实密钥、外部授权、不可逆操作或缺少业务信息时停下询问 |
 | 学习材料与真实项目同步，需中文、代码位置、数据流图、可运行示例、重点分级及每章 5–10 个问题 | 已完成 | `docs/learning/` 已发布五章，内容依当前源码说明职责/数据流、提供示例、重点和自测题。 |
-| 模拟用户身份/本地演示认证、用户与租户数据、必要执行记录 | 已实现代码，待测试和 WSL 验收 | 静态公开 Demo token 映射固定 user/tenant；agent_runs 记录 trace、intent、状态和异常类型，不存原始问题；不声称生产认证 |
+| 模拟用户身份/本地演示认证、用户与租户数据、必要执行记录 | 已实现；本机测试及用户报告的 WSL 验收通过 | 静态公开 Demo token 映射固定 user/tenant；agent_runs 记录 trace、intent、状态和异常类型，不存原始问题；不声称生产认证 |
 | 适度 CRUD 与事务基础 | 订单数据目前以 seed 插入和只读查询为主，真实订单更新/删除刻意禁止 | 阶段 12 只为安全的模拟任务/审批记录评估受限状态更新与事务；绝不添加真实退款、改址、删除 |
 | 12 项故障案例库，记录现象/层次/根因/日志线索/定位/修复/防复发 | 案例库已完成；验证部分待补 | `docs/troubleshooting/fault_cases.md` 列出 12 类现象、定位、修复和防复发；random not_found、Chat Model timeout、checkpoint 损坏、Compose 缺 Key 等状态明确标为部分覆盖/待验证。 |
 | P0/P1/P2 交付优先级、每阶段测试与自动进入下一阶段 | 已更新长期工作纪律；整体功能已交付，后续是 P0 缺口收尾 | 不被 Web UI、Langfuse/Phoenix、性能统计等 P1 和 Kubernetes/多 Agent 等 P2 拖延 |

@@ -239,3 +239,43 @@ GitHub Actions `b797bda` 运行成功：Python 3.12 全量 pytest 55 passed in 3
 ## 用户报告的 WSL 12 项验收
 
 用户报告：同步最新公开 main 后，Docker 镜像重建、容器启动、health 200；`verify_phase6.sh` 12/12 PASS、EXIT=0。同步脚本的 CRLF 导致 pipefail 的问题经去除行尾回车修复。上述均是用户现场结果，本会话没有直接操作 WSL。
+
+## 2026-11-17 — Compose bind mount 缺失源路径行为
+
+- Compose v2.39.1 的隔离配置观察：缺 `.env` 时 `docker compose config --quiet` 非零退出并报告 env_file 路径；错误 `PROJECT_DATA_DIR` 可通过配置解析，且 `config` 自身不创建宿主路径。
+- Docker Compose 短格式 bind mount 的官方默认行为是源目录不存在时自动创建。项目短语法因此可能把拼错的数据路径变成新的空目录，导致应用读写错误的数据位置。
+- 修复：`compose.yaml` 使用长格式 bind mount 并设置 `bind.create_host_path: false`。临时副本 `docker compose config` 成功，`--format json` 中显式 true 表现为 `create_host_path: true`，false 使用 Compose 的默认省略序列化；配置中源路径与 `/app/data` 目标正确。
+- 限制：本会话 daemon bridge 的 `docker ps` 返回远端连接重置，无法运行临时容器并观察实际挂载错误文本。没有操作用户 WSL、既有容器或 D 盘数据。后续在 Docker bridge 可用后完成该运行态验收。
+- 参考：[Docker Compose 服务 volumes 文档](https://docs.docker.com/reference/compose-file/services/)（bind 短语法与 `create_host_path`）。
+
+### 运行态闭环（Docker bridge 恢复后）
+
+- 用户报告 bridge 已恢复。独立临时 Compose 项目实际启动一个 BusyBox 探针容器，无端口映射，且 `network_mode: none`；不存在的 bind source 在启动前被 dockerd 拒绝，明确返回 `bind source path does not exist`。
+- 探针退出码为 1；Windows 对应临时目录未创建。`down --volumes --remove-orphans` 成功，临时工作目录已删除；原 `project2-support-agent-1` 后续检查仍 healthy。
+- 这项真实引擎验收与 `docker compose config` 静态解析分开记录。全程没有停止/重建项目容器，没有操作 WSL 配置或 D 盘持久目录。
+
+## 2026-11-17 — 外部客户场景规划基线
+
+- 当前 `auth.py` 只有固定 Demo token 到 user/tenant 的映射，身份类型没有 role/customer_id。`db.py` 有 `tenants`、`demo_users`、`orders.customer_id` 和 `agent_runs`，但订单查询仅按 `order_id + tenant_id`；现有 demo seed 中 `customer_id` 还复用 tenant ID，不能拿它代表真实客户关系。
+- `main.py` 中审批状态读取/决定只校验 thread tenant 与当前 tenant；审批决定记录到日志但没有专门审批记录表或角色要求。运行记录有 user_id/tenant_id，但 API 读权限只按 tenant 查询。
+- 因此第一批安全可做工作是新建纯模拟 persona/成员关系和权限上下文、增加 customer_id 级查询约束、主管审批授权与独立审计记录，并以同租户跨客户、跨租户及非主管审批作为回归。
+- 模拟方案暂定：客户只读自己的订单并发起请求；客服读本租户订单、提交审批；主管审批本租户请求且不可自批；所有角色都不能产生真实退款/订单写入。正式业务规则需要上线前确认。
+- 历史生产依赖决策（IdP、部署区、PostgreSQL/checkpointer、客户数据保留及外部模型共享）不属于当前任务；用户已明确不做生产化。V2.1 当前计划与实现见 `docs/v2_1_demo_reinforcement_plan.md`。
+
+## 2026-11-17 — V2.1 Demo 工程加固初步基线
+
+- `auth.py` 的 `DemoIdentity` 目前只有 `user_id` 和 `tenant_id`，无 role；审批路由按 checkpoint tenant 校验，未验证发起者/审批者角色。
+- `.github/workflows/tests.yml` 的路径过滤包含 `src/`、`tests/`、Dockerfile、Compose、`pyproject.toml` 与示例 env，当前遗漏 `data/seed/`、`data/policies/` 和 `frontend/`；现有 workflow 没有前端构建 job。
+- `pyproject.toml` 声明依赖版本范围；前端已有 `frontend/package-lock.json`。本机尚未确认 `uv`/`pip-compile` 工具，生成 Python lockfile 的方法待检查，避免引入未经验证的依赖升级。
+- 当前 Router 由 `nodes.py` 的显式关键词/正则规则决定，适合确定的有限业务意图；文档应明确路由评估样本边界，避免描述为通用自然语言理解。
+- 当前 RAG 引用检查只验证来源编号来自本次召回，事实级支持仍靠人工/评估；不要把 citation validity 描述成语义正确率。
+- 模拟物流 API 计划必须是本地可控 endpoint/transport，只使用合成 tracking 数据和不可外用的模拟认证标记；网络异常用假 transport 覆盖，不接商业物流商。
+
+## 2026-11-17 — V2.1 本地实现结果
+
+- 依赖锁用 `uv.lock` 管理，CI 固定 uv 并执行 `uv sync --locked` 校验锁文件未过期；Dockerfile 在依赖层与项目源码层分别执行 `uv sync --frozen`，避免按 Aliyun 镜像元数据重新解析。`setuptools` build backend 也固定版本。
+- 审批 checkpoint 已包含请求人的 `user_id`；决策 endpoint 先以 tenant 做 404 隐藏，再要求 `approver` 演示角色，并拒绝同一 user 自批。批准只恢复图到 `approved_demo`，不触发订单写入。
+- mock logistics 为同 Compose 网络内独立 FastAPI 服务。Agent 先用 SQLite `(order_id, tenant_id)` 核验，再发送 HTTP GET 与 `X-Demo-Service-Key`；响应由 Pydantic 校验。固定轨迹是虚构的，本项目没有商业物流 endpoint。
+- 路由规则是有限关键词/正则分支，不是通用 NLU；RAG citation ID 检查不是事实蕴含检测。使用既有可追踪评估文件说明 30/35 → 35/35，不为这次文档更新发送模型请求。
+- 本机验收口径为 65 项 pytest、Vue build、Compose 静态配置和源码编译；此前 container-to-container smoke 尚待 WSL 同步重建。后续用户报告已完成 WSL 重建，两个容器 healthy 且扩展 verifier 全通过。Docker 镜像构建尝试遭遇 daemon `unexpected EOF`，但被用户报告的 WSL 成功构建结果 supersede；未由本会话改变服务生命周期。
+- 用户随后报告已从 WSL 执行同步/更新脚本：`/opt/project2` 已有新锁文件和代码，两容器 healthy，阶段 6 + V2.1 扩展 verifier 全部通过。该实机验收由用户报告。

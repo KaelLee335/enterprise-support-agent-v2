@@ -4,9 +4,9 @@
 
 ## 项目亮点
 
-- **端到端请求链路**：Bearer 演示身份与租户范围校验 → FastAPI → LangGraph 意图路由 → 订单只读 SQL、政策 RAG 或演示审批 → 结构化答复与运行记录。
+- **端到端请求链路**：虚构请求人/审批人身份与租户校验 → FastAPI → LangGraph 确定性路由 → SQLite 只读订单、政策 RAG、本地模拟物流 HTTP API 或演示审批 → 结构化答复与运行记录。
 - **可核验的政策问答**：政策来源引用、证据展示、无证据安全降级，以及针对退款时限、质量问题、物流和隐私边界的约束规则。
-- **可靠性与安全边界**：租户隔离、提示注入拒答、checkpoint 完整性预检、模型故障安全答复、GitHub Actions 与 Docker 验收。
+- **可靠性与安全边界**：租户隔离、审批人演示角色、自批拒绝、提示注入拒答、checkpoint 完整性预检、锁文件与 CI。
 - **可运行的演示界面**：Vue 3 + Vite 页面通过现有 FastAPI 接口体验对话、订单卡片、政策证据和审批演示。
 - **学习材料与验收证据**：五章代码导读、故障案例库、需求追踪矩阵和运行验证记录。
 
@@ -16,7 +16,7 @@
 
 **技术栈：** Python 3.12 · FastAPI · SQLite · LangChain · LangGraph · Chroma · SiliconFlow/Qwen · Vue 3 · Vite · Docker
 
-**当前验证摘要：** GitHub Actions 55 项通过；本地阶段 15 离线回归 4/4；WSL Docker 健康检查及 12 项验收由用户实机报告通过；Vue 生产构建通过，真实 `/api/chat` 链路由用户实机报告通过。各项证据来自不同环境，详见项目状态文档。
+**当前验证摘要：**此前 GitHub Actions 55 项通过、阶段 15 WSL 12 项验收及真实 `/api/chat` 链路由用户实机报告通过；V2.1 本地全量 pytest 65 项通过、Vue 构建通过，WSL 两服务 healthy 且扩展 verifier 全通过由用户实机报告。各项证据按环境区分，详见项目状态文档。
 
 ## 项目架构
 
@@ -31,6 +31,7 @@ flowchart LR
   R --> C[(Chroma 政策向量库)]
   R --> M[SiliconFlow Embedding / Qwen]
   G -->|退款申请| H[SQLite Checkpoint / 演示审批]
+  G -->|物流查询| L[本地模拟 Logistics HTTP API]
   G --> F --> V --> U
 ```
 
@@ -41,16 +42,18 @@ Vue 只调用本地 FastAPI；模型 Key 保留在后端 `.env`。订单查询�
 ## 本地运行
 
 ```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -e ".[dev]"
-uvicorn support_agent.main:app --reload --app-dir src
+python -m pip install uv==0.11.11
+uv sync --locked --extra dev
+uv run --locked uvicorn support_agent.main:app --reload --app-dir src
 ```
+
+直接在本机运行 API 时，还需在另一个终端启动模拟物流服务：`uv run --locked uvicorn support_agent.mock_logistics:app --host 127.0.0.1 --port 8091 --app-dir src`。Docker Compose 会自动启动并连接两个服务。
 
 如果本机 pip 默认镜像返回 HTTP 403（例如 TUNA simple 页面对 pip 的 User-Agent 拒绝），可仅对本次安装覆盖镜像，不必改全局 pip 配置：
 
 ```powershell
-python -m pip install -i https://mirrors.aliyun.com/pypi/simple -e ".[dev]"
+python -m pip install -i https://mirrors.aliyun.com/pypi/simple uv==0.11.11
+uv sync --locked --extra dev --default-index https://mirrors.aliyun.com/pypi/simple
 ```
 
 打开 <http://127.0.0.1:8000/docs>。健康检查为 `GET /health`（无需认证）；订单查询为 `GET /orders/{order_id}`；Agent 对话为 `POST /chat`，以及审批和执行记录接口均需 Bearer 演示身份。V1 导入订单使用 `legacy-demo`；固定案例 `1001` 使用 `demo-a`。
@@ -60,9 +63,10 @@ python -m pip install -i https://mirrors.aliyun.com/pypi/simple -e ".[dev]"
 默认演示令牌（只用于本地学习，公开且不是生产凭据）：
 
 - `demo-a-local-token` → `user-demo-a` → `demo-a`
+- `demo-a-approver-local-token` → `user-demo-a-approver` → `demo-a` → 演示审批人
 - `legacy-demo-local-token` → `user-legacy-demo` → `legacy-demo`
 
-请求使用 `Authorization: Bearer demo-a-local-token`。服务端从令牌映射用户与租户，不信任调用方传入的 `X-Tenant-ID`。可在本地 `.env` 覆盖 `DEMO_TOKEN_DEMO_A` 和 `DEMO_TOKEN_LEGACY`。该方案是可复现的模拟身份，不提供真实用户认证、密码保护或 Token 轮换。
+请求使用 `Authorization: Bearer demo-a-local-token`。服务端从令牌映射虚构用户、租户和演示角色，不信任调用方传入的 `X-Tenant-ID`。请求人不能批准自己的请求；同租户的另一个演示审批身份可以记录批准或拒绝。可在本地 `.env` 覆盖三枚 Demo Token。它们是公开的演示选择器，不是真实认证凭据，不用于保护真实数据。
 
 SQLite 默认写入 `data/support_agent.db`。删除该文件会重建演示数据库；它是本地运行数据，不应提交到 Git。
 
@@ -84,19 +88,20 @@ npm run dev
 2. **启动前端**：在 `frontend/` 运行 `npm run dev`，浏览器进入 <http://127.0.0.1:5173>。Demo Token 默认预填 `demo-a-local-token`，仅用于本地演示。
 3. **展示确定性订单查询**：输入“查询订单1001”，页面应显示订单状态与订单卡片。
 4. **展示政策 RAG**：输入“退款多久能到账？”，查看回答中的政策编号和可展开的证据来源。
-5. **展示审批中断与恢复**：输入“帮我给订单1001申请退款”，在页面点击“演示批准”或“拒绝”，查看状态变化。批准不会执行真实退款。
+5. **展示模拟物流 API**：输入“查询订单1001物流”，LangGraph 在完成租户订单校验后，经 HTTP 请求本地虚构 Logistics API，页面显示模拟运单与轨迹；其他租户查该订单不会调用物流服务。
+6. **展示审批中断与恢复**：请求人输入“帮我给订单1001申请退款”，先确认请求人身份不能自批，再切换到“审批人”角色作出决定。批准只记录 `approved_demo`，不会执行真实退款。
 
 演示问题仅用虚构项目数据。政策问答会由后端调用 `.env` 配置的模型服务；不要输入个人信息、真实客户问题或秘密内容。模型请求额度依服务商账户配置而定。
 
 ## 测试
 
 ```powershell
-pytest
+uv run --locked pytest
 ```
 
 ## 政策检索（阶段 2）
 
-复制 `.env.example` 为 `.env`，在本机 `.env` 中填写 SiliconFlow API Key；不要把真实 Key 发到聊天或提交到 Git。Windows + WSL 用户可保持 `PROJECT_DATA_DIR` 留空，默认使用本项目的 `/mnt/d/project_2/data`；其他环境在 `.env` 中将其设置为项目内的数据路径，例如 `PROJECT_DATA_DIR=./data`。然后在项目虚拟环境运行：
+复制 `.env.example` 为 `.env`，在本机 `.env` 中填写 SiliconFlow API Key；不要把真实 Key 发到聊天或提交到 Git。Windows + WSL 用户可保持 `PROJECT_DATA_DIR` 留空，默认使用本项目的 `/mnt/d/project_2/data`；其他环境在 `.env` 中将其设置为项目内的数据路径，例如 `PROJECT_DATA_DIR=./data`。Docker 部署时该数据目录必须预先存在；若路径写错，Compose 会阻止挂载，不会静默创建空目录。然后在项目虚拟环境运行：
 
 ```powershell
 if (!(Test-Path .env)) { Copy-Item .env.example .env }
@@ -111,7 +116,11 @@ python scripts/ask_policy.py "定制商品出现质量问题怎么办？"
 
 ## 人工审批（阶段 4）
 
-退款请求会暂停并保存在 `data/checkpoints.sqlite`，等待显式批准或拒绝。批准只写入 `approved_demo` 状态，不修改订单、不执行退款。`POST /chat` 返回待审批 `thread_id` 后，可通过 Swagger 查看状态并调用 `POST /approvals/{thread_id}/decision` 恢复流程。审批路由仅供本地演示，没有真实审批人认证。
+退款请求会暂停并保存在 `data/checkpoints.sqlite`，等待显式批准或拒绝。批准只写入 `approved_demo` 状态，不修改订单、不执行退款。`POST /chat` 返回待审批 `thread_id` 后，可通过 Swagger 查看状态并调用 `POST /approvals/{thread_id}/decision` 恢复流程。决定接口要求同租户独立的演示审批身份并阻止请求人自批；令牌仍为公开演示值，不构成生产 RBAC。
+
+### 本地模拟物流 API
+
+Compose 启动 `mock-logistics` 与 Agent 两个本地服务。Agent 先从 SQLite 验证订单属于当前租户，再用 `X-Demo-Service-Key` 请求模拟服务，解析并校验 JSON 轨迹；数据只覆盖虚构订单 `1001`、`1002`。服务提供固定样例，不访问互联网或商业快递 API。配置项见 `.env.example`，物流故障会降级为安全提示。
 
 ## 评估与追踪（阶段 5）
 
@@ -131,7 +140,7 @@ RAG 答案层增加了可审计的政策约束规则，详细人工复核和 Top
 
 ## Docker（WSL）
 
-确保项目根目录已有本机 `.env`。为避开 `/mnt/d` 上的 BuildKit 权限问题，在 WSL 中从 `/opt/project2` 构建；Compose 将数据目录绝对挂载到 Windows 同源的 `/mnt/d/project_2/data`：
+确保项目根目录已有本机 `.env`，且 `PROJECT_DATA_DIR` 指向已存在的数据目录。为避开 `/mnt/d` 上的 BuildKit 权限问题，在 WSL 中从 `/opt/project2` 构建；Compose 将数据目录绝对挂载到 Windows 同源的 `/mnt/d/project_2/data`。数据目录必须预先存在；路径错误会使容器启动失败，不会自动建一个空目录：
 
 ```bash
 cd /opt/project2

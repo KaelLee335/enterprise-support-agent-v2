@@ -16,6 +16,8 @@ flowchart LR
     API --> ROUTER[确定性意图路由]
     ROUTER -->|只读订单| DB[(SQLite orders)]
     ROUTER -->|政策问题| RETRIEVE[Chroma 检索]
+    ROUTER -->|物流查询| HTTP[Shipping client]
+    HTTP --> MOCK[本地虚构 Logistics API]
     RETRIEVE --> EMB[SiliconFlow Embedding]
     RETRIEVE --> LLM[SiliconFlow Chat Model]
     ROUTER -->|退款审批| HITL[LangGraph interrupt]
@@ -35,6 +37,8 @@ Agent 节点和 State 细节见 [`langgraph_design.md`](langgraph_design.md)，�
 | 问题 | 选择 | 原因与边界 |
 |---|---|---|
 | 谁决定权限和路由 | 本地 Bearer 演示身份映射到固定 user/tenant；SQL 再同时约束 order ID 和 tenant ID | LLM 不承担授权判断；令牌公开且仅用于 Demo，不是真实身份认证 |
+| 如何模拟外部业务 API | LangGraph 物流分支先做 tenant-scoped SQLite 订单检查，再由 typed HTTP client 请求 Compose 内 mock 服务 | 服务返回静态 JSON 轨迹；使用本地演示服务标记；不连接商业快递 API |
+| 如何演示审批职责分离 | `demo-a` 下分别配置虚构 requester 与 approver；decision API 校验 approver 角色并阻止自批 | 公开令牌不是真实认证，也不能保护外部暴露的数据 |
 | 如何回答售后政策 | 单政策文件一个检索块，Chroma 持久存储，Top-4 检索 | 当前政策短且完整上下文重要；引用编号校验只验证来源存在，不保证语义完全正确 |
 | 如何处理中断式人工审批 | LangGraph `interrupt()` + SQLite checkpoint | 可展示暂停、批准/拒绝和重启恢复；批准仅记录 `approved_demo`，不调用退款服务 |
 | 如何定位运行步骤 | HTTP `X-Trace-ID`、JSON 结构日志 | 关联 API 和节点耗时；输入以脱敏限长预览记录，不记录模型答复或凭据 |
@@ -78,5 +82,6 @@ Agent 节点和 State 细节见 [`langgraph_design.md`](langgraph_design.md)，�
 
 - RAG 尚有 POL-10 等多证据漏召回；没有通过提高 Top-K 后的对照结果，也未加入 reranker。
 - 没有完整 LLM-as-a-judge 或语义 grounding 自动评测。
-- Demo Bearer token 只映射固定虚构用户/租户，不是生产身份认证；演示退款审批接口没有审批人认证。
+- Demo Bearer token 只映射固定虚构用户/租户和 requester/approver 演示角色，不是真实身份认证；同租户 requester 不可自批，独立 approver 只记录 `approved_demo`。
+- Logistics API 由本地静态 mock 服务提供，使用虚构运单与服务标记，不连接商业承运商；跨租户订单检查先于 HTTP 调用。
 - SQLite checkpoint 和当前容器部署是单机演示方案，不代表高可用生产架构。

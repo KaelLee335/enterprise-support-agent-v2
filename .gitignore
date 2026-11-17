@@ -1,4 +1,6 @@
 .venv/
+.uv-cache/
+node_modules/
 .pytest-tmp/
 __pycache__/
 .pytest_cache/
@@ -8,6 +10,7 @@ data/*.db
 data/*.sqlite*
 data/vector_store/
 logs/
+frontend/dev_server.log
 build/
 dist/
 *.egg-info/

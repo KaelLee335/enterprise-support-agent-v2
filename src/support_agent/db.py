@@ -105,6 +105,7 @@ def initialize_database(database_path: Path, seed_path: Path) -> None:
                 "INSERT OR IGNORE INTO demo_users (user_id, tenant_id, display_name, is_demo) VALUES (?, ?, ?, 1)",
                 [
                     ("user-demo-a", "demo-a", "Demo Customer A"),
+                    ("user-demo-a-approver", "demo-a", "Demo Approver A"),
                     ("user-legacy-demo", "legacy-demo", "Legacy Demo User"),
                 ],
             )

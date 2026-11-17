@@ -6,6 +6,7 @@ from support_agent.agent.nodes import (
     clarify_request,
     generate_policy_answer,
     lookup_order,
+    lookup_logistics,
     refuse_write_request,
     retrieve_policy,
     route_request,
@@ -18,11 +19,12 @@ from support_agent.observability import traced_node
 
 
 def route_by_intent(state: SupportState) -> Literal[
-    "lookup_order", "retrieve_policy", "refuse_write_request", "clarify_request",
+    "lookup_order", "lookup_logistics", "retrieve_policy", "refuse_write_request", "clarify_request",
     "prepare_refund_approval",
 ]:
     return {
         "order_lookup": "lookup_order",
+        "logistics_lookup": "lookup_logistics",
         "policy_qa": "retrieve_policy",
         "write_request": "refuse_write_request",
         "clarify": "clarify_request",
@@ -47,6 +49,7 @@ def build_support_graph(
     nodes = {
         "route_request": route_request,
         "lookup_order": lookup_order,
+        "lookup_logistics": lookup_logistics,
         "retrieve_policy": retrieve_policy,
         "generate_policy_answer": generate_policy_answer,
         "refuse_write_request": refuse_write_request,
@@ -59,6 +62,7 @@ def build_support_graph(
     builder.add_edge(START, "route_request")
     builder.add_conditional_edges("route_request", route_by_intent)
     builder.add_edge("lookup_order", END)
+    builder.add_edge("lookup_logistics", END)
     builder.add_edge("refuse_write_request", END)
     builder.add_edge("clarify_request", END)
     builder.add_conditional_edges(
