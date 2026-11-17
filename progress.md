@@ -312,3 +312,4 @@
 - 用户指出待审批卡片同时显示在请求人和审批人页面。原因是前端按共享 `pending` 状态渲染卡片，只在卡片内部区分按钮角色。
 - 修改为整个任务卡仅在 `role=approver` 时渲染；请求人仍能在自己的助手答复和状态行看到 `pending`，不会看到审批任务卡或决定按钮。
 - 纯前端修正，无需 WSL/Docker 后端重建；Vue production build 通过。
+- 提交 `12aaf4d` 已推送；GitHub Actions run `44077476920` 最终状态为 success。
