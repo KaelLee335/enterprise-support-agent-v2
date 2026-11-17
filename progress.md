@@ -313,3 +313,4 @@
 - 修改为整个任务卡仅在 `role=approver` 时渲染；请求人仍能在自己的助手答复和状态行看到 `pending`，不会看到审批任务卡或决定按钮。
 - 纯前端修正，无需 WSL/Docker 后端重建；Vue production build 通过。
 - 提交 `12aaf4d` 已推送；GitHub Actions run `44077476920` 最终状态为 success。
+- 用户随后实际操作浏览器并确认通过：请求人与审批人看到各自对话，待审批任务只在审批人页面显示。
