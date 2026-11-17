@@ -1,8 +1,40 @@
-# Enterprise Support Agent V2 — Python Agent Engineering
+# Enterprise Support Agent V2｜企业售后智能客服 Agent
 
-这是我从 Dify 低代码 Agent 开发转向 Python 代码级 Agent 工程的学习项目。我用一个企业售后场景，把用户请求、FastAPI、SQLite、LangChain RAG、LangGraph 状态编排、评估追踪和 Docker 部署连成一条可运行、可检查的工程链路。
+一个面向售后场景的 Python 全栈 Agent 演示项目，展示如何将自然语言请求接入可追踪、可评估、具备权限边界的业务流程。项目从 Dify 工作流迁移到代码实现，覆盖 FastAPI、SQLite、LangChain、LangGraph、RAG、自动化测试、Docker 与 Vue 演示界面。
 
-项目重视真实理解与工程取舍，不堆叠技术：Codex 作为技术负责人完成必要的架构与主力实现，我通过代码讲解、学习材料、运行观察和评估掌握完整链路。当前是使用模拟数据的本地演示项目，不是生产客服系统；它不执行真实退款、改址或删除操作。
+## 项目亮点
+
+- **端到端请求链路**：Bearer 演示身份与租户范围校验 → FastAPI → LangGraph 意图路由 → 订单只读 SQL、政策 RAG 或演示审批 → 结构化答复与运行记录。
+- **可核验的政策问答**：政策来源引用、证据展示、无证据安全降级，以及针对退款时限、质量问题、物流和隐私边界的约束规则。
+- **可靠性与安全边界**：租户隔离、提示注入拒答、checkpoint 完整性预检、模型故障安全答复、GitHub Actions 与 Docker 验收。
+- **可运行的演示界面**：Vue 3 + Vite 页面通过现有 FastAPI 接口体验对话、订单卡片、政策证据和审批演示。
+- **学习材料与验收证据**：五章代码导读、故障案例库、需求追踪矩阵和运行验证记录。
+
+## 项目定位
+
+本仓库是个人学习与技术演示项目，使用虚构数据和固定演示身份，不是生产客服系统。订单查询为只读；退款审批只记录 `approved_demo`，不会退款、改址或删除数据。真实身份认证、生产级 RBAC 与多实例部署不在当前范围。
+
+**技术栈：** Python 3.12 · FastAPI · SQLite · LangChain · LangGraph · Chroma · SiliconFlow/Qwen · Vue 3 · Vite · Docker
+
+**当前验证摘要：** GitHub Actions 55 项通过；本地阶段 15 离线回归 4/4；WSL Docker 健康检查及 12 项验收由用户实机报告通过；Vue 生产构建通过，真实 `/api/chat` 链路由用户实机报告通过。各项证据来自不同环境，详见项目状态文档。
+
+## 项目架构
+
+```mermaid
+flowchart LR
+  U[访客 / Vue 3 页面] -->|Bearer Demo Token + JSON| V[Vite /api 代理]
+  V --> F[FastAPI API]
+  F --> A[演示身份与租户校验]
+  A --> G[LangGraph 路由与状态流]
+  G -->|订单查询| S[(SQLite 订单与运行记录)]
+  G -->|政策问答| R[LangChain RAG]
+  R --> C[(Chroma 政策向量库)]
+  R --> M[SiliconFlow Embedding / Qwen]
+  G -->|退款申请| H[SQLite Checkpoint / 演示审批]
+  G --> F --> V --> U
+```
+
+Vue 只调用本地 FastAPI；模型 Key 保留在后端 `.env`。订单查询为只读；退款批准只记录演示状态 `approved_demo`。Docker/WSL 用于运行后端与持久化数据，开发前端单独通过 Vite 启动。
 
 ## 本地运行
 
@@ -31,6 +63,28 @@ python -m pip install -i https://mirrors.aliyun.com/pypi/simple -e ".[dev]"
 请求使用 `Authorization: Bearer demo-a-local-token`。服务端从令牌映射用户与租户，不信任调用方传入的 `X-Tenant-ID`。可在本地 `.env` 覆盖 `DEMO_TOKEN_DEMO_A` 和 `DEMO_TOKEN_LEGACY`。该方案是可复现的模拟身份，不提供真实用户认证、密码保护或 Token 轮换。
 
 SQLite 默认写入 `data/support_agent.db`。删除该文件会重建演示数据库；它是本地运行数据，不应提交到 Git。
+
+### Vue 演示前端
+
+后端启动后，在新终端运行：
+
+```powershell
+cd frontend
+npm install --legacy-peer-deps
+npm run dev
+```
+
+打开 <http://127.0.0.1:5173>。Vite 将 `/api` 请求转发到本地 FastAPI。页面包含聊天、订单/政策证据展示和演示审批操作。详细说明见 [`docs/vue_frontend.md`](docs/vue_frontend.md)。
+
+## 演示方式
+
+1. **确认后端就绪**：打开 <http://127.0.0.1:8000/health> 应返回 `{"status":"ok"}`；Swagger 接口文档在 <http://127.0.0.1:8000/docs>。
+2. **启动前端**：在 `frontend/` 运行 `npm run dev`，浏览器进入 <http://127.0.0.1:5173>。Demo Token 默认预填 `demo-a-local-token`，仅用于本地演示。
+3. **展示确定性订单查询**：输入“查询订单1001”，页面应显示订单状态与订单卡片。
+4. **展示政策 RAG**：输入“退款多久能到账？”，查看回答中的政策编号和可展开的证据来源。
+5. **展示审批中断与恢复**：输入“帮我给订单1001申请退款”，在页面点击“演示批准”或“拒绝”，查看状态变化。批准不会执行真实退款。
+
+演示问题仅用虚构项目数据。政策问答会由后端调用 `.env` 配置的模型服务；不要输入个人信息、真实客户问题或秘密内容。模型请求额度依服务商账户配置而定。
 
 ## 测试
 
