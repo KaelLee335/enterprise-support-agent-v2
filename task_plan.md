@@ -64,7 +64,7 @@
 - **验收边界：**所有身份、物流和客户信息均为虚构；不触发真实外部 API，不把公开 Demo token 描述为认证；保留 `RAG_TOP_K=4` 和只读订单/演示审批边界。
 
 - [x] 阶段 7.1：文档、忽略规则和 Docker 构建输入审查；用户 WSL build 成功证实 Compose 可解析。
-- [x] 阶段 7.2：本地 Git 仓库文件清单和敏感/生成路径忽略规则由用户在 WSL 核查；`.env.example` 可跟踪，尚未提交。
+- [x] 阶段 7.2：本地 Git 仓库文件清单和敏感/生成路径忽略规则由用户在 WSL 核查；`.env.example` 可跟踪，密钥与运行数据排除在公开提交之外。
 - [x] 阶段 7.3：用户在 WSL `the WSL project directory` 同步发布就绪改动、重建并运行 11 项阶段 6 验收，数据挂载正确。
 
 - [x] 逐例审查 Top-4/Top-8 生成答案；`docs/rag_answer_manual_review.md` 已记录全部 14 组。

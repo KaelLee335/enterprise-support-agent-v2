@@ -9,6 +9,7 @@
 - 新增 `uv.lock`；CI 用 `uv sync --locked` 检查锁文件一致性，Dockerfile 用 `uv sync --frozen` 按锁文件安装，避免构建时受 Aliyun 索引元数据重新解析影响。CI 触发路径已包含政策、seed、前端、脚本和文档，并添加 Vue 构建及 Compose 内物流 API smoke。
 - 本机验收：65 项 pytest 通过；Vue `npm run build` 通过；`docker compose config --quiet` 通过；Python 源码编译通过。此前本机 Docker 镜像构建曾在拉取阶段返回 `unexpected EOF`；之后用户在 WSL 完成同步和重建，该结果已由下条实机验收覆盖。
 - WSL 部署由用户报告已完成：更新脚本同步 `uv.lock` 与源码到 `/opt/project2`，两容器 healthy，阶段 6 与 V2.1 新增 verifier 用例全部 PASS。此为用户提供的实机结果，本会话没有操作 WSL。
+- 发布后的 GitHub Actions run 19（commit `46d089a`）已通过：锁文件安装、Python 全量测试、Vue 构建、无密钥 Compose 校验、Docker 镜像构建和无 Key 容器烟测。
 - Dockerfile 使用 `uv sync --frozen` 避免构建时按 Aliyun 源重新解析；CI 使用 `uv sync --locked` 验证锁文件一致性。
 
 ## 已完成并验收

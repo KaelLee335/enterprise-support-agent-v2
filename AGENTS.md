@@ -46,6 +46,7 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 ## V2.1 implementation handoff (2026-11-17)
 
 - Local implementation and docs are complete. The full suite reports 65 passed; Vue build, lockfile check, Compose static config, and Python compile pass. V2.1 was committed as `c8879bf` and pushed to `origin/main`.
+- GitHub Actions run 19 for `46d089a` completed successfully: locked install, full Python suite, Vue build, Compose config without secrets, Docker image build, and no-key container smoke.
 - User reports the external `update_wsl_and_verify.sh` run synced `uv.lock` and source to `/opt/project2`, both containers became healthy, and the expanded phase 6 + V2.1 verifier passed. The live demo is therefore on V2.1 per user report.
 - A prior local Docker image build attempt ended with daemon `unexpected EOF` during image pull; the later WSL result supersedes that attempt. Do not retry from the Windows-mounted project directory.
 - User changed both Dockerfile sync commands from `--locked` to `--frozen`: the container uses the committed resolution without re-resolving against Aliyun metadata; CI retains `--locked` to detect a stale lockfile. Preserve this distinction.

@@ -292,3 +292,4 @@
 - 审阅并提交 V2.1 全量交付（含 Dockerfile `uv sync --frozen` 修正、Vue 前端、物流模拟服务、独立演示审批角色、锁文件、CI、测试与文档），提交 `c8879bf`；推送到公开仓库 `origin/main` 成功。
 - 发布前核对 `.env.example` 的 SiliconFlow Key 为空；`.env`、数据库、向量库、前端依赖/构建产物未纳入提交。发现 Vite 本地日志后已加入 `.gitignore` 并排除。
 - 本地既有记录为 pytest 65 passed、Vue build 通过、Compose 静态配置与 Python 编译通过；本轮未重跑测试。远端最初查询曾遇到当前沙箱 Git 凭证不可用，后续获准 Git 推送成功。
+- 推送后 GitHub Actions run 19（commit `46d089a`）完成并通过：锁文件安装、Python 测试、Vue build、无密钥 Compose 校验、Docker 镜像构建及无 Key 容器 smoke。
