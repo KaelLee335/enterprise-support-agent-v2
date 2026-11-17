@@ -9,10 +9,10 @@
 - 新增 `uv.lock`；CI 用 `uv sync --locked` 检查锁文件一致性，Dockerfile 用 `uv sync --frozen` 按锁文件安装，避免构建时受 Aliyun 索引元数据重新解析影响。CI 触发路径已包含政策、seed、前端、脚本和文档，并添加 Vue 构建及 Compose 内物流 API smoke。
 - V2.1 初始本机验收：65 项 pytest 通过；Vue build、Compose 静态配置和 Python 编译通过。后续退款路由修复的定向回归通过，审批 UI 改动的 Vue build 通过。
 - WSL 部署由用户报告已完成：更新脚本同步 `uv.lock` 与源码到 `/opt/project2`，两容器 healthy，阶段 6 与 V2.1 新增 verifier 用例全部 PASS。此为用户提供的实机结果，本会话没有操作 WSL。
-- GitHub Actions run `44077476920`（代码提交 `12aaf4d`）已通过，涵盖 Python 测试、Vue 构建、Compose 配置、Docker 镜像构建和无 Key 容器 smoke。
+- GitHub Actions run `44077476920`（代码提交 `12aaf4d`）已通过，涵盖 Python 测试、Vue 构建、Compose 配置、Docker 镜像构建和无 Key 容器 smoke。看板校准提交 `d703155` 的 run `44084457126` 也已通过。
 - 请求人与审批人分开显示各自历史；待审批任务和决策按钮只在审批人页面显示；申请人只在本方对话看到待审批状态。用户已确认浏览器验收通过。
 - `帮我申请订单 1001 退款` 已改为创建 `pending` 审批，而不是进入 `order_lookup`；19 项 router 测试和新增 API 审批回归通过。用户报告同步脚本执行后双容器 healthy、扩展 verifier 全 PASS（EXIT=0）。
-- 最新浏览器验收确认请求人/审批人各自显示独立对话，待审批卡与决定按钮只显示在审批人页面。代码提交 `12aaf4d`，后续项目状态记录提交 `a928573` 已推送。
+- 最新浏览器验收确认请求人/审批人各自显示独立对话，待审批卡与决定按钮只显示在审批人页面。代码提交 `12aaf4d`，后续项目状态记录已推送。
 - Dockerfile 使用 `uv sync --frozen` 避免构建时按 Aliyun 源重新解析；CI 使用 `uv sync --locked` 验证锁文件一致性。
 
 ## 已完成并验收
