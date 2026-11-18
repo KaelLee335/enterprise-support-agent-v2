@@ -26,3 +26,11 @@ docker compose ps
 ## 自动启动边界
 
 当前用户登录触发方式是用户确认保留的设置。它不承诺用户登录前即可用；完整 Windows 重启后的行为仍未验收。若未来确需改变启动时机，应先确认目标和运行账户，再单独处理主机设置。
+
+## V2.1 MockShop 集成更新
+
+本机代码完成离线验证后，从已配置的 Ubuntu WSL 中运行项目脚本 `scripts/update_wsl_and_verify.sh`。它把 FastAPI 配置、SQLite/auth/schema、LangGraph 节点、`mock_shop_api.py`、整个 `integrations/` 包和验收脚本同步到部署副本 `/opt/project2`，随后只在该 WSL 副本执行 Compose rebuild/up。
+
+脚本会先等待 `support-agent` 健康，再运行既有 `verify_phase6.sh` 和新增 `verify_v21.sh`。后者检查两店铺隔离、售后资格、明确确认与幂等申请、HMAC Webhook 验签/重放去重、订单状态同步和跨租户事件读取。运行前不要从 Windows checkout 执行 Compose，因为它会与 `/opt/project2` 争用宿主机 8000 端口。
+
+本轮尚未由 Codex 操作 WSL；更新和容器验收需由用户执行并回报实际结果。

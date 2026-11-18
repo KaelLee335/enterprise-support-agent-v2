@@ -2,6 +2,7 @@
 .uv-cache/
 node_modules/
 .pytest-tmp/
+.pytest-tmp-v21/
 __pycache__/
 .pytest_cache/
 *.py[cod]

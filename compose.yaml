@@ -1,4 +1,19 @@
 services:
+  mock-shop:
+    build: .
+    command: ["/app/.venv/bin/uvicorn", "support_agent.mock_shop_api:app", "--host", "0.0.0.0", "--port", "8092"]
+    environment:
+      MOCK_SHOP_API_KEY: ${MOCK_SHOP_API_KEY:-demo-shop-local-key}
+    expose:
+      - "8092"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8092/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
   mock-logistics:
     build: .
     command: ["/app/.venv/bin/uvicorn", "support_agent.mock_logistics:app", "--host", "0.0.0.0", "--port", "8091"]
@@ -25,7 +40,11 @@ services:
       LOG_LEVEL: INFO
       LOGISTICS_API_BASE_URL: http://mock-logistics:8091
       MOCK_LOGISTICS_API_KEY: ${MOCK_LOGISTICS_API_KEY:-demo-logistics-local-key}
+      MOCK_SHOP_API_BASE_URL: http://mock-shop:8092
+      MOCK_SHOP_API_KEY: ${MOCK_SHOP_API_KEY:-demo-shop-local-key}
     depends_on:
+      mock-shop:
+        condition: service_healthy
       mock-logistics:
         condition: service_healthy
     volumes:

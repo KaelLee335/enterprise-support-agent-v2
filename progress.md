@@ -1,5 +1,17 @@
 # 工作进度
 
+## 2026-11-18 — V2.1 电商集成本机交付收尾
+
+- 修复店铺 B 测试触发的 tenant 外键缺口：新增固定 `demo-b` tenant、`user-demo-b` 身份映射和 customer/store scope。新增正向读取断言，确认店铺 B 能读自己的订单与 webhook 事件；店铺 A 仍得到 404。
+- 扩展 Vue：显示平台订单、物流、资格结果；支持店铺 A/B 身份切换；售后操作拆为“检查资格”和“确认创建演示申请”两个动作，并显式呈现 `pending_demo`。
+- 新增 `docs/api_reference_v2_1.md`、`docs/evaluation_v2_1.md`、`docs/interview_guide_v2_1.md`；更新 README、ARCHITECTURE、task plan、AGENTS 和项目状态。
+- 全量 pytest：**93 passed / 12.26 秒**；Vue production build 通过；`docker compose config --quiet` 通过；Python compileall 通过。
+- 重新运行 `scripts/evaluate_agent_routes.py`：route 35/35 (100%)、订单参数 8/8 (100%)、工具 outcome 6/6、业务订单子集 5/5、SQLite unchanged。报告产物为 `data/evaluation/v2_agent_routes.json`。
+- 更新 `scripts/update_wsl_and_verify.sh`：同步新增 `mock_shop_api.py` 和全部 integration modules，随后执行既有 phase 6 verifier 及新增 `verify_v21.sh`。新 verifier 覆盖两店铺隔离、资格检查、明确确认申请、幂等重试、HMAC Webhook、重复事件、状态同步、无效签名和跨租户事件隐藏。
+- CI smoke 增加店铺 B 正向查询、跨租户拒绝及 pending demo 申请；CI paths 纳入根目录架构和计划记录。
+- 最终静态检查：Compose config、GitHub Actions YAML 与嵌入 Python 语法、Python compileall 通过；本机未执行 Docker `up` 或 GitHub CI。
+- 未启动 Compose、未操作 WSL、未调用外部模型/真实平台。待用户在 WSL `/opt/project2` 执行更新脚本并提供容器验收结果。
+
 ### 2026-11-16：依照完整项目说明扩展阶段路线
 
 - 重读用户提供的《Enterprise Support Agent V2 — Python Full-stack Agent Engineering》。按当前用户要求将它作为本项目的工作标准；文档末尾“现在执行阶段 0”属于原始启动指令，阶段 0–9 已完成，不重新执行。
@@ -320,3 +332,20 @@
 - 对照 V2.1 工程加固图复核：交付一致性与锁文件/CI、模拟 requester/approver 边界、本地物流 HTTP API、演示/面试/迁移说明均已实现并验收；没有遗留在本地 Demo 范围内的功能项。
 - 发现项目状态页仍把阶段 15 写成“刚开始”，并把若干已完成验收列在待办中。已修正当前阶段、V2.1/WSL/浏览器验收状态和建议后续顺序；保留生产化、真实供应商故障演练、事实级独立评估/延迟基线和学习互动为明确暂缓项。
 - 看板校准提交 `d703155` 的 GitHub Actions run `44084457126` 通过。
+## 2026-11-18 — 启动 V2.1 电商集成扩展
+
+- 按用户的新项目 brief 开始增量扩展：目标包括 Mock 电商平台、统一 Adapter、售后资格/模拟申请、Agent 接入、签名 Webhook、隔离/幂等测试和文档；明确保持演示边界，不接真实平台与真实用户。
+- 完成 Phase 0 仓库盘点：当前 API/身份/SQLite/LangGraph/RAG/物流/Docker Compose/CI 均可复用；新增 Adapter 和售后/Webhook 领域目前不存在。
+- 基线测试第一次通过 `uv run --locked pytest -q` 未启动，因全局 uv cache `D:\\caches\\uv` 拒绝访问。通过 `.venv` Python 指定新的 `.pytest-tmp-v21` 成功：**71 passed, 9.25s**；仅 1 条 `.pytest_cache` 写权限 warning。没有更改 ACL 或清理受限目录。
+- 已将新路线、MVP、风险和架构决策写入 `task_plan.md`、`findings.md`；下一步实现独立 MockShop API 与 Adapter 基础接口，并保持旧 API 和图路由回归。
+- Phase 1/2 首批实施完成：新增 `mock_shop_api.py`、`integrations/{models,base,registry,mock_shop}.py` 和 7 条测试。MockShop endpoint 需要 demo service key，提供固定状态/物流/售后资格/售后申请/申请状态 API；Adapter 隐藏平台字段和状态映射。
+- 验收：新增测试 7 passed（0.80s）；全量测试 78 passed（9.06s）。测试使用项目 `.venv`、自定义 basetemp 和 `-p no:cacheprovider`；没有改动用户 WSL/Docker、真实平台或用户数据。
+- 下一步：完善平台异常映射和 Demo identity→store/customer 权限策略，再把新服务接入 FastAPI/Compose；售后业务写入必须由主 API SQLite 留痕并与“审批/退款执行”区分。
+- 随后实现平台错误归一（404、认证失败、409、422、服务不可用、timeout、坏 JSON/Schema、未知状态）和用户/租户/店铺/客户范围策略；新增异常回归后全量 pytest 达 **81 passed / 8.94s**。
+- 新增配置、FastAPI 电商 REST endpoint 和 SQLite `aftersale_requests` 表，覆盖 tenant/customer 权限、明确请求人确认、资格检查、申请幂等与状态查询；Compose 配置 mock-shop 私有网络服务，CI smoke 纳入订单读取和跨客户 404。
+- 本轮验收：`tests/test_ecommerce_api.py` + `tests/test_db.py` 9 passed / 4.61s；最新全量 pytest **86 passed / 9.63s**；`docker compose config --quiet` exit 0。未启动/重建 Docker 容器，也未同步 WSL。
+- 当前阶段状态：MockShop API、Adapter 与 FastAPI/SQLite 基础路径已经可测；Agent graph/RAG 串联、Webhook、Vue、完整文档和实际 Compose/WSL runtime 仍待实现。
+- LangGraph 接入新增三类显式平台意图：订单、物流、售后资格。Agent 节点调用绑定当前 `DemoIdentity` 的 LangChain `StructuredTool`；平台归属不从用户 header 或模型参数推断。售后资格结果随后经过现有 RAG；如果权限/平台检查失败则 Graph 不会继续检索，避免对无权请求做额外调用。
+- 售后申请仍由单独 FastAPI POST 操作承接，要求 requester、`confirmed=true`、订单授权及资格符合，并写本地 SQLite 幂等记录。Agent 仅检查资格与说明下一步，不会根据自然语言自行提交。
+- 定向测试 `test_ecommerce_api.py`、`test_mock_shop_integration.py`、`test_agent.py`：37 passed / 5.13s；全量套件 **89 passed / 10.05s**。离线路由评估用既有 V1 标签直接运行 `evaluate()`，没有生成报告文件：明确路由标签 35/35、订单参数 8/8、数据库未变、0 route failures。
+- Compose 静态解析通过；当前没有 `compose up/build`、WSL 同步或外部模型请求。WSL runtime 尚未部署新服务，Vue 尚未展示新字段。

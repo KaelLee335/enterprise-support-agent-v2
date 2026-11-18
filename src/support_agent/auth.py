@@ -30,6 +30,7 @@ def require_demo_identity(
     settings = get_settings()
     identities = {
         settings.demo_token_demo_a: DemoIdentity("user-demo-a", "demo-a"),
+        settings.demo_token_demo_b: DemoIdentity("user-demo-b", "demo-b"),
         settings.demo_token_demo_a_approver: DemoIdentity(
             "user-demo-a-approver", "demo-a", "approver"
         ),

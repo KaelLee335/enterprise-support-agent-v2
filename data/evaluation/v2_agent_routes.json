@@ -1,5 +1,5 @@
 {
-  "evaluated_at": "2026-11-14T13:26:46.856716+00:00",
+  "evaluated_at": "2026-11-18T07:36:49.180884+00:00",
   "source_dataset": "v1_eval_cases.json",
   "evaluation": "deterministic_route_and_order_id_extraction",
   "total_cases": 45,

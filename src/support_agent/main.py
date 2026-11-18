@@ -1,4 +1,6 @@
 import logging
+import hashlib
+import hmac
 import os
 import time
 import sqlite3
@@ -6,7 +8,8 @@ from uuid import uuid4
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from pydantic import ValidationError
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langgraph.types import Command
 
@@ -14,15 +17,32 @@ from support_agent.agent.graph import build_support_graph
 from support_agent.auth import DemoIdentity, require_demo_identity
 from support_agent.config import get_settings
 from support_agent.db import (
+    AftersaleIdempotencyConflict,
     create_agent_run,
+    fetch_aftersale_request,
     fetch_agent_run,
     fetch_order,
+    fetch_webhook_event,
     initialize_database,
+    reserve_aftersale_request,
     update_agent_run,
+    update_aftersale_request,
+    process_mockshop_webhook,
+    WebhookEventConflict,
 )
+from support_agent.integrations.errors import IntegrationError, IntegrationNotFound
+from support_agent.integrations.factory import create_mock_shop_adapter
+from support_agent.integrations.mock_shop import MockShopAdapter
+from support_agent.integrations.models import AftersaleEligibility, LogisticsInfo, PlatformOrder
+from support_agent.integrations.mock_shop import normalize_order_status
+from support_agent.integrations.webhooks import MockShopWebhookEvent, normalized_order_status
+from support_agent.integrations.permissions import apply_webhook_order_state, can_access_order, tenant_for_store
 from support_agent.schemas import (
     ApprovalDecision,
     ApprovalResponse,
+    AftersaleCreateRequest,
+    DemoAftersaleResponse,
+    WebhookReceiptResponse,
     AgentRunResponse,
     ChatRequest,
     ChatResponse,
@@ -129,6 +149,271 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+def _new_mock_shop_adapter() -> MockShopAdapter:
+    return create_mock_shop_adapter(settings)
+
+
+def _load_authorized_platform_order(adapter: MockShopAdapter, order_id: str, identity: DemoIdentity):
+    try:
+        order = adapter.get_order(order_id)
+    except IntegrationNotFound as exc:
+        raise HTTPException(status_code=404, detail="Order not found for this identity") from exc
+    except IntegrationError as exc:
+        logger.warning(
+            "Mock platform order lookup failed",
+            extra={"event": "platform_call_failed", "trace_id": trace_id_var.get(),
+                   "tenant_id": identity.tenant_id, "platform": adapter.platform_name,
+                   "error_code": exc.code},
+        )
+        raise HTTPException(status_code=503, detail="Demo commerce service is temporarily unavailable") from exc
+    if not can_access_order(identity, order):
+        raise HTTPException(status_code=404, detail="Order not found for this identity")
+    return apply_webhook_order_state(order, settings.database_path)
+
+
+@app.get("/ecommerce/orders/{order_id}", response_model=PlatformOrder)
+def get_ecommerce_order(
+    order_id: str,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> PlatformOrder:
+    adapter = _new_mock_shop_adapter()
+    try:
+        order = _load_authorized_platform_order(adapter, order_id, identity)
+        return order
+    finally:
+        adapter.close()
+
+
+@app.get("/ecommerce/orders/{order_id}/logistics", response_model=LogisticsInfo)
+def get_ecommerce_logistics(
+    order_id: str,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> LogisticsInfo:
+    adapter = _new_mock_shop_adapter()
+    try:
+        _load_authorized_platform_order(adapter, order_id, identity)
+        try:
+            return adapter.get_logistics(order_id)
+        except IntegrationNotFound as exc:
+            raise HTTPException(status_code=404, detail="Logistics not found") from exc
+        except IntegrationError as exc:
+            logger.warning(
+                "Mock platform logistics lookup failed",
+                extra={"event": "platform_call_failed", "trace_id": trace_id_var.get(),
+                       "tenant_id": identity.tenant_id, "platform": adapter.platform_name,
+                       "error_code": exc.code},
+            )
+            raise HTTPException(status_code=503, detail="Demo commerce service is temporarily unavailable") from exc
+    finally:
+        adapter.close()
+
+
+@app.get("/ecommerce/orders/{order_id}/aftersale-eligibility", response_model=AftersaleEligibility)
+def get_ecommerce_aftersale_eligibility(
+    order_id: str,
+    reason: str = "售后咨询（演示）",
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> AftersaleEligibility:
+    adapter = _new_mock_shop_adapter()
+    try:
+        _load_authorized_platform_order(adapter, order_id, identity)
+        try:
+            return adapter.check_aftersale_eligibility(order_id, reason)
+        except IntegrationNotFound as exc:
+            raise HTTPException(status_code=404, detail="Order not found for this identity") from exc
+        except IntegrationError as exc:
+            logger.warning(
+                "Mock platform aftersale check failed",
+                extra={"event": "platform_call_failed", "trace_id": trace_id_var.get(),
+                       "tenant_id": identity.tenant_id, "platform": adapter.platform_name,
+                       "error_code": exc.code},
+            )
+            raise HTTPException(status_code=503, detail="Demo commerce service is temporarily unavailable") from exc
+    finally:
+        adapter.close()
+
+
+@app.post("/ecommerce/orders/{order_id}/aftersales", response_model=DemoAftersaleResponse)
+def create_ecommerce_aftersale(
+    order_id: str,
+    body: AftersaleCreateRequest,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> DemoAftersaleResponse:
+    if identity.role != "requester":
+        raise HTTPException(status_code=403, detail="Demo requester role required")
+    if not body.confirmed:
+        raise HTTPException(status_code=409, detail="Explicit demo confirmation is required before submitting")
+
+    adapter = _new_mock_shop_adapter()
+    try:
+        order = _load_authorized_platform_order(adapter, order_id, identity)
+        scoped_key = hashlib.sha256(
+            f"{identity.tenant_id}:{body.idempotency_key}".encode("utf-8")
+        ).hexdigest()
+        try:
+            record, created_now = reserve_aftersale_request(
+                settings.database_path,
+                request_id=uuid4().hex,
+                tenant_id=identity.tenant_id,
+                user_id=identity.user_id,
+                order_id=order_id,
+                platform=adapter.platform_name,
+                reason=body.reason,
+                idempotency_key=body.idempotency_key,
+            )
+        except AftersaleIdempotencyConflict as exc:
+            raise HTTPException(status_code=409, detail=str(exc)) from exc
+        if not created_now:
+            if record["status"] == "pending_demo":
+                return DemoAftersaleResponse(
+                    request_id=record["request_id"],
+                    aftersale_id=record["platform_aftersale_id"], order_id=order_id,
+                    status="pending_demo",
+                    message="已返回同一幂等键对应的演示申请；未执行退款或退货。",
+                )
+            if record["status"] == "submitting":
+                raise HTTPException(status_code=409, detail="A request with this idempotency key is in progress")
+            update_aftersale_request(
+                settings.database_path, record["request_id"], identity.tenant_id,
+                status="submitting",
+            )
+        try:
+            eligibility = adapter.check_aftersale_eligibility(order_id, body.reason)
+        except IntegrationError as exc:
+            update_aftersale_request(
+                settings.database_path, record["request_id"], identity.tenant_id,
+                status="failed",
+            )
+            raise HTTPException(status_code=503, detail="Demo commerce service is temporarily unavailable") from exc
+        if not eligibility.eligible:
+            update_aftersale_request(
+                settings.database_path, record["request_id"], identity.tenant_id,
+                status="failed",
+            )
+            raise HTTPException(status_code=409, detail=eligibility.explanation)
+        try:
+            application = adapter.create_aftersale(order_id, body.reason, scoped_key)
+        except IntegrationError as exc:
+            update_aftersale_request(
+                settings.database_path, record["request_id"], identity.tenant_id,
+                status="failed",
+            )
+            logger.warning(
+                "Mock platform aftersale submission failed",
+                extra={"event": "platform_call_failed", "trace_id": trace_id_var.get(),
+                       "tenant_id": identity.tenant_id, "user_id": identity.user_id,
+                       "order_id": order_id, "platform": adapter.platform_name,
+                       "error_code": exc.code},
+            )
+            raise HTTPException(status_code=503, detail="Demo aftersale submission failed") from exc
+        update_aftersale_request(
+            settings.database_path, record["request_id"], identity.tenant_id,
+            status="pending_demo", platform_aftersale_id=application.aftersale_id,
+        )
+        logger.info(
+            "Demo aftersale request created",
+            extra={"event": "demo_aftersale_created", "trace_id": trace_id_var.get(),
+                   "tenant_id": identity.tenant_id, "user_id": identity.user_id,
+                   "order_id": order.order_id, "platform": adapter.platform_name,
+                   "request_id": record["request_id"], "status": "pending_demo"},
+        )
+        return DemoAftersaleResponse(
+            request_id=record["request_id"], aftersale_id=application.aftersale_id,
+            order_id=order_id, status="pending_demo",
+            message="已创建 MockShop 演示售后申请，状态为待处理；这不代表已审批、退货或退款。",
+        )
+    finally:
+        adapter.close()
+
+
+@app.get("/ecommerce/aftersales/{request_id}", response_model=DemoAftersaleResponse)
+def get_ecommerce_aftersale(
+    request_id: str,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> DemoAftersaleResponse:
+    record = fetch_aftersale_request(settings.database_path, request_id, identity.tenant_id)
+    if record is None or (identity.role != "approver" and record["user_id"] != identity.user_id):
+        raise HTTPException(status_code=404, detail="Aftersale request not found")
+    return DemoAftersaleResponse(
+        request_id=record["request_id"], aftersale_id=record["platform_aftersale_id"],
+        order_id=record["order_id"], status=record["status"],
+        message="本地 Demo 申请状态；不代表平台已执行退款或退货。",
+    )
+
+
+@app.post("/webhooks/mock-shop", response_model=WebhookReceiptResponse)
+async def receive_mockshop_webhook(
+    request: Request,
+    signature: str | None = Header(default=None, alias="X-MockShop-Signature"),
+) -> WebhookReceiptResponse:
+    # Header is read explicitly from the request; only the signature and raw body
+    # participate in authentication. The event cannot choose its tenant.
+    raw_body = await request.body()
+    provided_signature = signature or ""
+    if len(raw_body) > 32_768:
+        raise HTTPException(status_code=413, detail="Webhook payload too large")
+    expected_signature = "sha256=" + hmac.new(
+        settings.mock_shop_webhook_secret.encode("utf-8"), raw_body, hashlib.sha256
+    ).hexdigest()
+    if not hmac.compare_digest(provided_signature, expected_signature):
+        raise HTTPException(status_code=401, detail="Invalid webhook signature")
+    try:
+        event = MockShopWebhookEvent.model_validate_json(raw_body)
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail="Invalid MockShop webhook event") from exc
+    tenant_id = tenant_for_store(event.shop_id)
+    if tenant_id is None:
+        raise HTTPException(status_code=404, detail="Unknown demo store")
+    try:
+        order_status = normalized_order_status(event)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="Unsupported MockShop event state") from exc
+    try:
+        state, created = process_mockshop_webhook(
+            settings.database_path,
+            event_id=event.event_id,
+            event_type=event.event_type,
+            tenant_id=tenant_id,
+            store_id=event.shop_id,
+            order_id=event.order_id,
+            customer_id=event.customer_id,
+            platform_status=event.platform_status,
+            occurred_at=event.occurred_at.isoformat(),
+            payload_sha256=hashlib.sha256(raw_body).hexdigest(),
+        )
+    except WebhookEventConflict as exc:
+        raise HTTPException(status_code=409, detail="Webhook event id conflicts with a prior payload") from exc
+    logger.info(
+        "MockShop webhook processed",
+        extra={"event": "mockshop_webhook", "trace_id": trace_id_var.get(),
+               "tenant_id": tenant_id, "store_id": event.shop_id,
+               "order_id": event.order_id, "event_id": event.event_id,
+               "event_type": event.event_type, "duplicate": not created,
+               "order_status": normalize_order_status(state["platform_status"])},
+    )
+    return WebhookReceiptResponse(
+        event_id=event.event_id, event_type=event.event_type,
+        order_id=event.order_id,
+        order_status=normalize_order_status(state["platform_status"]),
+        duplicate=not created,
+    )
+
+
+@app.get("/webhooks/mock-shop/events/{event_id}")
+def get_mockshop_webhook_event(
+    event_id: str,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> dict:
+    event = fetch_webhook_event(settings.database_path, event_id, identity.tenant_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail="Webhook event not found")
+    return {
+        "event_id": event["event_id"], "event_type": event["event_type"],
+        "order_id": event["order_id"], "status": event["status"],
+        "received_at": event["received_at"], "demo_only": True,
+    }
+
+
 @app.post("/chat", response_model=ChatResponse)
 def chat(
     chat_request: ChatRequest,
@@ -192,6 +477,9 @@ def chat(
         intent=state.get("intent", "unknown"),
         order=state.get("order"),
         shipment=state.get("shipment"),
+        platform_order=state.get("platform_order"),
+        platform_logistics=state.get("platform_logistics"),
+        aftersale_eligibility=state.get("aftersale_eligibility"),
         evidence=state.get("evidence", []),
         citations=state.get("citations", []),
         citations_valid=state.get("citations_valid"),

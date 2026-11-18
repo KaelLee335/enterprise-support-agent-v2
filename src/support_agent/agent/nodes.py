@@ -8,6 +8,10 @@ from langgraph.types import interrupt
 from support_agent.config import get_settings
 from support_agent.db import fetch_order
 from support_agent.logistics import fetch_shipment
+from support_agent.integrations.errors import IntegrationError, IntegrationNotFound
+from support_agent.integrations.factory import create_mock_shop_adapter
+from support_agent.integrations.tools import build_mockshop_tools
+from support_agent.auth import DemoIdentity
 from support_agent.rag.answer import create_siliconflow_chat_model, generate_answer_from_evidence
 from support_agent.rag.retrieval import (
     RetrievedPolicy,
@@ -39,6 +43,8 @@ WRITE_PATTERNS = tuple(re.compile(pattern) for pattern in (
 ))
 ORDER_LOOKUP_TERMS = ("查", "查询", "订单", "状态", "物流", "退款到哪")
 LOGISTICS_TERMS = ("物流", "快递", "运到哪", "到哪了", "配送进度")
+PLATFORM_ORDER_TERMS = ("平台订单", "电商订单", "店铺订单", "MockShop")
+AFTERSALE_INTENT_TERMS = ("申请售后", "售后申请", "退货", "换货", "质量问题")
 
 
 def route_request(state: dict[str, Any]) -> dict[str, Any]:
@@ -57,6 +63,17 @@ def route_request(state: dict[str, Any]) -> dict[str, Any]:
     if len(valid_order_ids) > 1:
         result = {"intent": "clarify", "order_id": None, "clarify_reason": "multiple_order_ids"}
         logger.info("Request routed", extra={"event": "agent_route", "trace_id": state.get("trace_id"), "tenant_id": state.get("tenant_id"), "intent": result["intent"]})
+        return result
+    order_match = ORDER_ID_PATTERN.search(question.upper())
+    if order_match and any(term.lower() in question.lower() for term in PLATFORM_ORDER_TERMS):
+        if any(term in question for term in LOGISTICS_TERMS):
+            intent = "mockshop_logistics_lookup"
+        elif any(term in question for term in AFTERSALE_INTENT_TERMS):
+            intent = "mockshop_aftersale_check"
+        else:
+            intent = "mockshop_order_lookup"
+        result = {"intent": intent, "order_id": order_match.group(0)}
+        logger.info("Request routed", extra={"event": "agent_route", "trace_id": state.get("trace_id"), "tenant_id": state.get("tenant_id"), "intent": intent})
         return result
     if order_candidates and not valid_order_ids:
         result = {"intent": "clarify", "order_id": None, "clarify_reason": "invalid_order_id"}
@@ -78,7 +95,6 @@ def route_request(state: dict[str, Any]) -> dict[str, Any]:
             return result
         return {"intent": "write_request", "order_id": None}
 
-    order_match = ORDER_ID_PATTERN.search(question.upper())
     wants_order_status = any(term in question for term in ORDER_LOOKUP_TERMS)
     if order_match and any(term in question for term in LOGISTICS_TERMS):
         result = {"intent": "logistics_lookup", "order_id": order_match.group(0)}
@@ -156,6 +172,94 @@ def lookup_logistics(state: dict[str, Any]) -> dict[str, Any]:
         ),
         "error": None,
     }
+
+
+def _mockshop_toolset(state: dict[str, Any]):
+    identity = DemoIdentity(
+        user_id=str(state.get("user_id", "")),
+        tenant_id=str(state.get("tenant_id", "")),
+        role=str(state.get("user_role", "requester")),
+    )
+    return build_mockshop_tools(
+        identity,
+        adapter=create_mock_shop_adapter(),
+        trace_id=state.get("trace_id"),
+        database_path=Path(state.get("database_path", str(get_settings().database_path))),
+    )
+
+
+def lookup_mockshop_order(state: dict[str, Any]) -> dict[str, Any]:
+    tools = _mockshop_toolset(state)
+    try:
+        order = tools.get_order.invoke({"order_id": str(state["order_id"])})
+        return {
+            "platform_order": order,
+            "answer": f"MockShop 演示订单 {order['order_id']} 状态：{order['status']}；商品：{order['product_name']}。这是虚构平台数据。",
+            "error": None,
+        }
+    except IntegrationNotFound:
+        return {"platform_order": None, "answer": "未找到当前身份可访问的平台演示订单。", "error": None}
+    except IntegrationError as exc:
+        logger.warning("MockShop order tool failed", extra={"event": "agent_tool_failed", "trace_id": state.get("trace_id"), "tenant_id": state.get("tenant_id"), "tool": "get_order", "error_code": exc.code})
+        return {"platform_order": None, "answer": "演示电商平台暂时不可用，请稍后再试。", "error": exc.code}
+    finally:
+        tools.close()
+
+
+def lookup_mockshop_logistics(state: dict[str, Any]) -> dict[str, Any]:
+    tools = _mockshop_toolset(state)
+    try:
+        order = tools.get_order.invoke({"order_id": str(state["order_id"])})
+        logistics = tools.get_logistics.invoke({"order_id": str(state["order_id"])})
+        return {
+            "platform_order": order,
+            "platform_logistics": logistics,
+            "answer": f"MockShop 演示订单 {order['order_id']} 的物流状态：{logistics['status']}。仅为虚构数据。",
+            "error": None,
+        }
+    except IntegrationNotFound:
+        return {"platform_order": None, "platform_logistics": None, "answer": "未找到当前身份可访问的平台物流记录。", "error": None}
+    except IntegrationError as exc:
+        logger.warning("MockShop logistics tool failed", extra={"event": "agent_tool_failed", "trace_id": state.get("trace_id"), "tenant_id": state.get("tenant_id"), "tool": "get_logistics", "error_code": exc.code})
+        return {"platform_order": None, "platform_logistics": None, "answer": "演示物流服务暂时不可用，请稍后再试。", "error": exc.code}
+    finally:
+        tools.close()
+
+
+def check_mockshop_aftersale(state: dict[str, Any]) -> dict[str, Any]:
+    tools = _mockshop_toolset(state)
+    try:
+        order = tools.get_order.invoke({"order_id": str(state["order_id"])})
+        eligibility = tools.check_aftersale_eligibility.invoke({
+            "order_id": order["order_id"], "reason": str(state["question"])
+        })
+        return {
+            "platform_order": order,
+            "aftersale_eligibility": eligibility,
+            "error": None,
+        }
+    except IntegrationNotFound:
+        return {"platform_order": None, "aftersale_eligibility": None, "answer": "未找到当前身份可访问的平台演示订单。", "error": None}
+    except IntegrationError as exc:
+        logger.warning("MockShop aftersale check failed", extra={"event": "agent_tool_failed", "trace_id": state.get("trace_id"), "tenant_id": state.get("tenant_id"), "tool": "check_aftersale_eligibility", "error_code": exc.code})
+        return {"platform_order": None, "aftersale_eligibility": None, "answer": "演示售后资格服务暂时不可用，请稍后再试。", "error": exc.code}
+    finally:
+        tools.close()
+
+
+def compose_mockshop_aftersale_guidance(state: dict[str, Any]) -> dict[str, Any]:
+    order = state.get("platform_order")
+    eligibility = state.get("aftersale_eligibility")
+    if order is None or eligibility is None:
+        return {"answer": state.get("answer") or "暂时无法完成演示售后资格检查。"}
+    status = "符合当前 MockShop 演示资格规则" if eligibility["eligible"] else "不符合当前 MockShop 演示资格规则"
+    guidance = (
+        f"平台演示资格检查：{status}（{eligibility['explanation']}）。"
+        "资格检查不等于申请已提交、审批通过或退款完成。"
+    )
+    if eligibility["eligible"]:
+        guidance += "如需继续，请在演示界面明确确认后提交模拟售后申请。"
+    return {"answer": f"{state.get('answer', '')}\n\n{guidance}".strip()}
 
 
 def refuse_write_request(state: dict[str, Any]) -> dict[str, Any]:

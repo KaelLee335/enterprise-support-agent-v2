@@ -30,11 +30,15 @@ def _resolve_env_path(env_name: str, default: str) -> Path:
 class Settings:
     database_path: Path
     demo_token_demo_a: str = "demo-a-local-token"
+    demo_token_demo_b: str = "demo-b-local-token"
     demo_token_demo_a_approver: str = "demo-a-approver-local-token"
     demo_token_legacy: str = "legacy-demo-local-token"
     logistics_api_base_url: str = "http://127.0.0.1:8091"
     logistics_api_key: str = "demo-logistics-local-key"
     logistics_timeout_seconds: float = 3.0
+    mock_shop_api_base_url: str = "http://127.0.0.1:8092"
+    mock_shop_api_key: str = "demo-shop-local-key"
+    mock_shop_webhook_secret: str = "demo-shop-webhook-secret"
     checkpoint_path: Path = PROJECT_ROOT / "data" / "checkpoints.sqlite"
     log_level: str = "INFO"
     siliconflow_api_key: str | None = None
@@ -60,6 +64,7 @@ def get_settings() -> Settings:
         raise ValueError("RAG_TOP_K must be at least 1")
     demo_tokens = (
         os.getenv("DEMO_TOKEN_DEMO_A", "demo-a-local-token"),
+        os.getenv("DEMO_TOKEN_DEMO_B", "demo-b-local-token"),
         os.getenv("DEMO_TOKEN_DEMO_A_APPROVER", "demo-a-approver-local-token"),
         os.getenv("DEMO_TOKEN_LEGACY", "legacy-demo-local-token"),
     )
@@ -71,6 +76,7 @@ def get_settings() -> Settings:
     return Settings(
         database_path=database_path,
         demo_token_demo_a=os.getenv("DEMO_TOKEN_DEMO_A", "demo-a-local-token"),
+        demo_token_demo_b=os.getenv("DEMO_TOKEN_DEMO_B", "demo-b-local-token"),
         demo_token_demo_a_approver=os.getenv(
             "DEMO_TOKEN_DEMO_A_APPROVER", "demo-a-approver-local-token"
         ),
@@ -82,6 +88,13 @@ def get_settings() -> Settings:
             "MOCK_LOGISTICS_API_KEY", "demo-logistics-local-key"
         ),
         logistics_timeout_seconds=logistics_timeout,
+        mock_shop_api_base_url=os.getenv(
+            "MOCK_SHOP_API_BASE_URL", "http://127.0.0.1:8092"
+        ).rstrip("/"),
+        mock_shop_api_key=os.getenv("MOCK_SHOP_API_KEY", "demo-shop-local-key"),
+        mock_shop_webhook_secret=os.getenv(
+            "MOCK_SHOP_WEBHOOK_SECRET", "demo-shop-webhook-secret"
+        ),
         checkpoint_path=checkpoint_path,
         log_level=os.getenv("LOG_LEVEL", "INFO").upper(),
         siliconflow_api_key=os.getenv("SILICONFLOW_API_KEY") or None,

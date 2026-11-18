@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync the reviewed RAG constraint-layer files to WSL, rebuild, and verify.
+# Sync the reviewed V2.1 source and verifier files to WSL, rebuild, and verify.
 set -euo pipefail
 
 SOURCE_ROOT="/mnt/d/project_2"
@@ -24,13 +24,20 @@ FILES=(
   "src/support_agent/config.py"
   "src/support_agent/db.py"
   "src/support_agent/schemas.py"
+  "src/support_agent/mock_shop_api.py"
   "src/support_agent/logistics.py"
   "src/support_agent/mock_logistics.py"
   "src/support_agent/agent/nodes.py"
   "src/support_agent/agent/graph.py"
   "src/support_agent/agent/state.py"
   "scripts/verify_phase6.sh"
+  "scripts/verify_v21.sh"
 )
+
+for relative_path in "$SOURCE_ROOT"/src/support_agent/integrations/*.py; do
+  [[ -f "$relative_path" ]] || continue
+  FILES+=("${relative_path#"$SOURCE_ROOT"/}")
+done
 
 for relative_path in "${FILES[@]}"; do
   source_file="$SOURCE_ROOT/$relative_path"
@@ -67,3 +74,8 @@ if [[ "$ready" != "1" ]]; then
 fi
 
 bash scripts/verify_phase6.sh
+# 用容器内的 venv 解释器取 webhook secret：裸 python 是系统解释器，
+# import support_agent 会 ModuleNotFoundError，输出空串会把
+# MOCK_SHOP_WEBHOOK_SECRET 覆盖为空，导致 verify_v21 签名全错。
+export MOCK_SHOP_WEBHOOK_SECRET="$(docker compose exec -T support-agent /app/.venv/bin/python -c 'from support_agent.config import get_settings; print(get_settings().mock_shop_webhook_secret)')"
+bash scripts/verify_v21.sh

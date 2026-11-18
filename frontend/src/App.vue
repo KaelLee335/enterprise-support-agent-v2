@@ -10,6 +10,11 @@ const error = ref("");
 const conversations = ref({ requester: [], approver: [] });
 const messages = ref(conversations.value[role.value] || []);
 const pending = ref(null);
+const commerceOrderId = ref("2003");
+const commerceReason = ref("商品存在质量问题（虚构演示）");
+const commerceEligibility = ref(null);
+const commerceResult = ref(null);
+const checkedOrderId = ref("");
 const suggestions = ["查询订单1001", "退款多久能到账？", "定制商品有质量问题怎么办？", "帮我申请订单1001退款"];
 const ready = computed(() => Boolean(token.value.trim()) && !loading.value);
 
@@ -67,6 +72,46 @@ async function decide(approved) {
   }
 }
 
+async function checkAftersaleEligibility() {
+  loading.value = true;
+  error.value = "";
+  commerceEligibility.value = null;
+  commerceResult.value = null;
+  checkedOrderId.value = "";
+  try {
+    const response = await fetch(`/api/ecommerce/orders/${encodeURIComponent(commerceOrderId.value)}/aftersale-eligibility?reason=${encodeURIComponent(commerceReason.value)}`, { headers: authHeaders() });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || `资格检查失败 (${response.status})`);
+    commerceEligibility.value = data;
+    checkedOrderId.value = commerceOrderId.value;
+  } catch (e) {
+    error.value = `${e.message}。仅使用虚构 MockShop 数据。`;
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function submitAftersale() {
+  if (!["requester", "requester-b"].includes(role.value)) return;
+  if (!commerceEligibility.value?.eligible || checkedOrderId.value !== commerceOrderId.value) return;
+  loading.value = true;
+  error.value = "";
+  try {
+    const headers = authHeaders();
+    const response = await fetch(`/api/ecommerce/orders/${encodeURIComponent(commerceOrderId.value)}/aftersales`, {
+      method: "POST", headers,
+      body: JSON.stringify({ reason: commerceReason.value, idempotency_key: crypto.randomUUID(), confirmed: true }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.detail || `申请失败 (${response.status})`);
+    commerceResult.value = data;
+  } catch (e) {
+    error.value = `${e.message}。仅使用虚构 MockShop 数据。`;
+  } finally {
+    loading.value = false;
+  }
+}
+
 function selectRole() {
   if (loading.value) {
     role.value = activeRole.value;
@@ -75,7 +120,7 @@ function selectRole() {
   conversations.value[activeRole.value] = messages.value;
   activeRole.value = role.value;
   messages.value = conversations.value[activeRole.value] || [];
-  token.value = role.value === "approver" ? "demo-a-approver-local-token" : "demo-a-local-token";
+  token.value = role.value === "approver" ? "demo-a-approver-local-token" : role.value === "requester-b" ? "demo-b-local-token" : "demo-a-local-token";
   localStorage.setItem("demo-role", role.value);
   localStorage.setItem("demo-token", token.value);
 }
@@ -103,6 +148,9 @@ function selectRole() {
             <div v-if="message.role === 'user'" class="user-message">{{ message.text }}</div>
             <article v-else class="assistant-message"><div class="assistant-avatar">S</div><div class="answer-card"><div class="answer-meta">Support Agent <span>{{ message.data.intent }}</span></div><p>{{ message.data.answer }}</p>
               <div v-if="message.data.order" class="order-card"><div class="order-title">订单 {{ message.data.order.order_id }} <span>{{ message.data.order.status }}</span></div><div>{{ message.data.order.product }} · {{ message.data.order.issue_description || '演示数据' }}</div></div>
+              <div v-if="message.data.platform_order" class="order-card"><div class="order-title">MockShop 订单 {{ message.data.platform_order.order_id }} <span>{{ message.data.platform_order.status }}</span></div><div>{{ message.data.platform_order.product_name }} · 店铺 {{ message.data.platform_order.store_id }} · {{ message.data.platform_order.demo_only ? '虚构数据' : '' }}</div></div>
+              <div v-if="message.data.platform_logistics" class="order-card"><div class="order-title">平台物流 <span>{{ message.data.platform_logistics.status }}</span></div><div>运单 {{ message.data.platform_logistics.tracking_number || '暂无' }}</div><ul><li v-for="(event, eventIndex) in message.data.platform_logistics.events" :key="eventIndex">{{ event.time }} · {{ event.status }} · {{ event.location }}</li></ul></div>
+              <div v-if="message.data.aftersale_eligibility" class="status-line">售后资格：{{ message.data.aftersale_eligibility.eligible ? '符合模拟规则' : '不符合模拟规则' }} · {{ message.data.aftersale_eligibility.explanation }}</div>
               <div v-if="message.data.shipment" class="order-card"><div class="order-title">模拟物流 <span>{{ message.data.shipment.status }}</span></div><div>运单 {{ message.data.shipment.tracking_number }} · {{ message.data.shipment.demo_only ? '虚构数据' : '' }}</div><ul><li v-for="(event, eventIndex) in message.data.shipment.events" :key="eventIndex">{{ event.time }} · {{ event.status }} · {{ event.location }}</li></ul></div>
               <div v-if="message.data.citations?.length" class="citations">引用政策：<span v-for="cite in message.data.citations" :key="cite">{{ cite }}</span><small v-if="message.data.citations_valid === false">引用校验未通过</small></div>
               <details v-if="message.data.evidence?.length" class="evidence"><summary>查看政策依据（{{ message.data.evidence.length }}）</summary><div v-for="item in message.data.evidence" :key="item.source_id" class="evidence-item"><b>{{ item.source_id }} · {{ item.title }}</b><p>{{ item.content }}</p></div></details>
@@ -117,7 +165,9 @@ function selectRole() {
         <form class="composer" @submit.prevent="ask()"><textarea v-model="question" rows="1" maxlength="4000" placeholder="输入你的售后问题…" @keydown.enter.exact.prevent="ask()"></textarea><button class="send" :disabled="!question.trim() || loading" aria-label="发送">↑</button><small>Enter 发送 · 内容会发送至当前配置的模型服务</small></form>
       </div>
 
-      <aside class="side-panel"><div class="side-card"><div class="side-icon">⌘</div><h3>演示身份</h3><p>固定映射的本地演示身份，不是真实认证。请求人与审批人为两个同租户虚构用户。</p><label for="role">当前角色</label><select id="role" v-model="role" :disabled="loading" @change="selectRole"><option value="requester">请求人（demo-a）</option><option value="approver">审批人（demo-a）</option></select><label for="token">Demo Token</label><input id="token" v-model="token" type="password" autocomplete="off" placeholder="本地演示令牌"/><small>两种角色各自保留独立对话；待审批任务会跨角色显示。仅发送给当前本地 API。物流信息来自本机模拟 HTTP 服务。</small></div><div class="side-card flow-card"><h3>处理流程</h3><ol><li>确定性规则识别意图</li><li>订单只读查询、政策 RAG 或模拟物流 API</li><li>返回答复、证据或轨迹</li><li>退款请求暂停，独立演示身份作出决定</li></ol></div><div class="demo-note">演示项目 · 使用虚构数据<br/>物流服务为本地 mock · 不调用商业快递 API</div></aside>
+      <aside class="side-panel"><div class="side-card"><div class="side-icon">⌘</div><h3>演示身份</h3><p>固定映射的本地演示身份，不是真实认证。请求人、另一店铺请求人和审批人为虚构用户。</p><label for="role">当前角色</label><select id="role" v-model="role" :disabled="loading" @change="selectRole"><option value="requester">请求人（店铺 A）</option><option value="requester-b">请求人（店铺 B）</option><option value="approver">审批人（店铺 A）</option></select><label for="token">Demo Token</label><input id="token" v-model="token" type="password" autocomplete="off" placeholder="本地演示令牌"/><small>每个角色保留独立对话。待审批任务只向审批人显示。仅发送给当前本地 API。</small></div>
+        <div class="side-card"><h3>MockShop 售后演示</h3><label for="commerce-order">虚构订单号</label><input id="commerce-order" v-model="commerceOrderId" @input="commerceEligibility = null; checkedOrderId = ''; commerceResult = null" placeholder="例如 2003"/><label for="commerce-reason">申请原因</label><input id="commerce-reason" v-model="commerceReason" maxlength="500" @input="commerceEligibility = null; checkedOrderId = ''; commerceResult = null"/><button class="send" :disabled="loading || role === 'approver'" @click="checkAftersaleEligibility">第一步：检查售后资格</button><div v-if="commerceEligibility" class="status-line">资格：{{ commerceEligibility.eligible ? '符合' : '不符合' }} · {{ commerceEligibility.explanation }}</div><button v-if="commerceEligibility?.eligible" class="approve" :disabled="loading || checkedOrderId !== commerceOrderId || role === 'approver'" @click="submitAftersale">第二步：确认创建演示申请</button><small>申请人身份需要先检查资格，再通过第二个按钮明确确认。结果只记录 pending_demo，不执行退款。</small><div v-if="commerceResult" class="status-line">申请 {{ commerceResult.request_id }} · {{ commerceResult.status }} · {{ commerceResult.message }}</div></div>
+        <div class="side-card flow-card"><h3>处理流程</h3><ol><li>确定性规则识别意图</li><li>Adapter 统一订单、物流与资格数据</li><li>后端校验租户、店铺和请求人</li><li>明确确认后创建演示申请</li><li>Webhook 验签、去重并同步状态</li></ol></div><div class="demo-note">演示项目 · 使用虚构数据<br/>不连接真实电商平台或商业物流 API</div></aside>
     </section>
     <footer>Enterprise Support Agent V2 <span>用于学习与本地演示</span></footer>
   </main>

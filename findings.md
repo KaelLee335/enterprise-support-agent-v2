@@ -1,5 +1,14 @@
 # 阶段 0：项目与 V1 资产盘点
 
+## 2026-11-18 V2.1 电商集成补充发现
+
+- 第二个固定 MockShop 店铺 `shop-demo-b` 映射到独立 tenant `demo-b`。新增平台 API fixture 后，如果 SQLite 未初始化此租户，Webhook 写入会被 tenant 外键拒绝；已通过 seed `demo-b` tenant/user 和 user→customer 映射修复。
+- 授权判断由服务端 `DemoIdentity` → tenant/store/customer 映射决定。平台 webhook 的租户从 `shop_id` 映射派生，不信任 event payload 的 tenant。订单和 webhook 事件均按 tenant 隔离；跨店返回 404。
+- 售后创建是两步业务边界：资格查询只读；创建 endpoint 再验证 requester、订单范围、资格、显式 `confirmed` 和幂等键。返回 `pending_demo` 不代表审批通过或退款完成。
+- HMAC 按 webhook 原始 body 计算；签名通过后才解析 schema。event_id 同 payload 重放视为 duplicate，不同 payload 冲突 409；旧事件不覆盖新状态。
+- WSL 更新脚本之前没同步新增 `integrations/` 包和 mock-shop ASGI app；现已纳入同步清单，并在部署后运行专项 API 验收脚本。不要在 Windows checkout 执行 Compose `up`。
+- 当前实证：全量 pytest 93 passed、Vue build、Compose static config、compileall 通过；Agent 路由 35/35、订单参数 8/8、工具 outcome 6/6、业务订单子集 5/5；WSL runtime 尚未验收。
+
 检查日期：2026-11-14。此次只读检查 V1；没有修改 V1 文件。V1 Git 工作区有一项既存修改，见下方。
 
 ## 当前 V2 状态
@@ -279,3 +288,37 @@ GitHub Actions `b797bda` 运行成功：Python 3.12 全量 pytest 55 passed in 3
 - 路由规则是有限关键词/正则分支，不是通用 NLU；RAG citation ID 检查不是事实蕴含检测。使用既有可追踪评估文件说明 30/35 → 35/35，不为这次文档更新发送模型请求。
 - 本机验收口径为 65 项 pytest、Vue build、Compose 静态配置和源码编译；此前 container-to-container smoke 尚待 WSL 同步重建。后续用户报告已完成 WSL 重建，两个容器 healthy 且扩展 verifier 全通过。Docker 镜像构建尝试遭遇 daemon `unexpected EOF`，但被用户报告的 WSL 成功构建结果 supersede；未由本会话改变服务生命周期。
 - 用户随后报告已从 WSL 执行同步/更新脚本：`/opt/project2` 已有新锁文件和代码，两容器 healthy，阶段 6 + V2.1 扩展 verifier 全部通过。该实机验收由用户报告。
+## 2026-11-18 — V2.1 电商集成 Phase 0 盘点
+
+- 当前目录组织为 `src/support_agent/`。FastAPI 路由在 `main.py`；Demo Bearer 身份映射在 `auth.py`；SQLite schema/查询在 `db.py`；单一 LangGraph 工作流在 `agent/graph.py`、`state.py`、`nodes.py`；政策 RAG 在 `rag/`；现有模拟物流 API 和 HTTP client 分别在 `mock_logistics.py`、`logistics.py`。
+- 当前 `GET /orders/{order_id}` 按 `tenant_id` 查 SQLite；没有 store_id/user_id 订单归属关系，也没有平台原始状态、售后申请表、webhook event inbox、平台 Adapter/registry。
+- Agent 当前为确定性正则/关键词路由。它有只读订单、模拟物流、政策 RAG、拒绝普通写请求和退款审批演示；Agent 不直接使用 LangChain Tools。本次电商 Tools 应先在后端服务与 Adapter 上形成可信边界，不为技术清单改写已有 Graph。
+- Compose 已运行两个模拟服务容器：support-agent 和 mock-logistics；现有无密钥 CI 会构建镜像并跑 smoke。新增独立 mock-shop 服务会涉及 Compose/CI/WSL 同步，须在离线测试充分后再部署。
+- 基线在 `D:\\project_2\\.venv\\Scripts\\python.exe -m pytest -q --basetemp=.pytest-tmp-v21`：71 passed，9.25s，1 个 pytest cache ACL warning。`uv run --locked pytest -q` 因全局 `D:\\caches\\uv` 初始化权限失败，在 pytest 启动前退出；没有改全局 ACL 或旧 pytest 临时目录。
+- MVP 采用单个 MockShop；HTTP API 的外部平台结构在 Adapter 边界转换为领域 DTO；Agent/业务服务只消费 DTO。售后资格是明确标注的本地演示规则，创建申请只产生 `pending_demo` 申请记录；最终退款/退货执行不在范围。
+
+## 2026-11-18 — Phase 1 MockShop API 与 Adapter 基础实现
+
+- 新增独立 FastAPI app `support_agent.mock_shop_api:app`，API 前缀 `/mock-shop`；固定演示订单使用平台状态（`WAIT_SELLER_SEND_GOODS`、`WAIT_BUYER_RECEIVE`、`TRADE_SUCCESS`、`AFTERSALE_PROCESSING`、`REFUND_SUCCESS`），全部响应包含 `is_demo=true`。
+- 当前服务端仓库是进程内演示 fixture，覆盖待发货/运输中/已签收/已有售后/已退款/不可退货及第二家虚构店铺；售后申请为 `WAIT_REVIEW`，使用 idempotency key 去重。它尚未持久化，也尚未纳入 Compose。
+- 新增 `integrations.models` 的平台无关 DTO、`ECommerceAdapter` Protocol、简单 `AdapterRegistry`、`MockShopAdapter` typed client。Adapter 负责平台状态与领域状态映射；`shop_id → tenant_id` 是明确的 Demo 映射表，不允许 Agent 直接依赖平台 JSON 字段。
+- 7 个新测试覆盖 endpoint 鉴权、固定订单状态、物流/资格结果、售后申请幂等/冲突、状态映射和 registry。新增测试 7 passed / 0.80s；全量 pytest **78 passed / 9.06s**，`-p no:cacheprovider` 避免已知 `.pytest_cache` ACL warning。
+- 当前限制：MockShop 的售后状态只存在进程内；后续 Agent API 必须在主 SQLite 持久化本系统的售后申请与幂等 key，Webhook inbox 也需 SQLite 唯一约束。跨重启的 MockShop 状态持久化按 Demo 最小范围评估，不冒充平台持久化。
+
+## 2026-11-18 — API/SQLite 权限与售后申请首版
+
+- `integrations.permissions.can_access_order()` 使用显式 Demo 映射：`user-demo-a` 仅看 `customer-demo-a`；demo-a approver 可看同租户 `shop-demo-a`；租户或店铺不匹配统一返回 404。MockShop 的 `shop_id → tenant_id` 映射配置不依赖用户提交 header。
+- FastAPI 新增 `/ecommerce/orders/{id}`、`/logistics`、`/aftersale-eligibility`、`/aftersales`、`/ecommerce/aftersales/{request_id}`。平台 HTTP/超时/无效 JSON/未知状态由 adapter 转成安全错误类型；API 不回显上游内部错误文本。
+- `POST .../aftersales` 只允许 requester，必须 `confirmed=true`，经过订单归属与资格检查后才创建。SQLite `aftersale_requests` 用 `(tenant_id, idempotency_key)` 唯一约束记录 `submitting/pending_demo/failed`；相同请求重试复用同一个本地申请及平台 id，变更请求内容复用 key 返回 409。响应明确说明不代表审批、退货或退款完成。
+- MockShop 服务加入 Compose（内部 8092，不对宿主机发布），support-agent 通过 service key 调用，Compose 等待其 healthcheck；GitHub Actions container smoke 新增平台订单查询和跨客户 404。
+- 新增 5 个 API 回归；Adapter 测试扩展后 integration 模块 10 passed；当前全量 pytest **86 passed / 9.63s**，`docker compose config --quiet` 通过。尚未执行 Compose up/build、WSL 同步或真实平台调用。
+- 注：主 SQLite 是本系统申请审计记录；MockShop API 仍是进程内虚拟平台，重启后平台端申请状态会重置。演示状态查询当前读主 SQLite，不把本地申请误称平台退款执行。
+
+## 2026-11-18 — LangGraph 与 LangChain Tool 接入首版
+
+- 路由规则仅在用户明确说“平台订单/电商订单/店铺订单/MockShop”时选择新增平台分支；原 V2 订单查询样本和合法 4 位订单号的路径不变。
+- `integrations/tools.py` 用 LangChain `StructuredTool` 暴露结构化查询与售后方法；构建时捕获服务器验证过的 `DemoIdentity`，工具 schema 不接受 tenant/store/user id，调用前检查订单归属。当前 LangGraph 节点由确定性路由选择并调用读/资格工具，没有把工具交给 LLM 自由挑选。
+- 售后资格节点先完成身份/订单授权，再检查 MockShop 资格，然后复用当前政策 RAG；检索无证据或失败时保留“无法确认政策”的安全说明，但仍会清楚标记平台演示资格，不把资格当批准/退款。未授权或平台失败时 Graph 在此停止，不进入 RAG。
+- 写工具在 Toolset 里要求 requester + `confirmed=true`，实际业务写入口仍是专门 FastAPI endpoint，由它完成 SQLite idempotency reservation 与状态留存；自然语言意图本身不作为确认。
+- Graph 测试覆盖平台订单/物流路由和“质量问题想退货”资格+RAG失败安全路径；StructuredTool 测试覆盖 5 个工具、身份绑定、确认和越权拒绝。
+- 验收：定向 37 passed / 5.13s；全量 **89 passed / 10.05s**；既有 V1 路由标签 **35/35**、订单参数 **8/8**、DB unchanged，0 failures。CI/Compose 文件已改，但 CI 未触发，WSL 与 Vue 尚未更新。

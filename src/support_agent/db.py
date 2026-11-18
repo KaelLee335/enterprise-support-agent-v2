@@ -61,7 +61,60 @@ CREATE TABLE IF NOT EXISTS agent_runs (
     is_demo INTEGER NOT NULL DEFAULT 1 CHECK (is_demo IN (0, 1))
 );
 CREATE INDEX IF NOT EXISTS idx_agent_runs_tenant ON agent_runs(tenant_id, started_at);
+
+CREATE TABLE IF NOT EXISTS aftersale_requests (
+    request_id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id),
+    user_id TEXT NOT NULL REFERENCES demo_users(user_id),
+    order_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    platform_aftersale_id TEXT,
+    reason TEXT NOT NULL,
+    idempotency_key TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('submitting', 'pending_demo', 'failed')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    UNIQUE (tenant_id, idempotency_key)
+);
+CREATE INDEX IF NOT EXISTS idx_aftersale_requests_scope
+    ON aftersale_requests(tenant_id, user_id, order_id);
+
+CREATE TABLE IF NOT EXISTS webhook_events (
+    platform TEXT NOT NULL,
+    event_id TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id),
+    store_id TEXT NOT NULL,
+    order_id TEXT NOT NULL,
+    payload_sha256 TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('processed', 'rejected')),
+    received_at TEXT NOT NULL,
+    PRIMARY KEY (platform, event_id)
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_events_tenant
+    ON webhook_events(tenant_id, received_at);
+
+CREATE TABLE IF NOT EXISTS platform_order_states (
+    platform TEXT NOT NULL,
+    order_id TEXT NOT NULL,
+    tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id),
+    store_id TEXT NOT NULL,
+    customer_id TEXT NOT NULL,
+    platform_status TEXT NOT NULL,
+    source_event_id TEXT NOT NULL,
+    occurred_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (platform, order_id)
+);
 """
+
+
+class AftersaleIdempotencyConflict(ValueError):
+    """A tenant reused an idempotency key for a different request."""
+
+
+class WebhookEventConflict(ValueError):
+    """An event id was replayed with a different signed payload."""
 
 
 def connect(database_path: Path) -> sqlite3.Connection:
@@ -99,12 +152,17 @@ def initialize_database(database_path: Path, seed_path: Path) -> None:
             connection.executescript(SCHEMA)
             connection.executemany(
                 "INSERT OR IGNORE INTO tenants (tenant_id, display_name, is_demo) VALUES (?, ?, 1)",
-                [("legacy-demo", "V1 imported demo tenant"), ("demo-a", "Fixed V2 demo tenant")],
+                [
+                    ("legacy-demo", "V1 imported demo tenant"),
+                    ("demo-a", "Fixed V2 demo tenant A"),
+                    ("demo-b", "Fixed V2 demo tenant B"),
+                ],
             )
             connection.executemany(
                 "INSERT OR IGNORE INTO demo_users (user_id, tenant_id, display_name, is_demo) VALUES (?, ?, ?, 1)",
                 [
                     ("user-demo-a", "demo-a", "Demo Customer A"),
+                    ("user-demo-b", "demo-b", "Demo Customer B"),
                     ("user-demo-a-approver", "demo-a", "Demo Approver A"),
                     ("user-legacy-demo", "legacy-demo", "Legacy Demo User"),
                 ],
@@ -208,3 +266,156 @@ def delete_agent_run(database_path: Path, run_id: str, tenant_id: str) -> bool:
                 (run_id, tenant_id),
             )
     return cursor.rowcount == 1
+
+
+def reserve_aftersale_request(
+    database_path: Path,
+    *,
+    request_id: str,
+    tenant_id: str,
+    user_id: str,
+    order_id: str,
+    platform: str,
+    reason: str,
+    idempotency_key: str,
+) -> tuple[dict[str, Any], bool]:
+    """Create a tenant-scoped intent once; return (record, created_now)."""
+    now = datetime.now(timezone.utc).isoformat()
+    with closing(connect(database_path)) as connection:
+        with connection:
+            cursor = connection.execute(
+                """INSERT OR IGNORE INTO aftersale_requests
+                   (request_id, tenant_id, user_id, order_id, platform, reason,
+                    idempotency_key, status, created_at, updated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'submitting', ?, ?)""",
+                (request_id, tenant_id, user_id, order_id, platform, reason,
+                 idempotency_key, now, now),
+            )
+            created_now = cursor.rowcount == 1
+            row = connection.execute(
+                """SELECT * FROM aftersale_requests
+                   WHERE tenant_id = ? AND idempotency_key = ?""",
+                (tenant_id, idempotency_key),
+            ).fetchone()
+    if row is None:
+        raise RuntimeError("aftersale request reservation failed")
+    result = dict(row)
+    if any(result[field] != value for field, value in {
+        "user_id": user_id, "order_id": order_id, "platform": platform,
+        "reason": reason,
+    }.items()):
+        raise AftersaleIdempotencyConflict("Idempotency key already used for another request")
+    return result, created_now
+
+
+def update_aftersale_request(
+    database_path: Path,
+    request_id: str,
+    tenant_id: str,
+    *,
+    status: str,
+    platform_aftersale_id: str | None = None,
+) -> bool:
+    if status not in {"submitting", "pending_demo", "failed"}:
+        raise ValueError("invalid demo aftersale status")
+    now = datetime.now(timezone.utc).isoformat()
+    with closing(connect(database_path)) as connection:
+        with connection:
+            cursor = connection.execute(
+                """UPDATE aftersale_requests SET status = ?,
+                   platform_aftersale_id = COALESCE(?, platform_aftersale_id), updated_at = ?
+                   WHERE request_id = ? AND tenant_id = ?""",
+                (status, platform_aftersale_id, now, request_id, tenant_id),
+            )
+    return cursor.rowcount == 1
+
+
+def fetch_aftersale_request(
+    database_path: Path, request_id: str, tenant_id: str
+) -> dict[str, Any] | None:
+    with closing(connect(database_path)) as connection:
+        row = connection.execute(
+            "SELECT * FROM aftersale_requests WHERE request_id = ? AND tenant_id = ?",
+            (request_id, tenant_id),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def process_mockshop_webhook(
+    database_path: Path,
+    *,
+    event_id: str,
+    event_type: str,
+    tenant_id: str,
+    store_id: str,
+    order_id: str,
+    customer_id: str,
+    platform_status: str,
+    occurred_at: str,
+    payload_sha256: str,
+) -> tuple[dict[str, Any], bool]:
+    """Atomically deduplicate an event and update the latest normalized source state."""
+    now = datetime.now(timezone.utc).isoformat()
+    with closing(connect(database_path)) as connection:
+        with connection:
+            existing = connection.execute(
+                "SELECT * FROM webhook_events WHERE platform = 'mock-shop' AND event_id = ?",
+                (event_id,),
+            ).fetchone()
+            if existing:
+                if existing["payload_sha256"] != payload_sha256:
+                    raise WebhookEventConflict("Event id was already used for a different payload")
+                state = connection.execute(
+                    "SELECT * FROM platform_order_states WHERE platform = 'mock-shop' AND order_id = ?",
+                    (order_id,),
+                ).fetchone()
+                return (dict(state) if state else dict(existing)), False
+            connection.execute(
+                """INSERT INTO webhook_events
+                   (platform, event_id, event_type, tenant_id, store_id, order_id,
+                    payload_sha256, status, received_at)
+                   VALUES ('mock-shop', ?, ?, ?, ?, ?, ?, 'processed', ?)""",
+                (event_id, event_type, tenant_id, store_id, order_id, payload_sha256, now),
+            )
+            connection.execute(
+                """INSERT INTO platform_order_states
+                   (platform, order_id, tenant_id, store_id, customer_id,
+                    platform_status, source_event_id, occurred_at, updated_at)
+                   VALUES ('mock-shop', ?, ?, ?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(platform, order_id) DO UPDATE SET
+                     tenant_id=excluded.tenant_id, store_id=excluded.store_id,
+                     customer_id=excluded.customer_id, platform_status=excluded.platform_status,
+                     source_event_id=excluded.source_event_id, occurred_at=excluded.occurred_at,
+                     updated_at=excluded.updated_at
+                   WHERE excluded.occurred_at >= platform_order_states.occurred_at""",
+                (order_id, tenant_id, store_id, customer_id, platform_status,
+                 event_id, occurred_at, now),
+            )
+            state = connection.execute(
+                "SELECT * FROM platform_order_states WHERE platform = 'mock-shop' AND order_id = ?",
+                (order_id,),
+            ).fetchone()
+            return dict(state), True
+
+
+def fetch_platform_order_state(
+    database_path: Path, order_id: str, tenant_id: str
+) -> dict[str, Any] | None:
+    with closing(connect(database_path)) as connection:
+        row = connection.execute(
+            """SELECT * FROM platform_order_states
+               WHERE platform = 'mock-shop' AND order_id = ? AND tenant_id = ?""",
+            (order_id, tenant_id),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def fetch_webhook_event(
+    database_path: Path, event_id: str, tenant_id: str
+) -> dict[str, Any] | None:
+    with closing(connect(database_path)) as connection:
+        row = connection.execute(
+            "SELECT * FROM webhook_events WHERE platform = 'mock-shop' AND event_id = ? AND tenant_id = ?",
+            (event_id, tenant_id),
+        ).fetchone()
+    return dict(row) if row else None

@@ -15,6 +15,9 @@ class SupportState(TypedDict, total=False):
     refusal_reason: str | None
     order: dict[str, Any] | None
     shipment: dict[str, Any] | None
+    platform_order: dict[str, Any] | None
+    platform_logistics: dict[str, Any] | None
+    aftersale_eligibility: dict[str, Any] | None
     evidence: list[dict[str, Any]]
     answer: str
     citations: list[str]

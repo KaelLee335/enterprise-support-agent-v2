@@ -1,4 +1,14 @@
-# 项目状态
+# 当前状态（2026-11-18）：V2.1 电商集成扩展
+
+- Phase 0 盘点完成；架构与阶段结果见根目录 [`ARCHITECTURE.md`](../ARCHITECTURE.md)。
+- 本机实现已包括 MockShop API/Adapter、FastAPI 电商查询与明确确认申请、SQLite 幂等、LangGraph + 绑定身份的 LangChain Tools、HMAC Webhook inbox 与租户状态同步。
+- 店铺 A/B 使用不同虚构 tenant、用户、客户映射。测试确认各自可访问自有订单，跨店铺/跨租户访问 404；Webhook tenant 从可信 shop_id 派生。
+- Vue 展示平台订单/物流/资格结果，并提供先检查资格、再显式提交 `pending_demo` 的侧栏操作；申请不代表审批或退款。
+- 本机全量 pytest **93 passed / 12.26 秒**；Vue production build、Compose 静态配置、Python compileall 和 CI YAML parse 通过。更新后重新评估 Agent route **35/35**、订单参数 **8/8**、工具 outcome **6/6**、业务订单子集 **5/5**；数据库保持不变。详见 [`evaluation_v2_1.md`](evaluation_v2_1.md)。
+- API、评估、面试和电商 Integration Layer 学习文档已新增。WSL 容器集成仍待执行；本轮未启动 Compose 或操作 WSL。已准备 `scripts/update_wsl_and_verify.sh`，同步后会运行 phase 6 与 V2.1 专项验收。
+- 边界：全是虚构数据和 MockShop，不接真实平台、真实客户或真实退款；不做生产化。
+
+# 历史项目状态快照（2026-11-17；当前进展见本页顶部）
 
 更新日期：2026-11-17
 

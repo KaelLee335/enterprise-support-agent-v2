@@ -1,5 +1,17 @@
 # Project Agent Instructions
 
+## Current task (2026-11-18): V2.1 E-commerce Integration extension
+
+- Scope is incremental over the existing V2.1 demo. Keep all shop/customer/order/logistics data fictional. Do not claim real Shopify/Taobao/JD integrations or real after-sale execution.
+- Phase 0 inventory is complete. Baseline was 71 passed. MockShop API/Adapter, tenant/store/customer-scoped FastAPI endpoints, SQLite idempotency, HMAC webhook inbox/state sync, and identity-bound LangChain Tools in LangGraph are implemented. Current full suite: 93 passed / 12.26s; Vue production build passed. The 35/35 route and 8/8 parameter scores are prior results, not rerun after the latest changes.
+- Vue now displays MockShop order/logistics/eligibility results, supports requester A/B switching, and has an explicit eligibility-then-confirm after-sale demo flow. New API, evaluation, interview, and integration-learning docs are in `docs/`. Compose static config passed; remote CI and WSL runtime integration remain unverified. Do not start Compose from the Windows checkout.
+- Architecture and plan live in `ARCHITECTURE.md`, `task_plan.md`, `findings.md`, and `progress.md`. Update these and `docs/project_status.md` as evidence changes.
+- Reuse existing FastAPI, DemoIdentity, SQLite, LangGraph, LangChain/Chroma RAG, logistics HTTP client, pytest, Compose and CI. Add focused integration modules; do not rewrite the graph or replace V1 rules.
+- Adapter translates provider schemas/statuses into domain DTOs. Authorization must be backend enforced using caller tenant/user/store mapping before invoking data or write methods. Public demo tokens are selectors only.
+- A demo after-sale application is not approval and is not a refund. Only create a clearly labeled pending demo record; never claim platform execution. Webhook verifies HMAC on raw bytes and uses event_id uniqueness before state changes; duplicate, conflict, stale-event and tenant-scope tests pass.
+- Testing note: `uv run` may be blocked by global `D:\caches\uv` ACL. Use `.venv\Scripts\python.exe -m pytest -q --basetemp=.pytest-tmp-v21 -p no:cacheprovider`; do not modify ACL or clean the old protected `.pytest-tmp` / `.pytest_cache` directories.
+- Do not start Compose from the Windows checkout; existing WSL deployment uses port 8000. For container integration, prepare files and tests first, then use the established WSL sync/verification flow and have the user report runtime evidence.
+
 ## Project
 
 Enterprise Support Agent V2 is a local learning/demo project that reuses V1 policy and evaluation assets. It is not a production support system. Keep V1 assets and rules intact; V2-only rules must retain explicit source/version labels.

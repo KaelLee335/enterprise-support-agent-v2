@@ -7,7 +7,7 @@
 - **端到端请求链路**：虚构请求人/审批人身份与租户校验 → FastAPI → LangGraph 确定性路由 → SQLite 只读订单、政策 RAG、本地模拟物流 HTTP API 或演示审批 → 结构化答复与运行记录。
 - **可核验的政策问答**：政策来源引用、证据展示、无证据安全降级，以及针对退款时限、质量问题、物流和隐私边界的约束规则。
 - **可靠性与安全边界**：租户隔离、审批人演示角色、自批拒绝、提示注入拒答、checkpoint 完整性预检、锁文件与 CI。
-- **可运行的演示界面**：Vue 3 + Vite 页面通过现有 FastAPI 接口体验对话、订单卡片、政策证据和审批演示。
+- **可运行的演示界面**：Vue 3 + Vite 展示对话、平台订单/物流、售后资格和明确确认后的 MockShop 演示申请。
 - **学习材料与验收证据**：五章代码导读、故障案例库、需求追踪矩阵和运行验证记录。
 
 ## 项目定位
@@ -16,7 +16,7 @@
 
 **技术栈：** Python 3.12 · FastAPI · SQLite · LangChain · LangGraph · Chroma · SiliconFlow/Qwen · Vue 3 · Vite · Docker
 
-**当前验证摘要：**此前 GitHub Actions 55 项通过、阶段 15 WSL 12 项验收及真实 `/api/chat` 链路由用户实机报告通过；V2.1 本地全量 pytest 65 项通过、Vue 构建通过，WSL 两服务 healthy 且扩展 verifier 全通过由用户实机报告。各项证据按环境区分，详见项目状态文档。
+**当前验证摘要：**本机 V2.1 电商扩展全量 pytest 93 项通过、Vue production build 和 Compose 静态配置通过；Agent 路由 35/35、订单参数 8/8。本轮新代码尚未同步到 WSL，因此不能将新 MockShop 容器链路标记为已验收。历史 WSL/V2.1 reinforcement 结果见项目状态文档。
 
 ## 项目架构
 
@@ -32,6 +32,9 @@ flowchart LR
   R --> M[SiliconFlow Embedding / Qwen]
   G -->|退款申请| H[SQLite Checkpoint / 演示审批]
   G -->|物流查询| L[本地模拟 Logistics HTTP API]
+  G -->|电商订单 / 售后资格| I[MockShop Adapter]
+  I -->|HTTP| P[本地 MockShop API]
+  F -->|签名 Webhook| W[SQLite 事件 Inbox]
   G --> F --> V --> U
 ```
 
@@ -47,7 +50,7 @@ uv sync --locked --extra dev
 uv run --locked uvicorn support_agent.main:app --reload --app-dir src
 ```
 
-直接在本机运行 API 时，还需在另一个终端启动模拟物流服务：`uv run --locked uvicorn support_agent.mock_logistics:app --host 127.0.0.1 --port 8091 --app-dir src`。Docker Compose 会自动启动并连接两个服务。
+直接在本机运行 API 时，还需在两个终端分别启动模拟物流服务（8091）和 MockShop API（8092）：`uv run --locked uvicorn support_agent.mock_logistics:app --host 127.0.0.1 --port 8091 --app-dir src`、`uv run --locked uvicorn support_agent.mock_shop_api:app --host 127.0.0.1 --port 8092 --app-dir src`。Docker Compose 会自动启动这两个 mock 服务并连接 Agent。
 
 如果本机 pip 默认镜像返回 HTTP 403（例如 TUNA simple 页面对 pip 的 User-Agent 拒绝），可仅对本次安装覆盖镜像，不必改全局 pip 配置：
 
@@ -64,9 +67,10 @@ uv sync --locked --extra dev --default-index https://mirrors.aliyun.com/pypi/sim
 
 - `demo-a-local-token` → `user-demo-a` → `demo-a`
 - `demo-a-approver-local-token` → `user-demo-a-approver` → `demo-a` → 演示审批人
+- `demo-b-local-token` → `user-demo-b` → `demo-b` → 店铺 B 请求人
 - `legacy-demo-local-token` → `user-legacy-demo` → `legacy-demo`
 
-请求使用 `Authorization: Bearer demo-a-local-token`。服务端从令牌映射虚构用户、租户和演示角色，不信任调用方传入的 `X-Tenant-ID`。请求人不能批准自己的请求；同租户的另一个演示审批身份可以记录批准或拒绝。可在本地 `.env` 覆盖三枚 Demo Token。它们是公开的演示选择器，不是真实认证凭据，不用于保护真实数据。
+请求使用 `Authorization: Bearer demo-a-local-token`。服务端从令牌映射虚构用户、租户和演示角色，不信任调用方传入的 `X-Tenant-ID`。请求人不能批准自己的请求；同租户的另一个演示审批身份可以记录批准或拒绝。可在本地 `.env` 覆盖四枚 Demo Token。它们是公开的演示选择器，不是真实认证凭据，不用于保护真实数据。
 
 SQLite 默认写入 `data/support_agent.db`。删除该文件会重建演示数据库；它是本地运行数据，不应提交到 Git。
 
@@ -80,7 +84,7 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-打开 <http://127.0.0.1:5173>。Vite 将 `/api` 请求转发到本地 FastAPI。页面包含聊天、订单/政策证据展示和演示审批操作。详细说明见 [`docs/vue_frontend.md`](docs/vue_frontend.md)。
+打开 <http://127.0.0.1:5173>。Vite 将 `/api` 请求转发到本地 FastAPI。页面包含聊天、订单/政策证据、店铺身份切换、资格检查和确认后的演示申请。详细说明见 [`docs/vue_frontend.md`](docs/vue_frontend.md)。
 
 ## 演示方式
 
@@ -90,8 +94,13 @@ npm run dev
 4. **展示政策 RAG**：输入“退款多久能到账？”，查看回答中的政策编号和可展开的证据来源。
 5. **展示模拟物流 API**：输入“查询订单1001物流”，LangGraph 在完成租户订单校验后，经 HTTP 请求本地虚构 Logistics API，页面显示模拟运单与轨迹；其他租户查该订单不会调用物流服务。
 6. **展示审批中断与恢复**：请求人输入“帮我给订单1001申请退款”，先确认请求人身份不能自批，再切换到“审批人”角色作出决定。批准只记录 `approved_demo`，不会执行真实退款。
+7. **展示电商 Adapter**：以店铺 A 请求人选择虚构订单 `2003`，或切到店铺 B 请求人选择 `2006`；另一店铺的订单应不可见。
+8. **展示资格与申请边界**：侧栏输入 `2003` 和虚构原因，检查资格后通过明确按钮创建 `pending_demo`。该状态不代表平台已批准或退款完成。
+9. **Webhook**：使用本地模拟服务/验收流程发送签名事件；重复 event_id 不应重复改变业务状态。
 
 演示问题仅用虚构项目数据。政策问答会由后端调用 `.env` 配置的模型服务；不要输入个人信息、真实客户问题或秘密内容。模型请求额度依服务商账户配置而定。
+
+V2.1 接口说明、测试口径与面试材料见 [`API 参考`](docs/api_reference_v2_1.md)、[`评估记录`](docs/evaluation_v2_1.md)、[`面试讲解`](docs/interview_guide_v2_1.md) 和 [`架构图`](ARCHITECTURE.md)。
 
 ## 测试
 
@@ -120,7 +129,7 @@ python scripts/ask_policy.py "定制商品出现质量问题怎么办？"
 
 ### 本地模拟物流 API
 
-Compose 启动 `mock-logistics` 与 Agent 两个本地服务。Agent 先从 SQLite 验证订单属于当前租户，再用 `X-Demo-Service-Key` 请求模拟服务，解析并校验 JSON 轨迹；数据只覆盖虚构订单 `1001`、`1002`。服务提供固定样例，不访问互联网或商业快递 API。配置项见 `.env.example`，物流故障会降级为安全提示。
+Compose 启动 `mock-logistics`、`mock-shop` 和 Agent 三个本地服务。Agent 先校验当前身份的 tenant/store/customer 范围，再通过 typed HTTP client 和 Adapter 请求 MockShop；物流服务使用 `X-Demo-Service-Key`，并解析校验 JSON 轨迹。所有订单和轨迹都是固定虚构样例，不访问商业 API。配置项见 `.env.example`。
 
 ## 评估与追踪（阶段 5）
 
@@ -150,9 +159,9 @@ docker compose ps
 
 首次 Docker 部署前，在项目虚拟环境中先运行一次 `python scripts/index_policies.py`，生成本机 `data/vector_store/`；该向量库被 Git 和 Docker 构建上下文排除，避免依赖未跟踪的本机文件。Compose 会从 `.env` 读取模型凭据和数据路径；订单库、审批 checkpoint 和 Chroma 向量库都保存在挂载的数据目录。等待容器状态为 `healthy` 后再打开 API 文档。
 
-从 WSL `/opt/project2` 运行 `bash scripts/verify_phase6.sh` 可自动断言 health、订单/政策正常路径，以及异常订单号、隐私请求和提示注入处理；脚本失败时会返回非零状态。
+从 WSL `/opt/project2` 运行 `bash scripts/verify_phase6.sh` 可检查原有 Agent 主链。新增 `bash scripts/verify_v21.sh` 覆盖两店铺隔离、售后资格与幂等申请、Webhook 签名、重复事件和状态同步。更新脚本会依次运行这两份验收；失败时返回非零状态。
 
-政策约束层已同步到 WSL `/opt/project2` 并完成验收：健康检查通过，11 个业务用例全部 PASS，EXIT=0。验收覆盖 POL-06 退款两阶段时限、POL-04 进液保修排除、POL-02 质量故障路由和 POL-09 发票隐私边界。后续若 D 盘源码有改动，可在 `inbox` WSL 会话运行 `bash /mnt/d/project_2/scripts/update_wsl_and_verify.sh`，同步代码、重建 Compose 服务并重新验收；该操作会短暂重启服务，并保留 D 盘 `data/` 挂载。
+上一版政策约束层曾在 WSL `/opt/project2` 完成验收（health 200、11 项通过）。本次 V2.1 电商集成尚未同步验证。若 D 盘源码有改动，可在 Ubuntu WSL 会话运行 `bash /mnt/d/project_2/scripts/update_wsl_and_verify.sh`，将新 Adapter/MockShop 文件同步到 `/opt/project2`、重建 Compose 服务并运行两份验收；该操作会短暂重启服务，并保留 D 盘 `data/` 挂载。不要从 Windows checkout 执行 Compose `up`。
 
 Dockerfile 将依赖安装与本地源码安装分层，修改源码时可复用依赖缓存；pip 使用 TUNA 镜像并放宽下载超时。
 

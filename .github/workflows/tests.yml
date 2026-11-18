@@ -12,6 +12,11 @@ on:
       - "scripts/**"
       - "docs/**"
       - "README.md"
+      - "ARCHITECTURE.md"
+      - "AGENTS.md"
+      - "task_plan.md"
+      - "findings.md"
+      - "progress.md"
       - "Dockerfile"
       - "compose.yaml"
       - "pyproject.toml"
@@ -28,6 +33,11 @@ on:
       - "scripts/**"
       - "docs/**"
       - "README.md"
+      - "ARCHITECTURE.md"
+      - "AGENTS.md"
+      - "task_plan.md"
+      - "findings.md"
+      - "progress.md"
       - "Dockerfile"
       - "compose.yaml"
       - "pyproject.toml"
@@ -83,6 +93,7 @@ jobs:
           done
           python - <<'PY'
           import json
+          from urllib.error import HTTPError
           from urllib.request import Request, urlopen
 
           base = "http://127.0.0.1:8000"
@@ -97,6 +108,58 @@ jobs:
           assert order["order_id"] == "1001"
           assert order["tenant_id"] == "demo-a"
           assert order["is_demo"] is True
+
+          platform_order_request = Request(
+              f"{base}/ecommerce/orders/2003", headers=headers
+          )
+          with urlopen(platform_order_request, timeout=5) as response:
+              platform_order = json.load(response)
+          assert platform_order["order_id"] == "2003"
+          assert platform_order["platform"] == "mock-shop"
+          assert platform_order["status"] == "delivered"
+          assert platform_order["demo_only"] is True
+
+          platform_forbidden_request = Request(
+              f"{base}/ecommerce/orders/2004", headers=headers
+          )
+          try:
+              urlopen(platform_forbidden_request, timeout=5)
+          except HTTPError as exc:
+              assert exc.code == 404
+          else:
+              raise AssertionError("cross-customer MockShop order should be hidden")
+
+          shop_b_headers = {"Authorization": "Bearer demo-b-local-token"}
+          shop_b_order_request = Request(
+              f"{base}/ecommerce/orders/2006", headers=shop_b_headers
+          )
+          with urlopen(shop_b_order_request, timeout=5) as response:
+              shop_b_order = json.load(response)
+          assert shop_b_order["tenant_id"] == "demo-b"
+          try:
+              urlopen(Request(f"{base}/ecommerce/orders/2006", headers=headers), timeout=5)
+          except HTTPError as exc:
+              assert exc.code == 404
+          else:
+              raise AssertionError("cross-tenant MockShop order should be hidden")
+
+          aftersale_body = json.dumps(
+              {
+                  "reason": "CI fictional quality issue",
+                  "idempotency_key": "ci-demo-aftersale-2003",
+                  "confirmed": True,
+              }
+          ).encode()
+          aftersale_request = Request(
+              f"{base}/ecommerce/orders/2003/aftersales",
+              data=aftersale_body,
+              headers={**headers, "Content-Type": "application/json"},
+              method="POST",
+          )
+          with urlopen(aftersale_request, timeout=5) as response:
+              aftersale = json.load(response)
+          assert aftersale["status"] == "pending_demo"
+          assert aftersale["demo_only"] is True
 
           logistics_request = Request(
               f"{base}/chat",

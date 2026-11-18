@@ -1,5 +1,59 @@
 # 项目推进计划
 
+## 2026-11-18：V2.1 电商集成扩展（当前任务）
+
+> 新需求按增量项目处理：保留现有 V2 售后 Agent、模拟物流服务、Demo 身份、SQLite、LangGraph 和前端；新增一条 MockShop Adapter 集成链。所有店铺、订单、用户和物流事件均为虚构数据。本轮不能标记真实平台接入。
+
+### Phase 0：现状盘点（已完成）
+
+- [x] 检查仓库结构、API、Agent/Graph、数据库、身份、测试、Docker/Compose 和 README。
+- [x] 跑基线测试并记录环境限制。
+- [x] 输出复用项、新增项、顺序、风险和最小交付边界（见 `ARCHITECTURE.md`）。
+
+基线：项目虚拟环境 `pytest` 为 **71 passed**；pytest cache 写入受 ACL 阻止产生 1 条 warning。`uv run` 不能初始化全局 uv cache（拒绝访问），改用 `.venv` Python 并指定新的项目内 basetemp 后成功。原 `.pytest-tmp` / `.pytest_cache` 保持未触碰。
+
+### 增量架构结论
+
+- **复用**：FastAPI 生命周期/请求追踪、Bearer DemoIdentity 的 user/tenant、SQLite `orders`、确定性 LangGraph 路由、现有 RAG 政策问答、已有物流 typed HTTP client、Pydantic、pytest、Compose/CI。
+- **扩展**：订单数据模型补充店铺与平台标识（保持 V1 字段及规则）；权限服务按身份 scope 做 order/store 校验；Graph State/节点增加售后查询与申请流程；日志记录工具/平台调用的安全元数据；前端展示订单/物流/售后处理步骤。
+- **新增**：`integrations/` 统一领域模型、协议、registry 与 MockShop Adapter/HTTP client；独立 Mock 电商 API；售后资格与申请的模拟服务及 SQLite 持久层；签名验证、webhook inbox 幂等记录与订单状态更新；扩展评估与 API/Adapter/Agent/Webhook 权限回归。
+
+### 实施顺序
+
+1. Mock 电商 API 与统一领域 Schema/基础 Adapter（本机代码与单元测试已完成；Compose/API 集成待做）。
+2. Adapter/registry 及平台异常、状态映射；订单查询改为经 Adapter，逐步移除 Agent 对平台原始结构的依赖（当前进行中）。
+3. 售后资格规则和模拟申请持久化；新增 LangGraph 分支与明确确认/权限检查，不触及真实退款。
+4. Agent 对外暴露安全的售后工具/服务接口，补参数校验、租户/店铺权限、日志和异常映射。
+5. Webhook 签名校验、SQLite 事件 inbox、event_id 幂等、状态映射与安全重试结果。
+6. 扩充测试/评估，前端最小流程展示，更新 README、ARCHITECTURE/API/EVALUATION/INTERVIEW 文档。
+7. Docker Compose 与 CI/WSL 验收；先做静态和离线检查，再按已确立的 WSL 部署流程提醒用户执行真实容器更新。
+
+### 最小可交付版本（MVP）
+
+一个 MockShop、固定虚构店铺/客户/订单，支持租户和用户范围的订单/物流查询、政策 RAG、售后资格检查；满足条件后仅创建 `pending_demo` 模拟售后申请并返回申请 ID，不宣称退款完成；Webhook 只处理签名正确且 event_id 未重复的模拟订单/售后事件。至少有 API/Adapter/Agent/Webhook/权限/幂等测试、Compose 启动说明和真实运行证据。真实平台、真实客户、真实退款、Redis/Kafka/微服务集群均不在范围。
+
+### 当前风险/错误记录
+
+| 项 | 证据/影响 | 处理 |
+|---|---|---|
+| uv cache 权限 | `uv run --locked pytest` 在启动前失败，D:\\caches\\uv 拒绝访问 | 继续使用项目 `.venv`，必要时指定项目内新 basetemp；不改 ACL |
+| pytest 缓存 ACL | 基线为 71 passed，但 cache provider 写入 `.pytest_cache` 被拒，1 条 warning | 验收可加 `-p no:cacheprovider`；不删除或更改既有目录权限 |
+| 现有订单数据缺少店铺/平台键 | V2 按 tenant_id 隔离，暂不能表达多店铺及平台原始订单状态 | 用向前兼容 schema 增量列/新表与显式 demo 映射，保留旧查询行为 |
+| V2 写操作边界 | 当前只有退款人工演示审批，不做实际写回 | 新售后申请独立标为 demo request，增加确认和权限；不得改订单为“已退款” |
+| Compose 运行副本 | WSL `/opt/project2` 已占 8000，Windows checkout Compose 会冲突 | Codex 不对 Windows checkout 执行 `compose up`；Docker 集成部署留到用户 WSL 流程 |
+
+### 实施状态（2026-11-18）
+
+- [x] Phase 0 现状盘点：基线 71 passed；确认此前没有平台 Adapter、售后资格接口、售后申请 API 或 Webhook。
+- [x] Phase 1 Mock API 与领域契约：本机完成。独立 FastAPI 模块有固定虚构订单、物流、资格/申请/状态 API；API 与 Adapter 测试通过；Compose source 已配置服务。
+- [x] Phase 2 Adapter 基础：业务协议、registry、typed client、字段/状态映射、HTTP/timeout/JSON 错误归一、Demo identity→store/customer 授权已完成；完整 Agent/Compose runtime 联调继续进行。
+- [x] Phase 3 REST/SQLite 售后骨架：FastAPI 增加平台订单、物流、资格、申请、申请状态 endpoint；主 SQLite 保存幂等申请状态；写操作需 requester + 显式 confirmed；同一请求重试返回同一记录。
+- [x] Phase 3/4 Graph Agent 首版：可识别显式“平台订单”提问，调用绑定当前 DemoIdentity 的 LangChain StructuredTools 查订单/物流/资格；售后路径复用现有 RAG 后补资格检查说明；Agent 不会代替用户确认提交。
+- [x] Phase 4 UI 与申请状态展示：平台订单/物流/资格卡片，店铺 A/B 身份切换，先资格检查再明确确认创建演示申请。
+- [x] Phase 5 Webhook：raw-body HMAC、schema、SQLite event inbox、event_id 幂等、冲突/过期事件处理及 tenant-scoped 状态查询。
+- [x] Phase 6 本机测试/评估/文档：全量 93 passed，Vue production build 通过；新增 API、评估、面试文档。
+- [ ] Phase 7 CI/Compose/WSL 运行验收：配置静态检查和 CI 触发范围核对后，交给用户按现有 WSL 流程同步部署。
+
 > 记忆更新：2026-11-16，采用用户最新的《Python Full-stack Agent Engineering — Autonomous Development & Interview Preparation》提示词。阶段 0–10 已结束；旧的“用户先设计、Codex 等待批准”流程已被新分工取代。Codex 自主负责技术方案与主力实现，用户通过代码讲解和学习材料理解项目。
 
 ## 总路线图
