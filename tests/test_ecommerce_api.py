@@ -1,3 +1,5 @@
+import sqlite3
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -26,6 +28,7 @@ class FakeShopAdapter:
     def get_order(self, order_id: str) -> PlatformOrder:
         if self.unavailable:
             raise IntegrationUnavailable("hidden detail")
+        self.calls.append(("order_detail", order_id))
         fixtures = {
             "2003": ("shop-demo-a", "demo-a", "customer-demo-a"),
             "2004": ("shop-demo-a", "demo-a", "customer-demo-b"),
@@ -40,6 +43,22 @@ class FakeShopAdapter:
             tenant_id=tenant_id, customer_id=customer_id, product_name="虚构商品",
             quantity=1, status="delivered", returnable=True, amount_cents=1000,
         )
+
+    def get_order_scope(self, order_id: str):
+        from types import SimpleNamespace
+        if self.unavailable:
+            raise IntegrationUnavailable("hidden detail")
+        fixtures = {
+            "2003": ("shop-demo-a", "customer-demo-a"),
+            "2004": ("shop-demo-a", "customer-demo-b"),
+            "2006": ("shop-demo-b", "customer-demo-c"),
+        }
+        if order_id not in fixtures:
+            from support_agent.integrations.errors import IntegrationNotFound
+            raise IntegrationNotFound("hidden detail")
+        store_id, customer_id = fixtures[order_id]
+        return SimpleNamespace(order_id=order_id, shop_id=store_id,
+                               customer_id=customer_id, is_demo=True)
 
     def get_logistics(self, order_id: str) -> LogisticsInfo:
         self.calls.append(("logistics", order_id))
@@ -97,9 +116,11 @@ def test_ecommerce_order_and_logistics_are_identity_scoped(commerce_client):
     assert other_shop.status_code == 404
     assert demo_b_own.status_code == 200
     assert demo_b_own.json()["tenant_id"] == "demo-b"
-    assert approver.status_code == 200
+    assert approver.status_code == 404
+    assert ("order_detail", "2004") not in adapter.calls
+    assert adapter.calls.count(("order_detail", "2006")) == 1
     assert logistics.json()["tracking_number"] == "MOCK-2003"
-    assert adapter.calls == [("logistics", "2003")]
+    assert adapter.calls.count(("logistics", "2003")) == 1
 
 
 def test_ecommerce_endpoints_require_identity_and_keep_platform_errors_safe(commerce_client, monkeypatch):
@@ -128,7 +149,7 @@ def test_aftersale_requires_requester_confirmation_and_eligibility(commerce_clie
     assert created.json()["status"] == "pending_demo"
     assert created.json()["demo_only"] is True
     assert "不代表已审批" in created.json()["message"]
-    assert [call[0] for call in adapter.calls] == ["eligibility", "create"]
+    assert [call[0] for call in adapter.calls] == ["order_detail", "eligibility", "create"]
 
 
 def test_aftersale_request_is_idempotent_scoped_and_queryable(commerce_client):
@@ -149,6 +170,38 @@ def test_aftersale_request_is_idempotent_scoped_and_queryable(commerce_client):
     assert foreign.status_code == 404
 
 
+def test_aftersale_retry_accepts_legacy_null_audit_columns(commerce_client):
+    client, adapter = commerce_client
+    key = "legacy-null-audit-key"
+    with sqlite3.connect(main.settings.database_path) as connection:
+        connection.execute(
+            """INSERT INTO aftersale_requests
+               (request_id, tenant_id, user_id, actor_id, customer_id, order_id,
+                platform, platform_aftersale_id, reason, idempotency_key, status,
+                created_at, updated_at)
+               VALUES (?, ?, ?, NULL, NULL, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            ("legacy-aftersale-1", "demo-a", "user-demo-a", "2003", "mock-shop",
+             "AS-LEGACY-2003", "质量问题（虚构）", key, "pending_demo",
+             "2026-11-18T00:00:00+00:00", "2026-11-18T00:00:00+00:00"),
+        )
+
+    path = "/ecommerce/orders/2003/aftersales"
+    retry = client.post(
+        path, headers=auth(),
+        json={"reason": "质量问题（虚构）", "idempotency_key": key, "confirmed": True},
+    )
+    conflict = client.post(
+        path, headers=auth(),
+        json={"reason": "其他问题", "idempotency_key": key, "confirmed": True},
+    )
+
+    assert retry.status_code == 200
+    assert retry.json()["request_id"] == "legacy-aftersale-1"
+    assert retry.json()["aftersale_id"] == "AS-LEGACY-2003"
+    assert conflict.status_code == 409
+    assert not any(call[0] == "create" for call in adapter.calls)
+
+
 def test_aftersale_does_not_submit_when_order_is_not_authorized(commerce_client):
     client, adapter = commerce_client
     response = client.post(
@@ -156,7 +209,43 @@ def test_aftersale_does_not_submit_when_order_is_not_authorized(commerce_client)
         json={"reason": "质量问题", "idempotency_key": "request-key-2004-01", "confirmed": True},
     )
     assert response.status_code == 404
-    assert not adapter.calls
+    assert ("order_detail", "2004") not in adapter.calls
+    assert not any(call[0] in {"eligibility", "create"} for call in adapter.calls)
+
+
+def test_service_scope_and_aftersale_actor_customer_are_separate(commerce_client):
+    from support_agent.db import connect
+
+    client, _ = commerce_client
+    service = auth("demo-a-service-local-token")
+    assert client.get("/ecommerce/orders/2004", headers=service).status_code == 200
+    assert client.get("/ecommerce/orders/2006", headers=service).status_code == 404
+    created = client.post(
+        "/ecommerce/orders/2003/aftersales", headers=service,
+        json={"reason": "代客户提交虚构申请", "idempotency_key": "service-request-2003", "confirmed": True},
+    )
+    assert created.status_code == 200
+    with connect(main.settings.database_path) as connection:
+        record = connection.execute(
+            "SELECT user_id, actor_id, customer_id FROM aftersale_requests WHERE request_id = ?",
+            (created.json()["request_id"],),
+        ).fetchone()
+    assert record["user_id"] == "user-demo-a"
+    assert record["actor_id"] == "user-demo-a-service"
+    assert record["customer_id"] == "customer-demo-a"
+
+
+def test_tenant_admin_can_revoke_only_its_service_customer_grant(commerce_client):
+    client, adapter = commerce_client
+    revoke = client.put(
+        "/admin/services/user-demo-a-service/customers/customer-demo-a?allowed=false",
+        headers=auth("demo-a-admin-local-token"),
+    )
+    assert revoke.status_code == 200
+    adapter.calls.clear()
+    denied = client.get("/ecommerce/orders/2003", headers=auth("demo-a-service-local-token"))
+    assert denied.status_code == 404
+    assert ("order_detail", "2003") not in adapter.calls
 
 
 def test_langgraph_routes_mockshop_order_and_logistics_to_adapter_tools(commerce_client, monkeypatch):
@@ -195,4 +284,4 @@ def test_langgraph_checks_demo_eligibility_then_policy_without_submitting(monkey
     assert result["aftersale_eligibility"]["eligible"] is True
     assert "符合当前 MockShop 演示资格规则" in result["answer"]
     assert "不等于申请已提交" in result["answer"]
-    assert [call[0] for call in adapter.calls] == ["eligibility"]
+    assert [call[0] for call in adapter.calls] == ["order_detail", "order_detail", "eligibility"]

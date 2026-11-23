@@ -92,6 +92,14 @@ def create_mock_shop_app(
         authenticate(service_key_header)
         return order_or_404(order_id)
 
+    @app.get("/mock-shop/orders/{order_id}/scope")
+    def get_order_scope(order_id: str, service_key_header: str | None = Header(default=None, alias="X-Demo-Platform-Key")):
+        """Return only identifiers needed for caller authorization before details."""
+        authenticate(service_key_header)
+        order = order_or_404(order_id)
+        return {"order_id": order.order_id, "shop_id": order.shop_id,
+                "customer_id": order.customer_id, "is_demo": order.is_demo}
+
     @app.get("/mock-shop/orders/{order_id}/logistics", response_model=ShopLogistics)
     def get_logistics(order_id: str, service_key_header: str | None = Header(default=None, alias="X-Demo-Platform-Key")):
         authenticate(service_key_header)
@@ -139,6 +147,15 @@ def create_mock_shop_app(
         if application is None:
             raise HTTPException(status_code=404, detail="Aftersale not found")
         return application
+
+    @app.get("/mock-shop/aftersales/{aftersale_id}/scope")
+    def get_aftersale_scope(aftersale_id: str, service_key_header: str | None = Header(default=None, alias="X-Demo-Platform-Key")):
+        authenticate(service_key_header)
+        application = repo.aftersales.get(aftersale_id)
+        if application is None:
+            raise HTTPException(status_code=404, detail="Aftersale not found")
+        return {"aftersale_id": application.aftersale_id,
+                "order_id": application.order_id, "is_demo": application.is_demo}
 
     app.state.repository = repo
     return app

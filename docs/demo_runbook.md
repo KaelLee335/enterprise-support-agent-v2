@@ -27,7 +27,7 @@
 
 ## 演示流程
 
-除 `/health` 外的业务 API 使用本地演示 Bearer 身份。`demo-a-local-token` 是租户 `demo-a` 的请求人；`demo-a-approver-local-token` 是同租户另一位虚构审批人；`legacy-demo-local-token` 映射到 V1 导入租户。公开令牌只是演示身份选择器，不是真实认证。
+除 `/health` 外的业务 API 使用本地演示 Bearer 身份。`demo-a-local-token` 是 `demo-a` 的 Customer；`demo-a-service-local-token` 是管理员预先授权客户范围的 Service；`demo-a-approver-local-token` 与 `demo-a-approver-alt-local-token` 是同租户不同审批人；`demo-a-admin-local-token` 只能管理 `demo-a` 内的用户、客服授权和审批分配。Admin 不会因此获得订单读取权。`legacy-demo-local-token` 映射到 V1 导入租户，因历史订单没有可靠 owner 映射，Customer 查询默认不可见。公开令牌只是演示身份选择器，不是真实认证。
 
 ### 1. 中文紧邻订单号识别与只读查询
 

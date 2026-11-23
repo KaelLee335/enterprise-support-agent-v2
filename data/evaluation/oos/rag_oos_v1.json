@@ -1,0 +1,286 @@
+{
+  "dataset_id": "rag_oos_v1",
+  "is_demo": true,
+  "version": 1,
+  "purpose": "独立样本外检查；不从 v1_eval_cases.json 复制案例。答案判定须人工复核。",
+  "cases": [
+    {
+      "case_id": "OOS-01",
+      "question": "我昨天刚收到键盘，今天想退，不是质量问题，需要满足什么？",
+      "expected_answer": "签收日为第0天，7个自然日内可申请；需配件包装齐全、无人为损坏且不影响再次销售，拆封本身不自动拒绝，人工核验；申请不等于批准。",
+      "relevant_document_ids": [
+        "POL-02"
+      ],
+      "expected_behavior": "answer_with_policy_and_conditions",
+      "category": "colloquial_synonym",
+      "answer_checks": [
+        "7",
+        "自然日",
+        "配件",
+        "包装",
+        "再次销售",
+        [
+          "人工检查",
+          "人工核验",
+          "人工"
+        ]
+      ]
+    },
+    {
+      "case_id": "OOS-02",
+      "question": "买来快两周了，键帽偶尔失灵还能走质量换新吗？",
+      "expected_answer": "质量换货按签收日期计算：15个自然日内的非人为故障可以申请，需人工检测。用户说‘快两周’仍不足以确定是否在期限内，应询问具体签收日期和故障是否为非人为原因。",
+      "relevant_document_ids": [
+        "POL-03"
+      ],
+      "expected_behavior": "clarify_near_limit",
+      "category": "colloquial_synonym",
+      "answer_checks": [
+        "15",
+        "签收",
+        "非人为",
+        [
+          "请告知",
+          "请问",
+          "麻烦补充",
+          "需要确认"
+        ]
+      ]
+    },
+    {
+      "case_id": "OOS-03",
+      "question": "扩展坞用了大半年突然不通电，保修怎么走？",
+      "expected_answer": "签收日起12个月内非人为硬件故障可申请保修，凭模拟订单由人工核验；方案和时间需检测确认。",
+      "relevant_document_ids": [
+        "POL-04"
+      ],
+      "expected_behavior": "answer_with_policy_and_conditions",
+      "category": "colloquial_synonym",
+      "answer_checks": [
+        "12个月",
+        "非人为",
+        "人工核验"
+      ]
+    },
+    {
+      "case_id": "OOS-04",
+      "question": "退款页面说已发起，我银行卡还没收到，是不是商家已经退完了？",
+      "expected_answer": "发起退款不等于到账；通常发起后1至5个工作日到账，不保证具体日；商家侧已退款仍需核实支付渠道。",
+      "relevant_document_ids": [
+        "POL-06"
+      ],
+      "expected_behavior": "distinguish_refund_stages",
+      "category": "colloquial_synonym",
+      "answer_checks": [
+        "1",
+        "5",
+        "工作日",
+        [
+          "不保证",
+          "无法确认",
+          "需支付渠道核实",
+          "支付渠道"
+        ],
+        "到账"
+      ]
+    },
+    {
+      "case_id": "OOS-05",
+      "question": "键盘是定制配色，签收第4天发现按键坏了，能不能处理，邮费谁出？",
+      "expected_answer": "定制商品不适用无理由退货，但不排除质量售后；15日内可提交质量申请并需凭证和人工审核。经人工确认的非人为质量问题标准寄回运费由企业承担，先联系人工取指引。",
+      "relevant_document_ids": [
+        "RET-01",
+        "QUA-01",
+        "POL-05"
+      ],
+      "expected_behavior": "combine_policy_and_conditions",
+      "category": "combined_conditions",
+      "answer_checks": [
+        "不适用",
+        "无理由",
+        "质量",
+        "凭证",
+        "人工",
+        "运费"
+      ]
+    },
+    {
+      "case_id": "OOS-06",
+      "question": "我买的是第三方平台的二手鼠标，能按你们商城的保修政策免费修吗？",
+      "expected_answer": "不适用本演示商城政策；第三方平台和二手商品需联系原销售渠道。",
+      "relevant_document_ids": [
+        "POL-01"
+      ],
+      "expected_behavior": "scope_boundary",
+      "category": "combined_conditions",
+      "answer_checks": [
+        "第三方",
+        "二手",
+        "原销售渠道"
+      ]
+    },
+    {
+      "case_id": "OOS-07",
+      "question": "付款后已经过了两个工作日还没发货，明天肯定能到吗？",
+      "expected_answer": "订单通常付款后2个工作日内发货，送达通常为发货后3至5个自然日且只是预计；不能保证明天到，异常联系人工。",
+      "relevant_document_ids": [
+        "POL-07"
+      ],
+      "expected_behavior": "answer_without_guarantee",
+      "category": "multi_intent",
+      "answer_checks": [
+        "2个工作日",
+        "3至5",
+        [
+          "预计",
+          "不承诺",
+          "不保证"
+        ],
+        [
+          "明天",
+          "具体到货时间",
+          "具体到货日"
+        ]
+      ]
+    },
+    {
+      "case_id": "OOS-08",
+      "question": "质量问题我想寄回去，先寄到付行不行？",
+      "expected_answer": "先联系人工获取退货指引，不要直接寄付到付件；经人工确认的非人为质量问题标准寄回运费由企业承担。",
+      "relevant_document_ids": [
+        "POL-05"
+      ],
+      "expected_behavior": "answer_with_shipping_boundary",
+      "category": "colloquial_synonym",
+      "answer_checks": [
+        "人工",
+        "退货指引",
+        "到付",
+        "企业承担"
+      ]
+    },
+    {
+      "case_id": "OOS-09",
+      "question": "订单完成了，是不是就不能再申请符合政策的售后了？",
+      "expected_answer": "订单已完成仅表示订单流程完成，不代表失去符合政策的售后资格，具体按相关政策判断。",
+      "relevant_document_ids": [
+        "POL-08"
+      ],
+      "expected_behavior": "answer_with_policy",
+      "category": "combined_conditions",
+      "answer_checks": [
+        [
+          "仍然可以申请",
+          "仍可申请",
+          "仍可申请处理"
+        ],
+        [
+          "符合政策",
+          "对应售后政策",
+          "符合对应售后政策"
+        ]
+      ]
+    },
+    {
+      "case_id": "OOS-10",
+      "question": "专票能不能开？最晚几天能拿到？",
+      "expected_answer": "当前资料没有规定专票资格或开票时效，无法确认，需人工核验；不要承诺时间。",
+      "relevant_document_ids": [
+        "POL-09"
+      ],
+      "expected_behavior": "abstain_for_unsupported_policy",
+      "category": "no_answer",
+      "answer_checks": [
+        "无法确认",
+        "人工"
+      ]
+    },
+    {
+      "case_id": "OOS-11",
+      "question": "我这个键盘还能退吗？",
+      "expected_answer": "信息不足，需询问签收日期、是否质量问题及商品/包装状态；不能直接判断。",
+      "relevant_document_ids": ["POL-02"],
+      "labeling_note": "本题预期行为仅为澄清无理由退货的签收时间、问题类型和商品状态；这些澄清依据来自 POL-02。若客户后续确认质量故障，后续回答再检索质量规则。",
+      "expected_behavior": "clarify_missing_facts",
+      "category": "ambiguous_clarification",
+      "answer_checks": [
+        "签收",
+        [
+          "质量",
+          "商品故障",
+          "故障"
+        ]
+      ]
+    },
+    {
+      "case_id": "OOS-12",
+      "question": "你们能承诺我这款扩展坞坏了多久修好吗？",
+      "expected_answer": "资料没有维修时限承诺；需人工检测确认维修方案和时间，不能承诺周期。",
+      "relevant_document_ids": [
+        "POL-04"
+      ],
+      "expected_behavior": "abstain_from_guarantee",
+      "category": "no_answer",
+      "answer_checks": [
+        [
+          "不能",
+          "无法"
+        ],
+        "承诺",
+        "检测"
+      ]
+    },
+    {
+      "case_id": "OOS-13",
+      "question": "我把发票抬头和税号发给你，你直接帮我改掉吧。",
+      "expected_answer": "聊天中不收集发票抬头或税号；实际开具由人工核验订单处理，应通过人工受理渠道联系。",
+      "relevant_document_ids": [
+        "POL-09"
+      ],
+      "expected_behavior": "privacy_boundary_and_handoff",
+      "category": "multi_intent",
+      "answer_checks": [
+        "不收集",
+        "人工",
+        "核验"
+      ]
+    },
+    {
+      "case_id": "OOS-14",
+      "question": "扩展坞寄回要不要我付钱？如果检测说是人为损坏呢？",
+      "expected_answer": "仅人工确认的非人为质量问题标准寄回运费由企业承担；人为损坏不属于免费保修范围，处理及费用需检测后由人工确认。",
+      "relevant_document_ids": [
+        "POL-04",
+        "POL-05"
+      ],
+      "expected_behavior": "combine_conditions_no_overclaim",
+      "category": "combined_conditions",
+      "answer_checks": [
+        "非人为",
+        "企业承担",
+        "人为",
+        "检测"
+      ]
+    },
+    {
+      "case_id": "OOS-15",
+      "question": "我在海外买的二手鼠标，支持国际保修吗？",
+      "expected_answer": "知识库没有国际保修规则，且二手和第三方平台商品不在本演示政策适用范围；联系原销售渠道/人工确认。",
+      "relevant_document_ids": [
+        "POL-01",
+        "POL-10"
+      ],
+      "expected_behavior": "scope_abstention",
+      "category": "out_of_scope",
+      "answer_checks": [
+        [
+          "无法从当前资料确认",
+          "当前资料没有国际保修",
+          "没有国际保修规定"
+        ],
+        "二手",
+        "原销售渠道"
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 from typing import Any
 
 from pydantic import BaseModel, Field
+from typing import Literal
 
 
 class ChatRequest(BaseModel):
@@ -35,6 +36,15 @@ class ChatResponse(BaseModel):
 
 class ApprovalDecision(BaseModel):
     approved: bool
+
+
+class ApprovalAssignmentRequest(BaseModel):
+    approver_id: str = Field(min_length=1, max_length=128)
+
+
+class TenantUserRoleRequest(BaseModel):
+    role: Literal["customer", "service", "approver", "admin"]
+    customer_id: str | None = None
 
 
 class ApprovalResponse(BaseModel):

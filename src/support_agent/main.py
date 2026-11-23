@@ -22,10 +22,22 @@ from support_agent.db import (
     fetch_aftersale_request,
     fetch_agent_run,
     fetch_order,
+    fetch_tenant_user,
+    list_tenant_users,
+    find_customer_user,
+    find_tenant_approver,
+    create_approval_task,
+    fetch_approval_task_for_identity,
+    list_assigned_approval_tasks,
+    decide_approval_task,
+    assign_approval_task,
+    set_tenant_user_role,
+    set_service_customer_grant,
     fetch_webhook_event,
     initialize_database,
     reserve_aftersale_request,
     update_agent_run,
+    update_agent_run_system,
     update_aftersale_request,
     process_mockshop_webhook,
     WebhookEventConflict,
@@ -36,9 +48,11 @@ from support_agent.integrations.mock_shop import MockShopAdapter
 from support_agent.integrations.models import AftersaleEligibility, LogisticsInfo, PlatformOrder
 from support_agent.integrations.mock_shop import normalize_order_status
 from support_agent.integrations.webhooks import MockShopWebhookEvent, normalized_order_status
-from support_agent.integrations.permissions import apply_webhook_order_state, can_access_order, tenant_for_store
+from support_agent.integrations.permissions import apply_webhook_order_state, get_authorized_platform_order, tenant_for_store
 from support_agent.schemas import (
     ApprovalDecision,
+    ApprovalAssignmentRequest,
+    TenantUserRoleRequest,
     ApprovalResponse,
     AftersaleCreateRequest,
     DemoAftersaleResponse,
@@ -102,6 +116,7 @@ def _open_checkpoint_connection(path: Path) -> sqlite3.Connection:
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
+    application.state.settings = settings
     settings.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
     connection = _open_checkpoint_connection(settings.checkpoint_path)
     try:
@@ -155,7 +170,9 @@ def _new_mock_shop_adapter() -> MockShopAdapter:
 
 def _load_authorized_platform_order(adapter: MockShopAdapter, order_id: str, identity: DemoIdentity):
     try:
-        order = adapter.get_order(order_id)
+        order = get_authorized_platform_order(
+            adapter, order_id, identity, settings.database_path
+        )
     except IntegrationNotFound as exc:
         raise HTTPException(status_code=404, detail="Order not found for this identity") from exc
     except IntegrationError as exc:
@@ -166,8 +183,6 @@ def _load_authorized_platform_order(adapter: MockShopAdapter, order_id: str, ide
                    "error_code": exc.code},
         )
         raise HTTPException(status_code=503, detail="Demo commerce service is temporarily unavailable") from exc
-    if not can_access_order(identity, order):
-        raise HTTPException(status_code=404, detail="Order not found for this identity")
     return apply_webhook_order_state(order, settings.database_path)
 
 
@@ -239,8 +254,8 @@ def create_ecommerce_aftersale(
     body: AftersaleCreateRequest,
     identity: DemoIdentity = Depends(require_demo_identity),
 ) -> DemoAftersaleResponse:
-    if identity.role != "requester":
-        raise HTTPException(status_code=403, detail="Demo requester role required")
+    if identity.role not in {"customer", "service", "requester"}:
+        raise HTTPException(status_code=403, detail="Customer or authorized service role required")
     if not body.confirmed:
         raise HTTPException(status_code=409, detail="Explicit demo confirmation is required before submitting")
 
@@ -251,11 +266,20 @@ def create_ecommerce_aftersale(
             f"{identity.tenant_id}:{body.idempotency_key}".encode("utf-8")
         ).hexdigest()
         try:
+            customer_id = (
+                order.customer_id if isinstance(order, PlatformOrder)
+                else order.get("owner_customer_id") or identity.customer_id
+            )
+            requester_id = find_customer_user(
+                settings.database_path, identity.tenant_id, customer_id
+            ) or identity.user_id
             record, created_now = reserve_aftersale_request(
                 settings.database_path,
                 request_id=uuid4().hex,
                 tenant_id=identity.tenant_id,
-                user_id=identity.user_id,
+                user_id=requester_id,
+                actor_id=identity.user_id,
+                customer_id=customer_id,
                 order_id=order_id,
                 platform=adapter.platform_name,
                 reason=body.reason,
@@ -274,20 +298,20 @@ def create_ecommerce_aftersale(
             if record["status"] == "submitting":
                 raise HTTPException(status_code=409, detail="A request with this idempotency key is in progress")
             update_aftersale_request(
-                settings.database_path, record["request_id"], identity.tenant_id,
+                settings.database_path, record["request_id"], identity,
                 status="submitting",
             )
         try:
             eligibility = adapter.check_aftersale_eligibility(order_id, body.reason)
         except IntegrationError as exc:
             update_aftersale_request(
-                settings.database_path, record["request_id"], identity.tenant_id,
+                settings.database_path, record["request_id"], identity,
                 status="failed",
             )
             raise HTTPException(status_code=503, detail="Demo commerce service is temporarily unavailable") from exc
         if not eligibility.eligible:
             update_aftersale_request(
-                settings.database_path, record["request_id"], identity.tenant_id,
+                settings.database_path, record["request_id"], identity,
                 status="failed",
             )
             raise HTTPException(status_code=409, detail=eligibility.explanation)
@@ -307,7 +331,7 @@ def create_ecommerce_aftersale(
             )
             raise HTTPException(status_code=503, detail="Demo aftersale submission failed") from exc
         update_aftersale_request(
-            settings.database_path, record["request_id"], identity.tenant_id,
+            settings.database_path, record["request_id"], identity,
             status="pending_demo", platform_aftersale_id=application.aftersale_id,
         )
         logger.info(
@@ -331,8 +355,8 @@ def get_ecommerce_aftersale(
     request_id: str,
     identity: DemoIdentity = Depends(require_demo_identity),
 ) -> DemoAftersaleResponse:
-    record = fetch_aftersale_request(settings.database_path, request_id, identity.tenant_id)
-    if record is None or (identity.role != "approver" and record["user_id"] != identity.user_id):
+    record = fetch_aftersale_request(settings.database_path, request_id, identity)
+    if record is None:
         raise HTTPException(status_code=404, detail="Aftersale request not found")
     return DemoAftersaleResponse(
         request_id=record["request_id"], aftersale_id=record["platform_aftersale_id"],
@@ -443,6 +467,7 @@ def chat(
             "tenant_id": identity.tenant_id,
             "user_id": identity.user_id,
             "user_role": identity.role,
+            "customer_id": identity.customer_id,
             "database_path": str(settings.database_path),
             "thread_id": thread_id,
             "run_id": run_id,
@@ -452,13 +477,40 @@ def chat(
         update_agent_run(
             settings.database_path,
             run_id,
-            identity.tenant_id,
+            identity,
             status="failed",
             error_type=type(exc).__name__,
         )
         logger.exception("Agent run failed")
         raise
     approval_status = state.get("approval_status")
+    if approval_status == "pending":
+        order_id = str((state.get("pending_action") or {}).get("order_id") or "")
+        scoped_order = fetch_order(settings.database_path, order_id, identity)
+        approver_id = find_tenant_approver(settings.database_path, identity.tenant_id)
+        if scoped_order is None or approver_id is None:
+            state["approval_status"] = "assignment_unavailable"
+            state["answer"] = "当前请求无法安全创建审批任务，请联系本租户管理员；未执行退款。"
+            state["pending_action"] = None
+            approval_status = state["approval_status"]
+        else:
+            customer_id = scoped_order.get("owner_customer_id") or identity.customer_id
+            requester_id = find_customer_user(
+                settings.database_path, identity.tenant_id, customer_id
+            ) or identity.user_id
+            try:
+                create_approval_task(
+                    settings.database_path, task_id=uuid4().hex,
+                    tenant_id=identity.tenant_id, order_id=order_id,
+                    customer_id=customer_id, requester_id=requester_id,
+                    actor_id=identity.user_id, approver_id=approver_id,
+                    thread_id=thread_id,
+                )
+            except PermissionError:
+                state["approval_status"] = "assignment_unavailable"
+                state["answer"] = "当前请求无法安全创建审批任务；未执行退款。"
+                state["pending_action"] = None
+                approval_status = state["approval_status"]
     run_status = (
         "pending" if approval_status == "pending"
         else "failed" if state.get("error")
@@ -467,7 +519,7 @@ def chat(
     update_agent_run(
         settings.database_path,
         run_id,
-        identity.tenant_id,
+        identity,
         status=run_status,
         intent=state.get("intent"),
         error_type=state.get("error"),
@@ -506,8 +558,15 @@ def get_approval(
     thread_id: str,
     identity: DemoIdentity = Depends(require_demo_identity),
 ) -> ApprovalResponse:
+    task = fetch_approval_task_for_identity(settings.database_path, thread_id, identity)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Approval request not found")
     _, _, snapshot = _approval_snapshot(thread_id, identity.tenant_id)
     values = snapshot.values
+    if (values.get("order_id") != task["order_id"]
+            or values.get("tenant_id") != task["tenant_id"]
+            or values.get("user_id") != task["actor_id"]):
+        raise HTTPException(status_code=404, detail="Approval request not found")
     return ApprovalResponse(
         thread_id=thread_id,
         approval_status=values.get("approval_status", "not_pending"),
@@ -517,20 +576,44 @@ def get_approval(
     )
 
 
+@app.get("/approvals")
+def list_my_approval_tasks(
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> list[dict]:
+    if identity.role != "approver":
+        raise HTTPException(status_code=403, detail="Approver role required")
+    return list_assigned_approval_tasks(settings.database_path, identity)
+
+
 @app.post("/approvals/{thread_id}/decision", response_model=ApprovalResponse)
 def decide_approval(
     thread_id: str,
     decision: ApprovalDecision,
     identity: DemoIdentity = Depends(require_demo_identity),
 ) -> ApprovalResponse:
-    graph, config, snapshot = _approval_snapshot(thread_id, identity.tenant_id)
-    values = snapshot.values
+    task = fetch_approval_task_for_identity(settings.database_path, thread_id, identity)
+    if task is None:
+        raise HTTPException(status_code=404, detail="Approval request not assigned to this approver")
     if identity.role != "approver":
         raise HTTPException(status_code=403, detail="Demo approver role required")
-    if values.get("user_id") == identity.user_id:
+    if task["approver_id"] != identity.user_id:
+        raise HTTPException(status_code=404, detail="Approval request not assigned to this approver")
+    if task["requester_id"] == identity.user_id or task["actor_id"] == identity.user_id:
         raise HTTPException(status_code=403, detail="Requester cannot approve own request")
-    if values.get("approval_status") != "pending" or not snapshot.next:
+    if task["status"] != "pending":
         raise HTTPException(status_code=409, detail="Approval request is not pending")
+    graph, config, snapshot = _approval_snapshot(thread_id, identity.tenant_id)
+    values = snapshot.values
+    if (values.get("tenant_id") != task["tenant_id"]
+            or values.get("user_id") != task["actor_id"]
+            or str((values.get("pending_action") or {}).get("order_id")) != task["order_id"]
+            or not snapshot.next):
+        raise HTTPException(status_code=409, detail="Approval checkpoint does not match assigned task")
+    consumed = decide_approval_task(
+        settings.database_path, task["task_id"], identity, approved=decision.approved
+    )
+    if consumed is None:
+        raise HTTPException(status_code=409, detail="Approval task was already processed")
     logger.info(
         "Demo approval decision received",
         extra={
@@ -547,7 +630,7 @@ def decide_approval(
     result = graph.invoke(Command(resume={"approved": decision.approved}), config=config)
     run_id = result.get("run_id")
     if run_id:
-        update_agent_run(
+        update_agent_run_system(
             settings.database_path,
             run_id,
             identity.tenant_id,
@@ -564,13 +647,74 @@ def decide_approval(
     )
 
 
+@app.put("/admin/users/{user_id}/role")
+def update_tenant_user_role(
+    user_id: str,
+    body: TenantUserRoleRequest,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> dict[str, bool]:
+    if identity.role != "admin":
+        raise HTTPException(status_code=403, detail="Tenant admin role required")
+    updated = set_tenant_user_role(
+        settings.database_path, identity, user_id, body.role, body.customer_id
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Tenant user or requested mapping not found")
+    return {"updated": True}
+
+
+@app.get("/admin/users")
+def get_tenant_users(
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> list[dict]:
+    if identity.role != "admin":
+        raise HTTPException(status_code=403, detail="Tenant admin role required")
+    users = list_tenant_users(settings.database_path, identity)
+    if users is None:
+        raise HTTPException(status_code=403, detail="Tenant admin role required")
+    return users
+
+
+@app.put("/admin/services/{service_user_id}/customers/{customer_id}")
+def update_service_customer_access(
+    service_user_id: str,
+    customer_id: str,
+    allowed: bool = True,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> dict[str, bool]:
+    if identity.role != "admin":
+        raise HTTPException(status_code=403, detail="Tenant admin role required")
+    updated = set_service_customer_grant(
+        settings.database_path, identity, service_user_id, customer_id, allowed=allowed
+    )
+    if not updated:
+        raise HTTPException(status_code=404, detail="Tenant service or customer not found")
+    return {"updated": True, "allowed": allowed}
+
+
+@app.put("/admin/approval-tasks/{task_id}/assignment")
+def reassign_approval_task(
+    task_id: str,
+    body: ApprovalAssignmentRequest,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> dict[str, bool]:
+    if identity.role != "admin":
+        raise HTTPException(status_code=403, detail="Tenant admin role required")
+    assigned = assign_approval_task(
+        settings.database_path, task_id, identity, body.approver_id
+    )
+    if not assigned:
+        raise HTTPException(status_code=404, detail="Pending task or same-tenant approver not found")
+    return {"assigned": True}
+
+
 @app.get("/orders/{order_id}", response_model=OrderResponse)
 def get_order(
     order_id: str,
     identity: DemoIdentity = Depends(require_demo_identity),
 ) -> OrderResponse:
     logger.info("Order lookup requested order_id=%s tenant_id=%s", order_id, identity.tenant_id)
-    order = fetch_order(settings.database_path, order_id, identity.tenant_id)
+    order = fetch_order(settings.database_path, order_id, identity)
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found for this tenant")
     return OrderResponse(**order)
@@ -581,7 +725,7 @@ def get_agent_run_endpoint(
     run_id: str,
     identity: DemoIdentity = Depends(require_demo_identity),
 ) -> AgentRunResponse:
-    run = fetch_agent_run(settings.database_path, run_id, identity.tenant_id)
+    run = fetch_agent_run(settings.database_path, run_id, identity)
     if run is None:
         raise HTTPException(status_code=404, detail="Agent run not found")
     return AgentRunResponse(**run)

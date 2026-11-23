@@ -1,10 +1,65 @@
 # Project Agent Instructions
 
+## Phase 2 authorization model (closed; later resumed into Phase 3)
+
+- User approved the four-role schema/implementation proposal. Local authorization implementation is complete; details are in `docs/phase2_permission_model_and_migration_proposal.md`.
+- Current full suite: **115 passed / 20.29s**. It includes isolated migration compatibility, legacy NULL audit-column retry, repository ownership/grants, API spoofing, MockShop preflight, actor/customer audit, assigned approval, self-approval, and concurrent duplicate-decision coverage.
+- Additive schema migration was tested in temp databases; user reports the WSL migration and backup succeeded. Existing after-sale audit fields remain NULL without backfill. Do not alter/clear/expose persistent D-drive data.
+- Fixed demo order 1001 and fixed MockShop fixtures have explicit demo owner mappings; V1 imported orders with unknown ownership remain unavailable. Demo tokens remain public selectors, not real authentication.
+- At Phase 2 close, the work was paused. The user later asked Codex to continue automatically until the next acceptance gate; the current Phase 3 instructions below supersede the pause. This session did not start Compose/WSL or touch persistent DB/Chroma. No commit or push was made.
+- Phase 2 is complete and paused. User reports a persistent SQLite backup (`support_agent.db.bak-20261122`), successful WSL migration, three healthy containers, and `verify_phase6` + `verify_v21` both PASS (EXIT=0). They specifically verified legacy 2026-11-18 after-sale rows with NULL `actor_id` return the original application on retry. This is user-reported real-data acceptance; this session did not operate WSL.
+
+## Current task (2026-11-22): Phase 3 evaluation reliability — holdout review pending
+
+- 2026-11-23 latest: full pytest **137 passed / 18.14s**. OOS-v2 real regression completed: Hit@4, Macro Recall@4, answer-rule screen, abstention screen, citation-source match all 100%; 0 screening Bad Cases. Treat as an observed regression set, not semantic accuracy or blind-holdout proof. Report/ledger refreshed. SiliconFlow clients now have a 30s request timeout and one retry; OOS logs per-case progress.
+- Local delivery commit completed as `64432c8` (54 files; source, tests, docs, and OOS reports). SQLite backup and test temp dirs were excluded. Not pushed or deployed; user can now sync to WSL and report verifier results.
+
+- User instructed future work to proceed automatically until a user acceptance decision is needed. Phase 2 is closed. Phase 3 offline implementation, Embedding calibration, explicit-conflict response, and the OOS-05 targeted retrieval fix are complete locally. The newer query-expansion change is included in commit `64432c8`; final deployment awaits the user's WSL sync and verifier result.
+- OOS runner now emits a machine-readable `rag_oos_v1_bad_cases.json` ledger alongside Markdown on a real run. Screening category/reason/suggestion are explicitly hypotheses; root-cause review and remediation/regression fields remain pending for a human.
+- Offline characterization tests cover irrelevant evidence with a valid citation, contradictory policy evidence, and instruction-like evidence. They document limitations using FakeListChatModel; they do not demonstrate live-model safety.
+- Local full suite after query expansion and OOS-v2 draft validation: **130 passed / 17.01s**. User reports WSL conflict smoke, phase6, and V2.1 all PASS for the earlier build. The current retrieval change remains local pending the user's commit/deploy boundary.
+- Calibration report: `data/evaluation/oos/embedding_distance_calibration_v1.md`. All 12 answerable target policies appeared in Top-4. Answerable target distances span 0.6516–1.1380; unsupported nearest distances span 0.9072–1.1817, with substantial overlap. Therefore this sample does not support a safe global distance threshold.
+- Implemented after user approval: stop generation only when two retrieved sentences are identical after removing one explicit Chinese negation marker, have opposite polarity, and share a topic anchor with the question. It returns a cited clarification and logs the conflict count. This is intentionally conservative, not a semantic contradiction detector; scope-specific exceptions, different refund stages, and unrelated conflicts are tested as non-conflicts. No global distance threshold was added.
+- OOS-v1 rerun (2026-11-22 14:57 UTC) reports Hit@4 100%, Macro Recall@4 100%, answer rule checks 100%, abstention checks 100%, citation-label/source match 100%, 0 rule-screened Bad Cases. OOS-05 was used to design the compound-query rewrite, so this is a regression score, not a blind holdout result. Manual inspection of one generated OOS-05 answer found an unsupported photo/video follow-up despite the rule checks passing; semantic accuracy remains for human review.
+- A separate 15-case `rag_oos_v2_holdout.json` was reviewed and approved by the user on 2026-11-23. HOLDOUT-04 deliberately targets a previously observed unsupported evidence-format detail, so the set is not wholly blind. The user authorized the configured SiliconFlow/Qwen call on 2026-11-23; this dataset is now observed and must not be described as untouched blind data.
+- User authorized external evaluation on 2026-11-23. The real run completed with Hit@4 100%, Macro Recall@4 93.3%, answer literal-rule screen 20.0%, abstention screen 0/6, citation-label match 100%, and 12 screening Bad Cases (10 GENERATION, 2 RETRIEVAL). These are rule-based screens and need manual adjudication; do not call the 20% a semantic accuracy score or automatically change behavior to satisfy literal checks.
+- Codex completed a provisional case-by-case triage in `data/evaluation/oos/rag_oos_v2_manual_triage.md`: 3 clear generation concerns, 2 unsupported-detail candidates, 4 likely literal-check false positives, 2 potentially overbroad evidence labels, and 1 incomplete-answer candidate. The user plans to review later; do not mark the JSON ledger's human root-cause review complete or change prompts/policy constraints before that review.
+- Historical interim result (superseded 2026-11-23): after the user approved triage and targeted answer/checker fixes, an OOS rerun hung and the then-current report remained a pre-change snapshot. The later successful run is recorded above; do not use the old 73.3% screen as current.
+- SiliconFlow clients now use a 30-second request timeout with one retry, and OOS progress prints each case ID. The latest real OOS-v2 run and full pytest results are recorded above.
+- The WSL sync script includes answer/constraints/conflict/retrieval/query-expansion modules, synthetic conflict tests, and a live Chroma Top-4 smoke for OOS-05. Do not run Compose from the Windows checkout. Commit is complete; deployment remains with the user's established WSL sync flow. No push was made.
+
+## Historical stage 1 audit (2026-11-22; superseded by approved Phase 2 implementation below)
+
+- User's latest task instructions replace earlier instructions. Stage 1 audit is complete and recorded in `docs/engineering_audit_2026-11-22.md`; stop before phase 2 core logic changes until the user confirms the authorization/schema plan.
+- Preserve all pre-existing uncommitted OOS changes; do not clean, overwrite, commit, or push them.
+- Audit evidence: local full pytest 105 passed / 17.99s. Public GitHub `main` and local HEAD are `43adc60`; Actions run 29 passed, but it does not include current uncommitted OOS edits. User reports latest WSL has three healthy containers and phase6 + V2.1 verifiers pass; this is reported evidence, not a test run by this session.
+- Core findings: SQLite legacy order and agent-run queries are tenant-only; MockShop identity checks occur after fetching the order object; shared Chroma is only safe for the current common demo policy corpus; no RAG relevance threshold/conflict or semantic grounding test; OOS-v1 has participated in answer/checker iteration and is not blind; webhook state key may collide if IDs are store-local; README/architecture statuses are stale.
+- Do not alter core auth, order ownership schema, approval scope, RAG business behavior, Webhook keys or persistent database without first presenting the impact/proposal and receiving user confirmation. Never start Compose from the Windows checkout.
+- Keep `task_plan.md`, `findings.md`, `progress.md`, `docs/project_status.md`, and the audit report aligned. Do not publish/commit/push unless explicitly requested.
+
+## Historical duplicate audit handoff (2026-11-22; superseded by approved Phase 2 implementation below)
+
+- The user's latest instructions supersede older task instructions. Start with a read-only stage 1 audit; report before changing core business logic.
+- Preserve the pre-existing uncommitted OOS changes present at task start. Do not overwrite or clean them; distinguish them from this audit.
+- Audit code and tests directly for tenant/user/order authorization, SQL scoping, RAG evidence/abstention, LangGraph state/routing/checkpoint recovery, evaluation/OOS, pytest, Docker Compose, CI, README and logging.
+- Deliver an audit report with an architecture diagram, evidence-backed implementation statuses, prioritized findings and expected file list. Do not infer functionality from README/comments alone.
+- Do not alter core permissions, SQL, RAG, graph or business rules until the audit is presented and the user confirms a proposal. Do not modify datasets, database/vector store, Git history, or publish/commit/push. Do not start Compose from the Windows checkout.
+- Update `task_plan.md`, `findings.md`, `progress.md`, `AGENTS.md`, and `docs/project_status.md` with current evidence.
+
+## Latest task result (2026-11-21): independent RAG OOS evaluation
+
+- Added an independent 15-case OOS dataset at `data/evaluation/oos/rag_oos_v1.json`; the original 45-case `data/evaluation/v1_eval_cases.json` and business flow were not changed.
+- Improved answer tone and targeted edges in `answer.py`/`answer_constraints.py`: natural concise response guidance, missing-fact clarification, conditional shipping/refund/delivery statements, and concise fixed responses for selected explicit policy boundaries. Internal constraint IDs are no longer included in model context.
+- Preserved the before-style report at `data/evaluation/oos/rag_oos_v1_report_before_style.md`. Historical real run at 2026-11-21 11:42 UTC reused configured Chroma, `BAAI/bge-large-zh-v1.5`, `Qwen/Qwen2.5-7B-Instruct`, and Top-K=4. It reported Hit@4 100.0%, Macro Recall@4 95.6%, answer rule-check 93.3%, abstention/scope rule-check 100%, citation-label/source match 100%; OOS-05 then had a Top-4 evidence gap. It is superseded by the 2026-11-22 regression report above.
+- The answer checks were broadened for equivalent phrasing and the clarification case's required source was corrected; do not present before/after rates as a strict apples-to-apples accuracy comparison. Rules are screening checks, not semantic accuracy.
+- Command: `python -m tests.oos.run_oos`. The run sends the OOS questions and retrieved policy evidence to the already-authorized SiliconFlow/Qwen provider. Mock tests validate implementation only.
+- Latest full suite: 105 passed / 15.00s. User reports the newest code was synced to `/opt/project2`, all three containers were recreated and healthy, `verify_phase6` and `verify_v21` both passed (EXIT=0), and the OOS-05 fix is active in the demo. This is user-reported runtime evidence. The latest standalone OOS report still records the earlier OOS-05 Top-4 retrieval gap; do not overwrite its metrics without a fresh OOS run against the deployed configuration.
+
 ## Current task (2026-11-18): V2.1 E-commerce Integration extension
 
 - Scope is incremental over the existing V2.1 demo. Keep all shop/customer/order/logistics data fictional. Do not claim real Shopify/Taobao/JD integrations or real after-sale execution.
 - Phase 0 inventory is complete. Baseline was 71 passed. MockShop API/Adapter, tenant/store/customer-scoped FastAPI endpoints, SQLite idempotency, HMAC webhook inbox/state sync, and identity-bound LangChain Tools in LangGraph are implemented. Current full suite: 93 passed / 12.26s; Vue production build passed. The 35/35 route and 8/8 parameter scores are prior results, not rerun after the latest changes.
-- Vue now displays MockShop order/logistics/eligibility results, supports requester A/B switching, and has an explicit eligibility-then-confirm after-sale demo flow. New API, evaluation, interview, and integration-learning docs are in `docs/`. Compose static config passed; remote CI and WSL runtime integration remain unverified. Do not start Compose from the Windows checkout.
+- Vue now displays MockShop order/logistics/eligibility results, supports requester A/B switching, and has an explicit eligibility-then-confirm after-sale demo flow. New API, evaluation, interview, and integration-learning docs are in `docs/`. Compose static config passed. User reports commit `43adc60` passed WSL verification twice without restarting mock-shop while order 2003 already had an aftersale record; phase 6 and V2.1 scripts both passed with EXIT=0. Do not start Compose from the Windows checkout.
 - Architecture and plan live in `ARCHITECTURE.md`, `task_plan.md`, `findings.md`, and `progress.md`. Update these and `docs/project_status.md` as evidence changes.
 - Reuse existing FastAPI, DemoIdentity, SQLite, LangGraph, LangChain/Chroma RAG, logistics HTTP client, pytest, Compose and CI. Add focused integration modules; do not rewrite the graph or replace V1 rules.
 - Adapter translates provider schemas/statuses into domain DTOs. Authorization must be backend enforced using caller tenant/user/store mapping before invoking data or write methods. Public demo tokens are selectors only.
@@ -48,6 +103,8 @@ Enterprise Support Agent V2 is a local learning/demo project that reuses V1 poli
 - Public repository: `https://github.com/KaelLee335/enterprise-support-agent-v2`, branch `main`. Local commits `e68a1cea` (initial release) and `04503a1` (release target documentation) were pushed. Remote Git tree was inspected: 105 entries, README/source/tests present, no `.env`, databases/WAL, vector store, virtualenv, caches, or egg-info paths. Keep credentials and local runtime data out of future commits.
 
 ## Active work and priorities
+
+- Current stage is Phase 3 evaluation reliability; see the current-task section at the top. Phase 2 authorization is closed with user-reported WSL acceptance. The current query-expansion change is local and awaits the user's commit/sync boundary; the separate OOS-v2 draft awaits human review before execution.
 
 - Phase 15 reliability hardening is complete. Phase 17 Vue demo UI is present; user reports install and live `/api/chat` flow succeeded, and local `npm run build` passed. UI changes do not require rebuilding the backend container. Keep provider API keys out of frontend; demo token is a local demo credential only. Defer productionization.
 

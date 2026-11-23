@@ -32,6 +32,9 @@ class Settings:
     demo_token_demo_a: str = "demo-a-local-token"
     demo_token_demo_b: str = "demo-b-local-token"
     demo_token_demo_a_approver: str = "demo-a-approver-local-token"
+    demo_token_demo_a_approver_alt: str = "demo-a-approver-alt-local-token"
+    demo_token_demo_a_service: str = "demo-a-service-local-token"
+    demo_token_demo_a_admin: str = "demo-a-admin-local-token"
     demo_token_legacy: str = "legacy-demo-local-token"
     logistics_api_base_url: str = "http://127.0.0.1:8091"
     logistics_api_key: str = "demo-logistics-local-key"
@@ -66,6 +69,9 @@ def get_settings() -> Settings:
         os.getenv("DEMO_TOKEN_DEMO_A", "demo-a-local-token"),
         os.getenv("DEMO_TOKEN_DEMO_B", "demo-b-local-token"),
         os.getenv("DEMO_TOKEN_DEMO_A_APPROVER", "demo-a-approver-local-token"),
+        os.getenv("DEMO_TOKEN_DEMO_A_APPROVER_ALT", "demo-a-approver-alt-local-token"),
+        os.getenv("DEMO_TOKEN_DEMO_A_SERVICE", "demo-a-service-local-token"),
+        os.getenv("DEMO_TOKEN_DEMO_A_ADMIN", "demo-a-admin-local-token"),
         os.getenv("DEMO_TOKEN_LEGACY", "legacy-demo-local-token"),
     )
     if len(set(demo_tokens)) != len(demo_tokens):
@@ -79,6 +85,15 @@ def get_settings() -> Settings:
         demo_token_demo_b=os.getenv("DEMO_TOKEN_DEMO_B", "demo-b-local-token"),
         demo_token_demo_a_approver=os.getenv(
             "DEMO_TOKEN_DEMO_A_APPROVER", "demo-a-approver-local-token"
+        ),
+        demo_token_demo_a_approver_alt=os.getenv(
+            "DEMO_TOKEN_DEMO_A_APPROVER_ALT", "demo-a-approver-alt-local-token"
+        ),
+        demo_token_demo_a_service=os.getenv(
+            "DEMO_TOKEN_DEMO_A_SERVICE", "demo-a-service-local-token"
+        ),
+        demo_token_demo_a_admin=os.getenv(
+            "DEMO_TOKEN_DEMO_A_ADMIN", "demo-a-admin-local-token"
         ),
         demo_token_legacy=os.getenv("DEMO_TOKEN_LEGACY", "legacy-demo-local-token"),
         logistics_api_base_url=os.getenv(

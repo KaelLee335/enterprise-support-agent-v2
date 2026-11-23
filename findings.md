@@ -1,5 +1,32 @@
 # 阶段 0：项目与 V1 资产盘点
 
+## 2026-11-22 Phase 3 OOS 回归更新
+
+- OOS-05 暴露复合查询 Top-4 证据遗漏。新增仅在定制商品、质量问题、寄回/运费三个信号共现时启用的检索查询扩展；测试实际 Chroma Top-4 命中 QUA-01、RET-01、POL-02、POL-05。Top-K 仍为 4，用户原问题仍传给生成模型。
+- OOS-v1 复测为 Hit@4 100%、Macro Recall@4 100%、答案规则筛查 100%、拒答边界 100%、引用标签匹配 100%、筛查 Bad Case 0。OOS-05 参与调优，必须标注为回归，不能作为 blind 成绩或语义准确率。
+- 人工复核发现 OOS-05 答案额外提出照片/视频格式，而政策只要求质量问题凭证，没有指定介质；当前规则检查未捕捉这一无依据细节。
+- OOS-v2 15 条案例已由用户于 2026-11-23 审核通过；独立 runner 已支持 `--dataset` 并为该数据集生成独立报告和 Bad Case ledger。HOLDOUT-04 目标来自此前观察到的凭证格式无依据追问，故该集合不是完全盲测。外部模型调用需单独授权，获得授权前不运行真实评估。用户报告早前冲突保护版本 WSL 验收通过，但当前复合查询扩展未部署，待用户提交后同步。
+- 用户授权后真实评估完成：Hit@4 15/15、Macro Recall@4 93.3%、答案规则初筛 3/15、拒答词面初筛 0/6、引用标签匹配 15/15；12 个自动筛查案例（GENERATION 10、RETRIEVAL 2）。拒答短语检查可能误报，不能把筛查通过率解释为语义准确度；HOLDOUT-04 输出确有未被规则检查发现的具体凭证格式幻觉。人工复核前不做 Prompt/约束调整。
+- 已对 12 个候选项逐例对照原政策，完成 Codex 初步分诊，详见 `data/evaluation/oos/rag_oos_v2_manual_triage.md`。发现 HOLDOUT-03/04/12 的明确答复偏差；HOLDOUT-02/06/13/15 多为词面检查误报；HOLDOUT-08/10 的标注必要性值得复核。该分诊不是用户最终裁定，Bad Case ledger 中人工根因字段保持 pending。
+
+## 2026-11-22 Phase 3 Bad Case 评估闭环
+
+- OOS Markdown 报告已有问题、期望/实际回答、召回来源、自动可能原因和建议；此前缺少结构化机器可读记录及人工根因、修复和回归追踪字段。
+- 新 ledger 将初筛类别/原因标记为未确认假设；人工根因类别限制为 DATA、CHUNK、RETRIEVAL、GENERATION、BUSINESS、ABSTENTION，修复/回归证据以独立字段记录。
+- runner 改动仅影响评估输出，不修改 RAG 生成、检索阈值或既有报告。真实 OOS 运行可以写入该 ledger，但本阶段尚未运行模型或刷新任何 OOS 指标。
+- 三个离线特征测试确认：非空无关证据仍可让带合法 source ID 的答复通过引用白名单；矛盾证据没有专门冲突标记；FakeListChatModel 返回指令诱导的承诺时引用编号检查仍可能为真。这些测试描述结构局限，不代表真实 LLM 行为。
+- 已由用户批准完成 SiliconFlow Embedding-only 校准，详细原始探针、排序和距离见 `data/evaluation/oos/embedding_distance_calibration_v1.md`。12 条可回答探针的目标均进入 Top-4；但可回答目标距离范围 0.6516–1.1380 与无答案最近距离 0.9072–1.1817 明显重叠。该样本不支持安全的全局低相关阈值。
+- 校准阶段没有改变 Chroma/SQLite 或回答行为。用户随后批准了窄范围实现：仅针对检索句子在去掉显式“不/没/未”后完全相同、否定极性相反、且与当前问题共享具体业务主题锚点的情况。冲突会在生成前短路为带引用的人工核验答复；不同条件、例外范围、退款不同阶段及无关主题不自动认作冲突。它不能覆盖语义改写式冲突，不能当作通用矛盾检测。
+
+## 2026-11-22 Phase 2 权限实施发现
+
+- 权限事实现在由服务端 tenant membership、Customer 所属关系、Service grants 和 approval task 分配共同决定；Demo token 只选择固定虚构主体，客户端 user/tenant/role/approver 字段不作为身份来源。
+- SQLite 订单查询在 SQL 中同时约束租户与客户/授权关系；MockShop 先读取最小 scope 标识并完成授权，再获取订单详情。旧导入订单没有可靠 owner 的，不猜测回填，默认对 Customer/Service 不可见。
+- 审批状态以持久任务表为准，比较并交换更新覆盖重复/并发决策；恢复 LangGraph checkpoint 时仍要使用当前认证身份校验 assignee。
+- schema 是增量的：新增权限表，并仅在旧 after-sale 表缺列时添加可空 `actor_id/customer_id`；旧记录无自动回填。本会话只在 pytest 临时数据库验证；用户报告已备份持久库并通过 WSL 流程执行首次迁移。
+- 完整测试 115 passed / 20.29s。剩余重要风险：approval SQLite 与 LangGraph checkpoint 不同库，写入决策后若 Graph 恢复失败，可能需要人工对账；这不触发真实退款。
+- WSL 验收后续发现：旧版 `aftersale_requests` 迁移加列后，存量行的 `actor_id/customer_id` 为 NULL。幂等重试将这两个字段视作未知，不参与冲突比较；`user_id/order_id/platform/reason` 继续严格比较，非空审计字段也必须匹配。修复通过 legacy-row API 回归和全量 pytest 115 passed / 20.29s；用户报告 WSL 重建后 phase6 与 v21 全通过，并在真实 2026-11-18 存量行上确认重试复用原申请。
+
 ## 2026-11-18 V2.1 电商集成补充发现
 
 - 第二个固定 MockShop 店铺 `shop-demo-b` 映射到独立 tenant `demo-b`。新增平台 API fixture 后，如果 SQLite 未初始化此租户，Webhook 写入会被 tenant 外键拒绝；已通过 seed `demo-b` tenant/user 和 user→customer 映射修复。
@@ -322,3 +349,42 @@ GitHub Actions `b797bda` 运行成功：Python 3.12 全量 pytest 55 passed in 3
 - 写工具在 Toolset 里要求 requester + `confirmed=true`，实际业务写入口仍是专门 FastAPI endpoint，由它完成 SQLite idempotency reservation 与状态留存；自然语言意图本身不作为确认。
 - Graph 测试覆盖平台订单/物流路由和“质量问题想退货”资格+RAG失败安全路径；StructuredTool 测试覆盖 5 个工具、身份绑定、确认和越权拒绝。
 - 验收：定向 37 passed / 5.13s；全量 **89 passed / 10.05s**；既有 V1 路由标签 **35/35**、订单参数 **8/8**、DB unchanged，0 failures。CI/Compose 文件已改，但 CI 未触发，WSL 与 Vue 尚未更新。
+# 2026-11-21 — OOS 评估实现发现（首次运行快照，已被后续复测取代）
+
+- 开发集是 45 条，但原文件的 category 汇总元数据合计 43；本轮没有编辑或修正原数据，OOS 目录与执行器单独存放。
+- Retriever 的 Top-K 来自配置（默认 4），向量查询调用 Chroma similarity search。答案函数返回用于回答的 evidence；OOS runner 对这份实际 evidence 计算 Hit/Recall，避免评估与模型上下文不一致。
+- 15 条 OOS 题的相关来源标注不等于“无答案题无依据”：无答案/边界题仍标记支持拒答边界的政策来源。若知识库未来真没有支持性来源，可将 relevant_document_ids 留空；此时不参与检索指标。
+- 当前 5 个 Bad Case 中，OOS-05 和 OOS-11 是多证据未全召回；Hit@4 仍为 100%，说明 Hit 指标掩盖了证据完整性差异。OOS-01、OOS-04、OOS-07 的词面规则项未过，可能是语义遗漏，也可能是检查口径问题，需人工审阅。OOS-05 还出现 `[POL-05_SHIPPING_AND_GUIDANCE]`，这不是政策文档编号；新增 OOS 检查会把不属于召回来源的引用标签标出来。
+- 失败归类自动化只判断可直接观察的差异（RETRIEVAL、GENERATION、ABSTENTION）；DATA、CHUNK、BUSINESS 等根因必须由人对照原文确认，不自动推断。
+- 当前输出是一次真实模型/向量库运行快照；重新运行会覆盖 Markdown 报告。该测试会向已授权的 SiliconFlow/Qwen 发送本 OOS 问题及检索证据用于回答，不发送个人数据。
+
+## 2026-11-21 — OOS 回答自然度复测
+
+- 最新版本剩余 OOS-05 是真实证据召回缺口；Hit@4 100% 仍可能掩盖完整证据不足。OOS-11 只要求第一轮澄清，POL-02 足以支持所问字段；用户若确认质量问题，后续回答再检索 POL-03。
+- Before-style 报告保留首版原始答复。评估器和一条案例来源标注后来修正，所以聚合分数变化仅是方向性比较，不能视为严格同分母准确率提升。
+- 目前无效约束编号不再输入给生成模型；质量运费回答不再无条件附加无理由退货费用；不确定的退货资格会先澄清。
+- 进一步处理机械感：确定性补充与模型答复合并为同一段，同一政策编号不重复追加；如果用户问明天能否送达，会明确说不能保证明天。OOS 规则项检查在去空格后比较，避免中文数字格式导致误报。
+- 最终真实复测（2026-11-21 11:42 UTC）：Hit@4 100.0%、Macro Recall@4 95.6%、答案规则项 93.3%、拒答/范围边界 100%、引用标签匹配 100%，仅剩 OOS-05 检索失败。全量 pytest 105 passed / 15.00s。
+- 用户报告随后的 WSL 部署三容器 healthy，阶段 6 与 V2.1 验收全 PASS，OOS-05 修复在演示页已生效。该 runtime 验收与 11:42 UTC 的独立 OOS 评测快照分开保留；若要更新 OOS 统计，需基于部署修复后的实际 OOS 运行结果。
+# 2026-11-22 — 工程质量审计
+
+- 审计基线：项目根目录 `D:\project_2`。开始时工作区已存在上一轮 OOS 改进变更（回答约束、OOS 测试/报告及说明文档）；本轮需与审计发现分开归档。
+- 任务要求阶段 1 先交审计报告；涉及身份权限、订单 SQL、RAG、LangGraph 等核心逻辑的修复，报告后提供原因/影响/方案并等用户确认。
+
+# 2026-11-22 — 工程质量与开源竞争力审计结果
+
+- 当前审计报告：`docs/engineering_audit_2026-11-22.md`。本轮只读核对代码、测试、README、CI/Compose 与已有运行证据；未改核心业务代码、规则、数据库、Chroma 或容器。
+- 全量 pytest 本机复跑 **105 passed / 17.99s**。GitHub 公开 main/本地 HEAD 为 `43adc60`，Actions run 29 为 success；本地 OOS 改动未提交，因此不包含在远端 CI 证据里。
+- 权限边界：普通 SQLite 订单和 `agent_runs` 查询按 tenant 过滤，不按 user/order ownership；MockShop user/store 权限测试存在，但授权发生在 adapter 返回订单之后。需先定义请求人和审批人的访问语义，再批准 schema/API 改动。
+- Webhook 的 inbox 对 event_id 幂等、签名与 stale 状态有测试；`platform_order_states` 使用 `(platform, order_id)` 主键，未来 order_id 若仅在店铺内唯一会有碰撞覆盖风险。当前 Mock fixture 尚未覆盖。
+- RAG 引用检查仅验证引用 ID 属于召回来源，空召回/服务异常可安全降级；无相关性阈值、证据冲突检测或事实蕴含测试。当前共享 Chroma 仅含 Demo 公共政策，不支持租户私有知识隔离。
+- 现有 15-case OOS 已被用于回答约束/判分规则迭代；文件独立，但过程不再是 blind holdout。应保留为回归集并另建未参与调优的集合。
+- README 当前验证摘要与阶段描述落后于最新 105 项与用户报告的 WSL 三容器验收。GitHub Actions 运行完整，但最新远端 run 只验证 `43adc60`。
+# 2026-11-22 — Phase 2 权限模型审计
+
+- 按 Customer/Service/Approver/Admin 目标规则完成源码只读核对，细节和待审 DDL 见 `docs/phase2_permission_model_and_migration_proposal.md`。
+- 当前 auth 是固定 Demo token→DemoIdentity 映射；数据库没有角色列/关系，Service 和 Admin 角色尚不存在。SQLite order 只 tenant scope，`customer_id` 可空且含义不一致；AgentRun 读/写也缺 user scope。
+- MockShop order 先从 adapter 读取再检查 caller customer；approver 当前被视为可访问整个租户店铺。售后只存 `user_id`，无法分开 actor/customer。审批没有持久 task/assignee 表，checkpoint thread 的权限不能代表分配关系。
+- 迁移提案新增 customers、tenant_users、service_customer_grants、order_customer_ownership、approval_tasks、approval_task_events。未运行 SQL；不回填历史所有权或 approver 分配。
+- `orders.customer_id='demo-a'` 对应关系不明确，V1 seed orders 为 NULL；不能映射成 MockShop customer ID。未映射资源默认拒绝。
+- 本轮没有代码/schema变动，没有重跑测试。引用上轮已记录基线 105 passed / 17.99s，不将其表述为新权限测试结果。

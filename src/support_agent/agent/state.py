@@ -7,6 +7,7 @@ class SupportState(TypedDict, total=False):
     tenant_id: str
     user_id: str
     user_role: str
+    customer_id: str | None
     run_id: str
     database_path: str
     intent: str

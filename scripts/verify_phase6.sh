@@ -131,17 +131,15 @@ if data.get("status") != "已完成":
 '
 echo "PASS distinct approver records demo approval without changing order"
 
-self_pending=$(curl -fsS --max-time 15 -X POST \
+self_result=$(curl -fsS --max-time 15 -X POST \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $APPROVER_TOKEN" \
   -d '{"question":"帮我给订单1001直接退款"}' "$BASE/chat")
-self_thread=$(PENDING_RESPONSE="$self_pending" python3 -c 'import json,os; print(json.loads(os.environ["PENDING_RESPONSE"])["thread_id"])')
-self_status=$(curl -sS --max-time 10 -o /dev/null -w '%{http_code}' -X POST \
-  -H 'Content-Type: application/json' -H "Authorization: Bearer $APPROVER_TOKEN" \
-  -d '{"approved":true}' "$BASE/approvals/$self_thread/decision")
-if [[ "$self_status" != "403" ]]; then
-  echo "FAIL approver self-approval: expected HTTP 403, got $self_status" >&2
-  exit 1
-fi
-echo "PASS approver cannot approve own request"
+SELF_RESULT="$self_result" python3 -c '
+import json,os,sys
+data=json.loads(os.environ["SELF_RESULT"])
+if data.get("approval_status") != "forbidden_role":
+    print("FAIL approver self-application", data.get("approval_status"), file=sys.stderr); sys.exit(1)
+'
+echo "PASS approver self-application rejected before task creation"
 
 echo "All phase 6 and V2.1 demo checks passed."

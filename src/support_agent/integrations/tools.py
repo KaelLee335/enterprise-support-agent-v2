@@ -6,15 +6,22 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from uuid import uuid4
 
 from langchain_core.tools import StructuredTool
 
 from support_agent.auth import DemoIdentity
 from support_agent.config import Settings, get_settings
-from support_agent.integrations.errors import IntegrationNotFound, IntegrationRejected
+from support_agent.db import (
+    AftersaleIdempotencyConflict,
+    find_customer_user,
+    reserve_aftersale_request,
+    update_aftersale_request,
+)
+from support_agent.integrations.errors import IntegrationConflict, IntegrationNotFound, IntegrationRejected
 from support_agent.integrations.factory import create_mock_shop_adapter
 from support_agent.integrations.mock_shop import MockShopAdapter
-from support_agent.integrations.permissions import apply_webhook_order_state, can_access_order
+from support_agent.integrations.permissions import apply_webhook_order_state, get_authorized_platform_order
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +55,7 @@ def build_mockshop_tools(
     database_path = database_path or settings.database_path
 
     def authorized_order(order_id: str):
-        order = adapter.get_order(order_id)
-        if not can_access_order(identity, order):
-            raise IntegrationNotFound("Order not found for this identity")
+        order = get_authorized_platform_order(adapter, order_id, identity, database_path)
         return apply_webhook_order_state(order, database_path)
 
     def _get_order(order_id: str) -> dict:
@@ -82,11 +87,15 @@ def build_mockshop_tools(
     def _create_aftersale(
         order_id: str, reason: str, idempotency_key: str, confirmed: bool
     ) -> dict:
-        if identity.role != "requester":
-            raise IntegrationRejected("Demo requester role required")
+        if identity.role not in {"customer", "service", "requester"}:
+            raise IntegrationRejected("Customer or authorized service role required")
         if not confirmed:
             raise IntegrationRejected("Explicit demo confirmation is required")
-        authorized_order(order_id)
+        order = authorized_order(order_id)
+        customer_id = order.customer_id
+        requester_id = find_customer_user(
+            database_path, identity.tenant_id, customer_id
+        ) or identity.user_id
         eligibility = adapter.check_aftersale_eligibility(order_id, reason)
         if not eligibility.eligible:
             raise IntegrationRejected("Order is not eligible under MockShop demo rules")
@@ -98,11 +107,48 @@ def build_mockshop_tools(
             "tenant_id": identity.tenant_id, "user_id": identity.user_id,
             "tool": "create_aftersale", "order_id": order_id,
         })
-        return adapter.create_aftersale(order_id, reason, scoped_key).model_dump()
+        try:
+            record, created_now = reserve_aftersale_request(
+                database_path,
+                request_id=uuid4().hex,
+                tenant_id=identity.tenant_id,
+                user_id=requester_id,
+                actor_id=identity.user_id,
+                customer_id=customer_id,
+                order_id=order_id,
+                platform=adapter.platform_name,
+                reason=reason,
+                idempotency_key=scoped_key,
+            )
+        except AftersaleIdempotencyConflict as exc:
+            raise IntegrationConflict("Idempotency key already used for another request") from exc
+        if not created_now:
+            if record["status"] == "pending_demo":
+                return {
+                    "aftersale_id": record["platform_aftersale_id"],
+                    "order_id": order_id, "status": "pending_demo",
+                    "demo_only": True,
+                }
+            raise IntegrationConflict("A request with this idempotency key is already in progress")
+        try:
+            application = adapter.create_aftersale(order_id, reason, scoped_key)
+        except Exception:
+            update_aftersale_request(
+                database_path, record["request_id"], identity, status="failed"
+            )
+            raise
+        update_aftersale_request(
+            database_path, record["request_id"], identity,
+            status="pending_demo", platform_aftersale_id=application.aftersale_id,
+        )
+        return application.model_dump()
 
     def _get_aftersale_status(aftersale_id: str) -> dict:
+        order_id = adapter.get_aftersale_scope(aftersale_id)
+        authorized_order(order_id)
         result = adapter.get_aftersale_status(aftersale_id)
-        authorized_order(result.order_id)
+        if result.order_id != order_id:
+            raise IntegrationNotFound("After-sale scope changed during lookup")
         return result.model_dump()
 
     return MockShopTools(

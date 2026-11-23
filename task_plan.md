@@ -1,5 +1,83 @@
 # 项目推进计划
 
+## 2026-11-22：Phase 3 Bad Case 闭环
+
+### 2026-11-23 后续回归完成
+
+- [x] 用户复核通过后完成政策边界修复、必要证据标签收窄、检查器同义项优化与请求超时/进度机制。
+- [x] 全量 pytest **137 passed / 18.14s**；真实 OOS-v2 回归指标 Hit@4 100%、Macro Recall@4 100%、答案/拒答/引用规则筛查均 100%，Bad Case 0。
+- [x] 本地交付提交 `64432c8` 已创建，SQLite 备份未包含；未推送、未操作 WSL。
+- [ ] 等用户按既有 WSL 流程同步并回报容器验收结果。
+
+### 本机实施与验收
+
+- [x] 保留 Phase 2 实机验收结论；按用户新指示继续后续阶段，不再在每个普通阶段完成后停下来等待。
+- [x] OOS runner 增加机器可读 Bad Case ledger：记录案例、期望/实际回答、证据、自动筛查类别与原因，并预留人工根因复核和修复回归字段。
+- [x] 明确允许的人工根因类别 DATA/CHUNK/RETRIEVAL/GENERATION/BUSINESS/ABSTENTION；自动筛查不冒充人工定因。
+- [x] Mock 评估器单测 5 passed；全量 pytest **117 passed / 20.70s**。没有运行真实 OOS、调用模型、修改政策数据、数据库或容器。
+- [x] 初始新增离线特征测试：无关证据合法引用、互相冲突的政策内容、证据内指令样式文本。初始假模型用例只记录当时结构缺口，不视为安全通过；后续经确认补上窄范围直接冲突保护。
+- [x] 更新 README/ARCHITECTURE 的过期状态、权限模型和已报告的 WSL 验收；未提交或推送。
+- [x] 经用户批准，以已配置的 SiliconFlow Embedding 对 12 份虚构政策和 24 条合成相关/无关探针计算距离；未调用聊天模型、未修改索引/数据库/业务行为；报告见 `data/evaluation/oos/embedding_distance_calibration_v1.md`。
+- [x] 校准观察：12/12 可回答探针目标政策进入 Top-4；可回答目标距离 0.6516–1.1380，无答案最近距离 0.9072–1.1817，区间明显重叠，不能安全设定统一距离阈值。
+- [x] 用户批准仅处理明确冲突：相同命题在检索证据中一处明确肯定、一处明确否定时，生成前停止并给出带引用的人工核验答复；不引入全局距离阈值。
+- [x] 增加冲突短路测试、范围例外/不同退款阶段/无关主题不误报测试、无理由词组识别测试；全量 pytest **126 passed / 20.28s**。
+- [x] 更新 WSL 同步脚本，包含新的冲突识别模块、答案约束和答案入口，并在容器内验证直接矛盾短路及范围例外不误报。
+- [x] 用户报告较早的“直接冲突/范围例外”版本已在 WSL 通过新增容器 smoke 与 phase6/V2.1 verifier（EXIT=0）。此证据不覆盖本轮新增的复合查询扩展。
+- [x] 当前本机查询扩展回归 OOS-v1：Hit@4 15/15、Macro Recall@4 100%；答案规则初筛、拒答边界、引用标签匹配均 15/15。OOS-05 已参与调优，结果仅作回归，不是盲测。
+- [x] 用户审核通过 OOS-v2 的 15 个问题、预期行为和证据编号；扩展独立 runner 的 `--dataset` 参数，报告与 Bad Case ledger 按数据集分开输出。HOLDOUT-04 专门测试已观察到的凭证格式边界，因此不宣称整套是完全盲测。
+- [x] 用户另行授权向 SiliconFlow/Qwen 发送 OOS-v2 问题、检索证据及答复；真实运行完成，报告和 ledger 分别写入 `rag_oos_v2_holdout_report.md` 与 `rag_oos_v2_holdout_bad_cases.json`。
+- [ ] 等用户之后复核 Codex 对 12 个候选 Bad Case 的初步分诊，再确认真实失败、检查器误报及证据标注范围；复核前不据词面筛查指标调整 Prompt/约束层。
+- [x] Codex 已完成逐案初步分诊，标注 3 个明确生成问题候选、2 个无依据细节候选、4 个检查器误报、2 个证据标注争议和 1 个回答不完整候选；详见 `rag_oos_v2_manual_triage.md`。根因 ledger 保持待用户复核。
+- [x] 用户复核通过后，修复拆修保修、凭证格式、发票金额、缺货、未寄回退款计时和付款次日发货推测；扩充等价短语检查。全量 pytest **137 passed / 18.09s**。
+- [ ] 更新后的真实 OOS-v2 回归未能完成；报告顶部标明仍是更早的成功快照，不能视为当前代码/修订标签的最新指标。重跑需要排查 SiliconFlow 请求挂起。
+- [ ] 本轮代码尚未提交或部署。按用户说明保持 WSL 部署状态不变；提交后由用户同步，再报告新版本实机验收。
+
+
+## 2026-11-22：Phase 2 业务权限模型
+
+### 实施与验收（已完成；按用户要求暂停）
+
+- [x] 只读检查 User/Tenant/Order/After-sale/Approval/AgentRun/Webhook、FastAPI、Repository、MockShop 与 LangGraph checkpoint。
+- [x] 输出当前角色关系、越权面、代码入口和分层测试矩阵：`docs/phase2_permission_model_and_migration_proposal.md`。
+- [x] 用户批准迁移提案；新增 schema 只在 pytest 临时库验证，未触碰现有 D 盘/WSL 业务库。
+- [x] 实现 Customer owner、Service grants、Approver task assignment、自批阻止、Admin tenant 边界及 MockShop 先授权后读取。
+- [x] 新增/修订权限回归；全量 pytest **115 passed / 20.29s**，保留测试，只窄修订过时权限期望。
+- [x] 更新 README、演示手册、阶段状态、迁移与审计说明。
+- [x] 用户报告已备份并迁移持久 SQLite；三个容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）。真实存量 NULL 审计字段重试返回同一申请。
+- [x] Phase 2 实机验收闭环；按用户要求结束并暂停，不自动进入下一阶段。
+
+### 当前暂停边界
+
+- 新版启动会为现有 DB 增量建表并仅在缺列时新增售后审计字段；本会话未操作持久 SQLite/Chroma。用户已报告在 WSL 备份并迁移成功。
+- 本次不启动 Compose、不更改 WSL、不提交或推送。
+- Phase 2 验收后暂停，等待用户明确确认，不自动进入其他阶段。
+
+## 2026-11-22：工程质量与开源竞争力优化（阶段 1 历史记录；后续 Phase 2 已获批准并完成本地实现）
+
+### 阶段 1：工程审计（已完成；核心业务代码未修改）
+
+- [x] 盘点当前工作区变更，区分上一轮 OOS 改进与本轮审计产物；不覆盖未提交内容。
+- [x] 按实际代码核对 API、租户与订单权限、RAG 检索/引用/拒答、LangGraph 状态/路由/审批恢复、评估数据与指标、测试、Compose、CI、README。
+- [x] 对每项标记：已实现且有测试、部分实现或风险，并列出源码与测试证据。
+- [x] 运行当前全量 pytest：**105 passed / 17.99s**；未触碰数据库、Chroma 或容器。
+- [x] 新建 `docs/engineering_audit_2026-11-22.md`，含架构图、核验矩阵、风险优先级与预计修改文件。
+- [x] 同步更新本计划、`findings.md`、`progress.md`、`AGENTS.md` 与 `docs/project_status.md`。
+- [x] 先汇报审计；核心权限/schema/RAG 业务修复待用户确认，不自动进入修改。
+
+### 审计后续建议（原计划，已由下方 Phase 2 实施记录取代）
+
+1. P0 核心可靠性：先由用户确认请求人/审批人访问语义和订单 owner schema，再改权限隔离；随后提交 RAG 无关证据/冲突/注入测试与最小拒答方案供确认。
+2. P1 OOS：把现有 15 条作为开发回归集；定义并由用户审核新的 blind holdout，再补 Macro/Micro 与答案人工标注指标。
+3. P2 Bad Case 闭环：统一归因类别、证据、根因复核、修复和回归。
+4. P3 工程与部署：评估 schema migration、CI、Compose、日志追踪和本地性能基准；不从 Windows checkout 启动 Compose。
+5. GitHub 展示：核心审计与指标口径确认后更新 README/架构图/复现方式/限制；不自动提交或推送。
+
+### 阶段 1 当时边界（历史记录）
+
+- 本轮只读检查核心实现；可新增审计/计划文档，不改核心权限、SQL、RAG、Graph 或业务规则。
+- 不删除/覆盖数据库和 Chroma，不改 Git 历史，不提交或推送。
+- 现有 OOS 改进有未提交工作区变更；保持原样，核对后仅在审计中记录。
+
 ## 2026-11-18：V2.1 电商集成扩展（当前任务）
 
 > 新需求按增量项目处理：保留现有 V2 售后 Agent、模拟物流服务、Demo 身份、SQLite、LangGraph 和前端；新增一条 MockShop Adapter 集成链。所有店铺、订单、用户和物流事件均为虚构数据。本轮不能标记真实平台接入。
@@ -52,7 +130,7 @@
 - [x] Phase 4 UI 与申请状态展示：平台订单/物流/资格卡片，店铺 A/B 身份切换，先资格检查再明确确认创建演示申请。
 - [x] Phase 5 Webhook：raw-body HMAC、schema、SQLite event inbox、event_id 幂等、冲突/过期事件处理及 tenant-scoped 状态查询。
 - [x] Phase 6 本机测试/评估/文档：全量 93 passed，Vue production build 通过；新增 API、评估、面试文档。
-- [ ] Phase 7 CI/Compose/WSL 运行验收：配置静态检查和 CI 触发范围核对后，交给用户按现有 WSL 流程同步部署。
+- [x] Phase 7 CI/Compose/WSL 运行验收：用户报告提交 `43adc60` 后，未重启 mock-shop 连续两次执行 WSL 同步/验收；三容器 healthy，phase 6 与 V2.1 全部 PASS（EXIT=0）。
 
 > 记忆更新：2026-11-16，采用用户最新的《Python Full-stack Agent Engineering — Autonomous Development & Interview Preparation》提示词。阶段 0–10 已结束；旧的“用户先设计、Codex 等待批准”流程已被新分工取代。Codex 自主负责技术方案与主力实现，用户通过代码讲解和学习材料理解项目。
 
@@ -106,6 +184,18 @@
 - [x] 阶段 6 验收脚本已在 WSL `the WSL project directory` 运行，全部检查通过，EXIT=0。
 
 ## 当前剩余工作
+
+### 独立 RAG 样本外评估（2026-11-21）
+
+- [x] 检查原 45 条 RAG 案例、现有检索评估、Chroma Retriever/Top-K 配置及已有 Bad Case 记录；不改原开发集和业务链路。
+- [x] 新建 15 条 OOS 案例，覆盖口语表达、同义表达、组合条件、多意图、无答案/范围边界和模糊澄清；每题带预期、证据来源、预期行为、分类和人工可审的规则项。
+- [x] 新增独立模块 `tests.oos`，复用现有 Chroma、Embedding、Qwen、Prompt 与约束层，默认 Top-K=4；命令为 `python -m tests.oos.run_oos`。
+- [x] 首次生成 OOS 报告并保留基线 `rag_oos_v1_report_before_style.md`；定位机械话术、约束编号伪引用、运费边界过度补充与无关追问。
+- [x] 加固回答 Prompt/政策约束；模糊退货资格先澄清；运费、退款、发货和超范围问题改为与问题相关的短答。Top-K 与业务 API 不变。
+- [x] 最新真实 OOS 报告（2026-11-21 11:42 UTC）：Hit@4 100.0%、Macro Recall@4 95.6%、答案规则项 93.3%、拒答/范围边界 100%、引用标签匹配 100%；剩余 OOS-05 为 Top-4 未召回 RET-01/QUA-01。部分检查规则和一项证据标注有修正，前后比例不是严格同口径准确率。
+- [x] 全量 pytest 105 passed / 15.00s；真实 OOS 复跑成功；发货时效约束合并文本并明确回应“明天能否到”。
+- [x] 用户报告新版 WSL 三容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）；演示页已验证 OOS-05 修复生效。部署验收单独记录，不改写独立 OOS 评测快照。
+- [ ] 用户审阅 OOS-05 的证据缺口，确认是否进一步改善召回；不自动提升 Top-K。
 
 ### V2.1 Demo 工程加固（本轮只做模拟，不做生产化）
 

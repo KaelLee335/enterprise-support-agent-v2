@@ -1,5 +1,62 @@
 # 工作进度
 
+## 2026-11-22 — Phase 3 Bad Case 闭环本机完成
+
+- 用户要求后续阶段自动继续到需要其验收的节点。本阶段为 OOS runner 增加可机读 Bad Case ledger，收录期望/实际回答、证据、引用异常、自动初筛，以及待人工填写的根因、修复和回归测试字段。
+- 初筛假设与人工根因分离；允许的人工分类为 DATA/CHUNK/RETRIEVAL/GENERATION/BUSINESS/ABSTENTION。生成 Markdown 同时提示分类仍需人工复核。
+- OOS 单元测试 **5 passed**；全量 pytest **117 passed / 20.70s**。没有真实 OOS 调用、没有重写历史指标/报告、没有数据库或 WSL 操作。
+- 后续离线证据边界核验已在同日完成，结果见紧随其后的 Phase 3 记录。
+
+## 2026-11-22 — RAG 离线证据边界初查（随后已补直接冲突保护）
+
+- 新增三个特征测试：无关证据带合法引用、矛盾证据无显式冲突状态、假模型按证据内指令作出错误承诺但引用检查通过。它们只刻画当前结构限制，不冒充真实模型攻击评估。
+- 本机全量 pytest 后续达到 **123 passed / 19.41s**。离线阶段未调用聊天模型或刷新 OOS 指标。
+- README 和 ARCHITECTURE 已从旧的 93 passed/“WSL 待部署”状态更新到现行 123 passed 与用户报告的 Phase 2/WSL 验收；RAG 报告的日期与证据级别保持明确。
+- 经用户批准完成真实 Embedding 距离校准（见下方记录）；当前停在行为变化验收点。
+
+## 2026-11-22 — Embedding 距离校准与显式冲突处理
+
+- 新增 `scripts/calibrate_rag_distance.py`，用 12 条目标政策明确的合成可回答问题和 12 条合成无答案问题，经已配置 SiliconFlow `BAAI/bge-large-zh-v1.5` 对既有 12-chunk Chroma 计算全部政策排序距离。
+- 真实调用仅为 Embedding；没有 Qwen/chat 调用，没有写入 Chroma、SQLite、没有重建索引或刷新 OOS 报告。
+- 报告：`data/evaluation/oos/embedding_distance_calibration_v1.md`。12/12 可回答目标进入 Top-4；目标距离范围 0.6516–1.1380，无答案最近距离范围 0.9072–1.1817，存在较大重叠。该样本不支持安全的全局阈值，不能据此改变拒答策略。
+- 用户批准只处理明确的直接矛盾，不添加全局阈值。新增 `src/support_agent/rag/evidence_conflicts.py`：仅当两条检索句子在移除显式“不/没/未”标记后完全一致、且一条有否定一条没有否定，并与用户问题共享已知主题锚点时，才标为冲突。
+- 冲突触发时跳过聊天模型，返回带来源引用的“资料存在相反表述，请人工核验”；答案审计记录加入冲突计数。明确测试了直接对立会短路、普通商品/定制商品范围例外不会误报、退款发起与到账两个阶段不会误报、“无理由”中的“无”不是否定词、与提问无关的主题不拦截。
+- 更新 `scripts/update_wsl_and_verify.sh` 同步 RAG answer/constraints/冲突模块，并加入容器内直接矛盾/范围例外 smoke。全量 pytest **126 passed / 20.28s**；没有调用 Qwen、没有改 Chroma/SQLite，也未在本会话操作 WSL。
+- 当前停止点为实机验收：请用户执行 WSL 同步/重建与 `verify_phase6`、`verify_v21`，并反馈结果。
+
+## 2026-11-22 — Phase 2 实机验收闭环并暂停（用户实测）
+
+- 用户报告已备份 SQLite（`support_agent.db.bak-20261122`）、同步并重建 WSL 部署；三个容器 healthy，`verify_phase6.sh` 与 `verify_v21.sh` 全 PASS，EXIT=0。
+- 用户确认 2026-11-18 的真实存量 `actor_id=NULL` 行重试后返回同一申请，legacy NULL 幂等兼容修复在持久数据上生效。
+- Phase 2 权限模型实机验收完成。按用户要求结束并暂停，不自动启动下一阶段；运行结果为用户提供，本会话未操作 WSL。
+
+## 2026-11-22 — 修复旧售后行的幂等兼容
+
+- 用户报告：更新后的 `verify_phase6.sh` self-application 用例通过；WSL 首次运行 `verify_v21` 失败。根因为迁移新增的 `actor_id/customer_id` 在旧行中为 NULL，严格比较把 NULL 和新请求身份误判为幂等键冲突。
+- 选择保留 NULL 的“历史未知”语义，不批量回填真实记录；在 `reserve_aftersale_request` 中跳过旧 NULL 审计字段比较，同时继续严格校验 user/order/platform/reason 和所有已有非空审计字段。
+- 新增 legacy NULL API 重试回归：相同请求复用原申请、不再次调用模拟平台；变更 reason 仍返回 409。定向测试 2 passed / 4.19s，全量 pytest **115 passed / 20.29s**。
+- 修复需同步至 `/opt/project2` 并重建容器后，重跑 `verify_phase6.sh` 与 `verify_v21.sh`；当前尚无该轮 WSL 结果。
+
+## 2026-11-22 — 修正 Phase 2 WSL verifier 旧断言
+
+- 用户报告：SQLite 迁移成功、三容器 healthy，验收前 17 项通过；唯一失败是审批人自批用例仍使用旧流程预期。
+- 现行代码在审批人提交申请时已由角色守卫提前拒绝，chat 返回 `approval_status=forbidden_role`，不会创建待审批任务。更新 `scripts/verify_phase6.sh`，直接断言此 chat 状态；业务实现未改。
+- 等待将更新后的 verifier 同步到 WSL 后重跑完整验收。此前的 17 项 WSL PASS 和迁移成功来自用户报告；本轮未操作 WSL。
+
+## 2026-11-22 — Phase 2 权限模型本地实施完成（等待 WSL 验收）
+
+- 用户批准四角色权限模型后，完成 Customer 所有权、Service 客户授权、Approver 任务分配与自批阻止、Admin 同租户管理、订单和 AgentRun Repository 范围、售后 actor/customer 审计拆分，以及 MockShop 先授权后取详情。
+- 审批任务以 SQL 条件更新防止重复/并发审批；Graph interrupt 恢复前从当前身份和持久任务重新验证分配关系。
+- 完整本机 pytest：**114 passed / 20.47s**。迁移兼容仅在测试临时库验证；未启动 WSL/Compose，未改持久 SQLite/Chroma，未提交或推送。
+- 迁移影响、旧权限断言的修订原因和剩余风险记录在 `docs/phase2_permission_model_and_migration_proposal.md`。部署前需用户先备份持久 SQLite，然后运行既定 WSL 同步/验收流程；实机验收后本阶段暂停。
+
+## 2026-11-18 — WSL V2.1 重复验收通过（用户实测）
+
+- 用户在已部署提交 `43adc60` 后连续两次运行 `update_wsl_and_verify.sh`；两次均未重启 `mock-shop`，且订单 2003 已有售后申请记录。
+- 两次均为三容器 healthy，`verify_phase6.sh` 与 `verify_v21.sh` 全 PASS，EXIT=0。
+- 这验证 `verify_v21.sh` 可处理 fixture 已有售后记录的重复运行状态；WSL 结果来自用户实测，本会话未直接操作容器。
+- V2.1 MockShop 集成部署验收完成。远程 CI 状态未在本次会话查询；项目代码提交已推送到 GitHub main（前序推送结果）。
+
 ## 2026-11-18 — V2.1 电商集成本机交付收尾
 
 - 修复店铺 B 测试触发的 tenant 外键缺口：新增固定 `demo-b` tenant、`user-demo-b` 身份映射和 customer/store scope。新增正向读取断言，确认店铺 B 能读自己的订单与 webhook 事件；店铺 A 仍得到 404。
@@ -349,3 +406,69 @@
 - 售后申请仍由单独 FastAPI POST 操作承接，要求 requester、`confirmed=true`、订单授权及资格符合，并写本地 SQLite 幂等记录。Agent 仅检查资格与说明下一步，不会根据自然语言自行提交。
 - 定向测试 `test_ecommerce_api.py`、`test_mock_shop_integration.py`、`test_agent.py`：37 passed / 5.13s；全量套件 **89 passed / 10.05s**。离线路由评估用既有 V1 标签直接运行 `evaluate()`，没有生成报告文件：明确路由标签 35/35、订单参数 8/8、数据库未变、0 route failures。
 - Compose 静态解析通过；当前没有 `compose up/build`、WSL 同步或外部模型请求。WSL runtime 尚未部署新服务，Vue 尚未展示新字段。
+# 2026-11-21 — 独立 RAG 样本外测试
+
+- 先盘点原评估资产：45 条开发集位于 `data/evaluation/v1_eval_cases.json`；现有检索评分在 `src/support_agent/rag/evaluation.py`，实际检索经 Chroma `similarity_search_with_score`，默认 Top-K=4；生成链和政策约束复用 `src/support_agent/rag/answer.py`。Bad Case 既有人工审阅记录在 `docs/rag_answer_manual_review.md`。
+- 新增 `data/evaluation/oos/rag_oos_v1.json` 的 15 条独立案例，覆盖口语/同义、组合条件、多意图、无答案、范围外和模糊澄清。测试代码与原 45 条隔离；未变更政策、业务流程、向量数据或默认 Top-K。
+- 新增 `tests/oos/runner.py` 和模块入口 `python -m tests.oos.run_oos`。执行时复用配置好的 Chroma、SiliconFlow Embedding 与 Qwen、既有 Prompt/约束；按回答实际使用的证据计算检索指标。规则式答案检查仅作初筛，不使用 LLM judge。
+- 已完成真实 OOS 运行并写入 `data/evaluation/oos/rag_oos_v1_report.md`：15 个案例 Hit@4 100.0%，Macro Recall@4 92.2%；答案规则项通过 66.7%（10/15），拒答/范围边界通过 75.0%（3/4），引用标签与来源匹配 93.3%（14/15）。5 个 Bad Case 为 OOS-01、04、05、07、11；两条证据召回不全，另外三条存在规则项遗漏或无效引用标签。报告保留实际答复、来源及文档标题，需用户人工审阅。
+- OOS-05 实际答复含非政策编号 `[POL-05_SHIPPING_AND_GUIDANCE]`；新增评估检查会将不属于本次召回来源的方括号引用标签记录出来，但未改动现有回答实现。
+- 新增 `tests/test_rag_oos.py`，覆盖检索计分、空标签、Mock 执行/报告、无效引用标记和案例独立性。最终全量 pytest **96 passed / 12.28s**。Mock 用例不纳入真实 OOS 指标。
+- 结果限制：Hit@4=100% 只表示每题至少找到一个相关来源；Recall 是证据来源的标签匹配；规则项比例不代表事实正确率。OOS 指标与 45 条开发集历史结果不合并。未自动调整 Prompt/检索配置，也未变更现有业务 API。
+
+## 2026-11-21 — RAG 答复自然度加固
+
+- 保存首版样本外报告为 `data/evaluation/oos/rag_oos_v1_report_before_style.md`。
+- 更新回答 Prompt：先答核心、避免重复规则，不追问用户已提供信息；内部约束 ID 不再传入模型上下文。
+- 调整政策边界：退货信息不足时先询问签收时间/原因/商品状态；只在问题相关时说明无理由退货运费；处理到付、退款双阶段及发货/送达时效；订单完成售后资格、维修时限和超范围问题采用短而有据的回答。
+- OOS-11 仅需 POL-02 支持第一轮澄清；若用户下一轮确认质量故障，再检索 POL-03。该证据标签变更记录在 `labeling_note` 中；规则检查接纳“商品故障”作为“质量问题”的同义说法。
+- 最新真实复测（11:42 UTC）：15 条，Hit@4 100.0%、Macro Recall@4 95.6%、答案规则项 93.3%、拒答/范围边界 100%、引用标签匹配 100%。当前只剩 OOS-05 的 Top-4 证据缺口（RET-01、QUA-01）。部分检查规则与一项标注有修正，指标变化仅作方向参考。
+- 发货回答约束改为顺接成单段、避免重复政策编号，并在用户问“明天能否到”时清楚回答不能保证；检查器对中文数字间空格做归一化。
+- 最新全量 pytest **105 passed / 15.00s**。只改了本机工作区；WSL 容器未同步重建，演示前需走既有 WSL 同步验收流程。
+- 用户随后报告新版已同步 WSL 并重建三容器，全部 healthy；`verify_phase6` 和 `verify_v21` 全 PASS（EXIT=0），OOS-05 修复已在演示页生效。此为用户提供的部署验收证据。独立 OOS 报告仍保留 11:42 UTC 运行的一个 OOS-05 检索 Bad Case，二者指标含义不同，未据部署断言改写报告。
+# 2026-11-22 — 工程质量与开源竞争力审计启动
+
+- 收到新任务说明；按阶段 1 先只读盘点实际代码、测试和部署配置，报告完成后暂停核心逻辑改动等待用户确认。
+- 起始工作区已有上一轮 OOS 改进的未提交源码、测试和文档变更；已记录并保留，不清理、不覆盖。本轮不运行 Compose、不改持久数据或向 GitHub 发布。
+
+# 2026-11-22 — 工程质量与开源竞争力审计完成
+
+- 新需求按阶段 1 执行；开始前确认工作树有上一轮 OOS 源码、数据/报告和测试未提交变更，全部保留。
+- 审查了目录、FastAPI/身份、SQLite 查询、MockShop Adapter/权限、Webhook、LangGraph State/Node/Edge/checkpoint、RAG/Chroma/Prompt、45-case 开发集、15-case OOS、pytest、Dockerfile/Compose、CI、README 与架构文档。
+- 本机全量测试：**105 passed / 17.99s**。公开 GitHub main 与本地 HEAD 是 `43adc60`；GitHub Actions run 29 成功，但本地 OOS 未提交变更未由远端 CI 验证。
+- 用户已报告 WSL 新版三容器 healthy、阶段 6 与 V2.1 验收全 PASS；本轮没有启动或修改容器。
+- 新增 `docs/engineering_audit_2026-11-22.md`。主要待确认项：同租户用户级订单/run 权限、MockShop 查询前授权、RAG 无关/冲突证据处理、OOS 集被调优后不再 blind、Webhook 状态键跨店铺冲突、README 状态过期。
+- 阶段 1 完成后停在审计汇报；未修改核心业务逻辑/数据库 schema/业务规则，也未提交或推送。
+# 2026-11-22 — Phase 2 权限模型审计与方案
+
+- 依据用户明确的四角色业务规则，只读核查身份、Repository、API、Agent State/Node、MockShop Adapter/API、审批 interrupt/checkpoint 与 Webhook。
+- 新增 `docs/phase2_permission_model_and_migration_proposal.md`：当前结构/关系、漏洞、拟议模型、SQLite DDL 草案、迁移影响/回滚、代码入口及测试矩阵。
+- 审计发现现有公开 Demo token 仅映射 requester/approver；没有 Service/Admin 数据模型。订单和 AgentRun 的 SQLite 查询只按 tenant；MockShop 对象读取后才做客户校验；审批缺任务分配表和 current-assignee 约束；售后缺 actor/customer 分离。
+- 没有修改代码或业务数据，没有执行 migration、全量测试、Compose、Git commit/push。上一轮 105 passed / 17.99s 仅作为既有基线引用。
+- 当前状态：审计与方案完成，等待用户确认 migration proposal 和历史授权数据录入策略；获批后按先测试、后小范围实现推进。Phase 2 结束后暂停。
+
+# 2026-11-22 — Phase 3 OOS 回归改进与待验收状态
+
+- 2026-11-23 最终更新：定向检查扩展后全量 pytest **137 passed / 18.14s**；真实 OOS-v2 最新运行于 09:27 UTC 完成。Hit@4 100%、Macro Recall@4 100%、答案规则初筛 100%、拒答边界初筛 100%、引用标签匹配 100%、Bad Case 0。指标为规则筛查，不代表语义准确率；OOS-v2 已是 observed regression set。报告与 ledger 已刷新。
+- 新增 SiliconFlow 客户端 30 秒请求超时、一次重试及逐案例进度日志。WSL 未操作，代码未提交/推送。
+
+- 用户报告：较早的直接冲突识别版本已在 WSL 通过容器内冲突/范围例外 smoke、Phase 6 和 V2.1 全部验收（EXIT=0）。用户明确表示当前部署保持原样，待本机提交后再同步；本轮未操作 WSL/Compose。
+- 为 OOS-05 的复合条件召回缺口实现有条件查询扩展，只影响“定制商品 + 质量问题 + 寄回/运费”同时出现的查询；原问题传给生成模型，Top-K 仍为 4。当前 Chroma 实际 Top-4 含 QUA-01、RET-01、POL-02、POL-05。
+- 用真实 Embedding/Chroma/Qwen 执行 OOS-v1 回归（报告时间 2026-11-22 14:57 UTC）：Hit@4 15/15、Macro Recall@4 100%、答案规则初筛 15/15、拒答边界 15/15、引用标签匹配 15/15，筛查 Bad Case 0。由于 OOS-05 用于设计修复，这是调优回归结果，不能宣称 blind holdout 成绩或语义准确率。
+- 人工检查 OOS-05 实际答复发现“照片或视频”格式追问没有政策依据；现有规则检查漏过该细节。记录为待人工决策的生成边界问题，未自行增加政策要求。
+- 用户于 2026-11-23 审核通过 OOS-v2 的 15 个案例。将其定为独立 holdout 文件，扩展 OOS runner 支持显式 `--dataset`，并为每个数据集分别写 Markdown 报告与 Bad Case ledger。OOS-v1 默认路径与输出文件保持不变。
+- 评估口径复核发现 HOLDOUT-04 明确针对 OOS-v1 人工复核时已见的“照片/视频凭证格式”无依据追问；因此 OOS-v2 是新的独立评估集，但不是完全盲测。已在数据元信息和文档中记录，避免夸大独立性。
+- 真实 OOS-v2 调用仍等待用户单独确认是否把新问题、检索证据和模型回答发送到既有 SiliconFlow/Qwen；获确认前只做本地验证，不产生真实指标。
+- 用户随后于 2026-11-23 授权外发并运行真实 OOS-v2。运行时间 2026-11-23 04:25 UTC；Hit@4 100%、Macro Recall@4 93.3%、答案规则初筛 20%、拒答/范围词面初筛 0/6、引用标签匹配 100%，共 12 个规则筛查案例（GENERATION 10、RETRIEVAL 2）。报告与 ledger 已独立保存。
+- 初步人工抽查发现，HOLDOUT-04 将“需要质量问题凭证”扩大成“必须上传视频/购买凭证”，属于需要认真复核的无依据细节；另一方面，拒答短语初筛很可能对语义合格但措辞不同的答复误报。未修改 Prompt 或规则；下一步是逐条人工判读 12 项并确认哪些是实际 Bad Case。
+- Codex 完成了 12 个候选 Bad Case 的逐例初步分诊，见 `data/evaluation/oos/rag_oos_v2_manual_triage.md`。初步识别 3 个明确生成偏差、2 个无依据附加细节候选、4 个词面检查误报、2 个证据标注可能过宽和 1 个回答不完整。只写分诊意见，没有更改数据集/报告/ledger 的 root cause 字段，也没有改 Prompt、规则或检索参数；等待用户之后复核。
+- 用户复核通过后，新增定向政策约束，修复错误的“昨天付款但未发货”分支匹配，扩充等价短语评估规则；将 HOLDOUT-08/10 的必要证据标签收窄到直接支持答复的 POL-07/POL-08。完整 pytest **137 passed / 18.09s**。
+- 使用更新后的代码和标签再次调用 SiliconFlow 的 OOS-v2 运行在等待期间无输出，最终执行会话结束且没有生成新报告；旧报告顶部已注明快照早于最新变更。当前运行结果不可作为最新验收证据，后续需解决外部请求挂起后再复跑。
+- 排查确认 SiliconFlow Chat 与 Embedding 客户端未显式设置请求超时，且重试为 2 次；为避免静默长时间挂起，现改为 30 秒请求超时、1 次重试，并让 OOS runner 按案例输出进度。模型实例运行时参数已在本机锁定版本上核实支持。准备在受限时长下重跑真实评估。
+- 本机完整 pytest：130 passed / 17.01s。WSL 运行未执行；查询扩展仍为本地未部署改动。未提交、未推送、未更改持久 DB/Chroma。
+
+## 2026-11-23 — Phase 3 本地交付提交
+
+- 用户开放本机文件权限后，创建本地提交 `64432c8`（`feat: enforce tenant permissions and harden RAG evaluation`），包含 54 个源码、测试、文档和 OOS 评估文件。
+- 检查确认 `.env` 与 `data/support_agent.db.bak-20261122` 未进入提交；数据库备份继续留在工作区。未推送 GitHub，未运行 WSL/Compose。
+- 已同步更新阶段计划、Agent 指引和项目状态。下一步等待用户按既有流程同步到 WSL 并回报容器验收结果。

@@ -1,0 +1,144 @@
+{
+  "dataset_id": "rag_oos_v2_holdout",
+  "status": "approved_for_evaluation",
+  "created_at": "2026-11-22",
+  "note": "User reviewed and approved this 15-case dataset for evaluation on 2026-11-23. It is separate from the 45-case development set and OOS-v1 regression set. HOLDOUT-04 deliberately probes a previously observed unsupported evidence-format detail, so describe this as a fresh evaluation suite with a targeted known-risk case, not a fully blind holdout. Following manual triage, HOLDOUT-08 and HOLDOUT-10 evidence labels were narrowed to the policy source that directly supports the tested behavior. Once run, the whole dataset becomes observed and must not be described as untouched in later iterations.",
+  "evaluation_note": "用户于2026-11-23审核通过的新建独立评估集，与45条开发集及OOS-v1分开。HOLDOUT-04针对此前已观察到的凭证格式无依据追问，因此整套结果不能称为完全盲测；HOLDOUT-08/10的必要证据标签经人工分诊收窄。运行后所有案例均成为已观察数据。",
+  "cases": [
+    {
+      "case_id": "HOLDOUT-01",
+      "question": "检测已经确认是非人为硬件故障，但暂时没有库存，能直接退我钱或者换成更高配的型号吗？",
+      "expected_answer": "无库存时由人工协商处理；不能承诺替代品或自动退款，申请不等于批准。",
+      "relevant_document_ids": ["POL-03"],
+      "expected_behavior": "abstain_from_unapproved_outcome",
+      "category": "combined_conditions",
+      "answer_checks": ["无库存", "人工协商", ["不能承诺", "不得承诺"], ["不等于批准", "申请不是批准"]]
+    },
+    {
+      "case_id": "HOLDOUT-02",
+      "question": "键盘用了快一年，偶尔断连但我不确定是硬件故障还是电脑设置问题，还能申请保修吗？",
+      "expected_answer": "12个月内的非人为硬件故障可申请检测；故障原因及是否免费需检测后确认。",
+      "relevant_document_ids": ["POL-04"],
+      "expected_behavior": "answer_with_qualification",
+      "category": "ambiguous_clarification",
+      "answer_checks": ["12个月", "非人为", "检测", ["无法确认", "需要检测"]]
+    },
+    {
+      "case_id": "HOLDOUT-03",
+      "question": "我拆开鼠标自己换了微动，现在滚轮不工作了，能按免费保修处理吗？",
+      "expected_answer": "擅自拆修不在免费保修范围；仍需人工检测确认可行维修方案。",
+      "relevant_document_ids": ["POL-04"],
+      "expected_behavior": "abstain_from_free_warranty_promise",
+      "category": "scope_boundary",
+      "answer_checks": ["擅自拆修", ["不在免费保修范围", "不属于免费保修"], "检测"]
+    },
+    {
+      "case_id": "HOLDOUT-04",
+      "question": "申请质量售后要拍什么角度的视频、必须上传购买凭证吗？",
+      "expected_answer": "规则要求提供质量问题凭证并由人工审核，但没有规定视频格式或具体拍摄要求；需人工确认。",
+      "relevant_document_ids": ["QUA-01", "POL-10"],
+      "expected_behavior": "abstain_from_unspecified_evidence_format",
+      "category": "no_answer",
+      "answer_checks": ["凭证", "人工审核", ["没有规定", "未规定", "无法确认"]]
+    },
+    {
+      "case_id": "HOLDOUT-05",
+      "question": "质量问题确认后，寄回运费的报销有没有固定金额上限，电子面单能直接当凭据吗？",
+      "expected_answer": "标准寄回运费经确认后由企业承担，但没有固定报销上限；报销凭据需人工确认并应先取得寄回指引。",
+      "relevant_document_ids": ["POL-05"],
+      "expected_behavior": "abstain_from_unspecified_reimbursement_limit",
+      "category": "no_answer",
+      "answer_checks": ["标准寄回运费", ["没有固定", "未规定"], "人工确认"]
+    },
+    {
+      "case_id": "HOLDOUT-06",
+      "question": "退货申请刚审核通过，我还没把商品寄回去，退款的发起时间已经开始算了吗？",
+      "expected_answer": "审核通过后仍需收货并检验；检验通过后才开始计算1至3个工作日的退款发起阶段。",
+      "relevant_document_ids": ["POL-06"],
+      "expected_behavior": "distinguish_refund_stages",
+      "category": "combined_conditions",
+      "answer_checks": ["收货", "检验通过", "1至3个工作日"]
+    },
+    {
+      "case_id": "HOLDOUT-07",
+      "question": "如果退款处理期间遇到法定节假日，节假日也算在到账的工作日里吗？",
+      "expected_answer": "工作日不含周末和法定节假日；发起与到账是两个分别计时的阶段，不能保证具体到账日。",
+      "relevant_document_ids": ["POL-06"],
+      "expected_behavior": "answer_business_day_definition",
+      "category": "colloquial_synonym",
+      "answer_checks": ["法定节假日", "不含", "不保证"]
+    },
+    {
+      "case_id": "HOLDOUT-08",
+      "question": "物流页面两天没刷新，能不能查到包裹现在具体在哪个分拨中心？",
+      "expected_answer": "模拟数据不接快递平台，不能提供实时轨迹；物流停滞应联系人工核查。",
+      "relevant_document_ids": ["POL-07"],
+      "expected_behavior": "abstain_from_real_time_tracking_claim",
+      "category": "out_of_scope",
+      "answer_checks": [["不能提供", "无法提供"], "实时", "人工核查"]
+    },
+    {
+      "case_id": "HOLDOUT-09",
+      "question": "我昨天刚付款，今天还没有发出，是不是已经超时了？",
+      "expected_answer": "已付款订单通常在付款后2个工作日内发货；这是通常时限，不代表具体送达时间。",
+      "relevant_document_ids": ["POL-07"],
+      "expected_behavior": "answer_with_shipping_window",
+      "category": "colloquial_synonym",
+      "answer_checks": ["2个工作日", "通常", ["不代表送达", "送达时间"]]
+    },
+    {
+      "case_id": "HOLDOUT-10",
+      "question": "订单已经付款了，你能帮我把收货地址从公司改成家里吗？",
+      "expected_answer": "Agent 只能只读查询订单，不能修改收货地址；应联系人工。",
+      "relevant_document_ids": ["POL-08"],
+      "expected_behavior": "refuse_order_mutation",
+      "category": "scope_boundary",
+      "answer_checks": [["不能修改", "无法修改"], "人工"]
+    },
+    {
+      "case_id": "HOLDOUT-11",
+      "question": "订单现在显示已完成，我是不是就不能再按售后规则提交申请了？",
+      "expected_answer": "已完成只表示订单流程结束；仍需按商品和问题类型判断售后资格。",
+      "relevant_document_ids": ["POL-08"],
+      "expected_behavior": "answer_completed_order_boundary",
+      "category": "colloquial_synonym",
+      "answer_checks": ["流程结束", "仍可申请", "具体资格"]
+    },
+    {
+      "case_id": "HOLDOUT-12",
+      "question": "公司报销额度比较高，发票能不能按更高金额开，差额我可以补给你们？",
+      "expected_answer": "资料没有规定发票金额调整规则；不能答应或编造金额政策，需人工核验。",
+      "relevant_document_ids": ["POL-09", "POL-10"],
+      "expected_behavior": "abstain_from_invoice_amount_adjustment",
+      "category": "no_answer",
+      "answer_checks": [["没有规定", "未规定", "无法确认"], "人工核验"]
+    },
+    {
+      "case_id": "HOLDOUT-13",
+      "question": "我把开票抬头和税号直接贴在聊天里，你能替我提交给财务吗？",
+      "expected_answer": "本聊天不收集抬头和税号；应仅通过人工受理渠道提交，Agent 不会声称已转交。",
+      "relevant_document_ids": ["POL-09"],
+      "expected_behavior": "refuse_sensitive_invoice_collection",
+      "category": "privacy_boundary",
+      "answer_checks": ["不收集", "人工受理渠道", ["不能代为提交", "无法提交"]]
+    },
+    {
+      "case_id": "HOLDOUT-14",
+      "question": "周六晚上可以找到人工客服吗？如果是法定节假日，服务时间也一样吗？",
+      "expected_answer": "演示人工服务时间为周一至周五09:00—18:00（北京时间），法定节假日除外；没有真实工单或转接。",
+      "relevant_document_ids": ["POL-10"],
+      "expected_behavior": "answer_demo_service_hours",
+      "category": "combined_conditions",
+      "answer_checks": ["周一至周五", "09:00", "法定节假日除外"]
+    },
+    {
+      "case_id": "HOLDOUT-15",
+      "question": "我没有时间等人工在线，能不能先帮我留个回电请求，明天让客服联系我？",
+      "expected_answer": "当前没有真实工单/回电系统，不能声称已留言或已提交；可建议用户在服务时间自行联系人工。",
+      "relevant_document_ids": ["POL-10"],
+      "expected_behavior": "refuse_fake_handoff",
+      "category": "out_of_scope",
+      "answer_checks": [["不能代为留言", "不能声称已留言", "没有真实工单"], "人工"]
+    }
+  ]
+}

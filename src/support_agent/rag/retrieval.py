@@ -6,6 +6,7 @@ from langchain_core.embeddings import Embeddings
 
 from support_agent.config import Settings, get_settings
 from support_agent.rag.index import open_policy_store
+from support_agent.rag.query_expansion import build_policy_retrieval_query
 
 
 @dataclass(frozen=True)
@@ -28,7 +29,8 @@ def create_siliconflow_embeddings(settings: Settings | None = None) -> Embedding
         model=settings.siliconflow_embedding_model,
         api_key=settings.siliconflow_api_key,
         base_url=settings.siliconflow_base_url,
-        max_retries=2,
+        request_timeout=30,
+        max_retries=1,
         check_embedding_ctx_length=False,
     )
 
@@ -43,7 +45,8 @@ def retrieve_policies(
         raise ValueError("query must not be empty")
     if top_k < 1:
         raise ValueError("top_k must be at least 1")
-    matches = store.similarity_search_with_score(query, k=top_k)
+    retrieval_query = build_policy_retrieval_query(query)
+    matches = store.similarity_search_with_score(retrieval_query, k=top_k)
     return [
         RetrievedPolicy(
             source_id=str(document.metadata.get("source_id", "unknown")),

@@ -1,11 +1,60 @@
-# 当前状态（2026-11-18）：V2.1 电商集成扩展
+# 当前状态（2026-11-22）：V2.1 电商集成、RAG 样本外评估与权限模型
+
+## 当前推进阶段（2026-11-22）：Phase 3 评估可靠性
+
+- 最新完成（2026-11-23）：全量 pytest **137 passed / 18.14s**；OOS-v2 真实回归 Hit@4/Recall@4/答案规则筛查/拒答筛查/引用匹配均 100%，筛查 Bad Case 0。规则检查不等于语义准确率，且 OOS-v2 已成为观察到的回归集；详见独立报告。
+- SiliconFlow Chat/Embedding 请求设置 30 秒超时和一次重试，OOS 逐案例显示进度，避免长时间无反馈。
+- 本地提交 `64432c8` 已完成，包含 54 个源码、测试、文档和评估文件；数据库备份被排除。未推送或部署，下一步由用户同步到 WSL 并回报验收。
+
+- Phase 2 权限模型已按用户报告完成 WSL 迁移和验收；详情见下方阶段记录。
+- Phase 3 已为 OOS runner 增加机器可读 Bad Case ledger，并完成 24 条合成探针的 Embedding 距离校准；距离分布重叠，不设统一拒答阈值。
+- 本机全量 pytest **130 passed / 17.01s**。2026-11-22 使用既有虚构 OOS-v1 做了真实回归复测；OOS-05 已用于改进，因此结果不是 blind holdout。
+- 已新增 RAG 无关证据、冲突证据和证据内指令的离线特征测试；FakeListChatModel 证明直接相反句会在调用模型前安全澄清，并检查例外范围、多阶段规则和无关主题不误报。引用 ID 检查仍不能证明事实正确。
+- 真实 Embedding 校准：12/12 可回答目标进入 Top-4，但可回答距离与无答案最近距离大幅重叠，不建议应用全局距离阈值。报告：`data/evaluation/oos/embedding_distance_calibration_v1.md`。校准本身未写入 Chroma/SQLite；随后经用户批准加入了窄范围答复保护。
+- OOS-v1 回归复测 15 条：Hit@4、Macro Recall@4、答案规则初筛、拒答初筛、引用标签匹配均 100%，Bad Case 0。真实语义仍需人工复核；OOS-05 一次人工检查发现模型问了政策未规定的“照片或视频”格式。
+- 新增定制商品+质量问题+运费的专门检索查询扩展，Top-K 保持 4。用户报告更早的显式冲突版本 WSL smoke 与双 verifier 全 PASS，但明确要求本轮最终部署状态等提交后再同步；查询扩展还未部署。
+- OOS-v2 15 题已由用户于 2026-11-23 审核通过并授权真实运行，位于 `data/evaluation/oos/rag_oos_v2_holdout.json`。其中 HOLDOUT-04 针对已知边界，因此不是完全盲测；整套现已成为已观察数据。
+- 用户已授权真实运行：Hit@4 100%、Macro Recall@4 93.3%、答案规则初筛 20%、拒答/范围词面初筛 0/6、引用标签匹配 100%；12 个候选 Bad Case（10 GENERATION、2 RETRIEVAL）待人工逐例判定。这些词面筛查率不是语义准确率；详见独立报告和 ledger。
+- Codex 初步逐例分诊见 `data/evaluation/oos/rag_oos_v2_manual_triage.md`；明确问题、词面误报与证据标注争议已分开记录，最终根因仍待用户复核。
+- 历史中间状态（已被 2026-11-23 后续结果取代）：当时一次真实 OOS 重跑未完成，报告保留为旧快照。当前结果见本页顶部的最新状态和独立报告。
+- 已补 SiliconFlow 请求超时与逐案例进度显示（30 秒、最多 1 次重试）；后续真实 OOS-v2 报告已刷新，见顶部状态。
+
+## 最新阶段（2026-11-22）：Phase 2 权限模型实施
+
+- Customer 订单所有权、Service 客户 grant、Approver 任务分配/自批阻止、Admin 同租户管理边界已实现。
+- SQLite Repository 以 tenant + customer/grant/user/task 范围过滤；MockShop 在读取详情前先做 scope 授权；售后记录分开保存 requester、actor、customer。
+- 审批任务持久化并通过条件更新防重复；Graph 恢复前按当前身份重验任务分配。
+- 全量本机 pytest：**115 passed / 20.29s**，包括临时数据库的旧 schema 追加列、不回填检查及 legacy NULL 售后幂等重试。
+- 固定 Demo fixture 有显式 owner 映射；V1 owner 不明的历史订单默认拒绝。没有修改 D 盘/WSL 持久 DB/Chroma。
+- 用户报告已备份持久 SQLite 并完成 WSL 实机验收：三容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）；2026-11-18 的 `actor_id/customer_id=NULL` 存量行重试返回原申请。Phase 2 闭环，按要求暂停。
+
+## 工程质量审计（2026-11-22）
+
+- 阶段 1 审计报告：[`工程审计报告`](engineering_audit_2026-11-22.md)。审计时基线为 105 passed / 17.99s；不是权限修复后的结果。
+- 用户随后批准了 Phase 2 权限模型实施。当前代码与测试结果见本页顶部及 [`Phase 2 权限模型与迁移提案`](phase2_permission_model_and_migration_proposal.md)。
+- 审计报告保留为历史快照；其中“等待确认/未改核心代码”的状态已被后续实施取代。
+
+## 工程质量审计（2026-11-22）
+
+- 新需求阶段 1 只读审计完成：[`工程审计报告`](engineering_audit_2026-11-22.md)。本机全量 pytest **105 passed / 17.99s**。
+- 用户报告新版 WSL 三容器 healthy，阶段 6/V2.1 verifier 全 PASS；本次审计没有操作容器。
+- 核心权限和 SQL 当前只按租户做旧订单/运行记录范围；同租户用户所有权语义尚待确认。MockShop 用户映射测试通过，但读取 adapter 对象后才检查权限。
+- OOS-v1 的 15 条在迭代过程中参与过回答/检查规则调优；应按回归集看待，未参与开发的新 holdout 尚未建立。
+- GitHub Actions 最新公开 run 29 对 `43adc60` 成功；本地未提交改动不包含在该远端结果中。README 与架构阶段状态存在过期描述。
+- 本轮未改核心业务代码/数据、未改数据库或向量库、未提交推送；下一步先由用户确认订单/运行记录的请求人和审批人访问规则。
+
+## 最新进展（2026-11-21）：RAG 样本外评估
+
+- 新增独立 15 条 OOS 集与可单独运行的评估器；原 45 条开发集未修改。完整报告：[`rag_oos_v1_report.md`](../data/evaluation/oos/rag_oos_v1_report.md)。
+- 自然度加固后最新真实运行（11:42 UTC）：Hit@4 **100.0%**、Macro Recall@4 **95.6%**、答案规则项 **93.3%**、拒答/范围边界 **100%**、引用标签匹配 **100%**。这些是检查指标，不是语义准确率；检查规则和一项证据标注经修正，前后比例仅作方向参考。
+- OOS 报告最近一次真实运行时记录 OOS-05 的 Top-4 证据缺口（RET-01/QUA-01）。当时全量 pytest **105 passed / 15.00s**。用户随后报告新版同步到 WSL：三容器重建且 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0），OOS-05 修复在演示页生效。此为部署验收，与独立 OOS 指标分开记录。
 
 - Phase 0 盘点完成；架构与阶段结果见根目录 [`ARCHITECTURE.md`](../ARCHITECTURE.md)。
 - 本机实现已包括 MockShop API/Adapter、FastAPI 电商查询与明确确认申请、SQLite 幂等、LangGraph + 绑定身份的 LangChain Tools、HMAC Webhook inbox 与租户状态同步。
 - 店铺 A/B 使用不同虚构 tenant、用户、客户映射。测试确认各自可访问自有订单，跨店铺/跨租户访问 404；Webhook tenant 从可信 shop_id 派生。
 - Vue 展示平台订单/物流/资格结果，并提供先检查资格、再显式提交 `pending_demo` 的侧栏操作；申请不代表审批或退款。
 - 本机全量 pytest **93 passed / 12.26 秒**；Vue production build、Compose 静态配置、Python compileall 和 CI YAML parse 通过。更新后重新评估 Agent route **35/35**、订单参数 **8/8**、工具 outcome **6/6**、业务订单子集 **5/5**；数据库保持不变。详见 [`evaluation_v2_1.md`](evaluation_v2_1.md)。
-- API、评估、面试和电商 Integration Layer 学习文档已新增。WSL 容器集成仍待执行；本轮未启动 Compose 或操作 WSL。已准备 `scripts/update_wsl_and_verify.sh`，同步后会运行 phase 6 与 V2.1 专项验收。
+- API、评估、面试和电商 Integration Layer 学习文档已新增。用户报告提交 `43adc60` 后在 WSL 连续运行两次 `update_wsl_and_verify.sh`，均未重启 mock-shop、且已有 2003 售后记录；两次 phase 6 与 V2.1 验收全 PASS（EXIT=0）。可重跑状态验证通过。
 - 边界：全是虚构数据和 MockShop，不接真实平台、真实客户或真实退款；不做生产化。
 
 # 历史项目状态快照（2026-11-17；当前进展见本页顶部）

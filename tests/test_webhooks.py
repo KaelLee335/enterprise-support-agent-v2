@@ -37,6 +37,16 @@ class FakeShopAdapter:
             returnable=True, amount_cents=1000,
         )
 
+    def get_order_scope(self, order_id):
+        from types import SimpleNamespace
+        shop_id, _, customer_id = (
+            ("shop-demo-b", "demo-b", "customer-demo-c")
+            if order_id == "2006" else
+            ("shop-demo-a", "demo-a", "customer-demo-a")
+        )
+        return SimpleNamespace(order_id=order_id, shop_id=shop_id,
+                               customer_id=customer_id, is_demo=True)
+
     def get_logistics(self, order_id):
         self.calls.append(order_id)
         return LogisticsInfo(order_id=order_id, status="已签收")

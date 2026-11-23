@@ -118,7 +118,7 @@ def lookup_order(state: dict[str, Any]) -> dict[str, Any]:
         order = fetch_order(
             Path(state.get("database_path", str(settings.database_path))),
             str(state["order_id"]),
-            state["tenant_id"],
+            _identity_from_state(state),
         )
     except Exception as exc:  # Database failure becomes an observable safe answer.
         logger.exception("Order lookup failed")
@@ -150,7 +150,7 @@ def lookup_logistics(state: dict[str, Any]) -> dict[str, Any]:
         order = fetch_order(
             Path(state.get("database_path", str(settings.database_path))),
             str(state["order_id"]),
-            state["tenant_id"],
+            _identity_from_state(state),
         )
         if order is None:
             return {"order": None, "shipment": None, "answer": "未找到当前租户下的该订单。", "error": None}
@@ -175,16 +175,24 @@ def lookup_logistics(state: dict[str, Any]) -> dict[str, Any]:
 
 
 def _mockshop_toolset(state: dict[str, Any]):
-    identity = DemoIdentity(
-        user_id=str(state.get("user_id", "")),
-        tenant_id=str(state.get("tenant_id", "")),
-        role=str(state.get("user_role", "requester")),
-    )
+    identity = _identity_from_state(state)
     return build_mockshop_tools(
         identity,
         adapter=create_mock_shop_adapter(),
         trace_id=state.get("trace_id"),
         database_path=Path(state.get("database_path", str(get_settings().database_path))),
+    )
+
+
+def _identity_from_state(state: dict[str, Any]) -> DemoIdentity:
+    role = str(state.get("user_role", "customer"))
+    if role == "requester":
+        role = "customer"
+    return DemoIdentity(
+        user_id=str(state.get("user_id", "")),
+        tenant_id=str(state.get("tenant_id", "")),
+        role=role,
+        customer_id=state.get("customer_id"),
     )
 
 
@@ -278,6 +286,14 @@ def refuse_write_request(state: dict[str, Any]) -> dict[str, Any]:
 
 
 def prepare_refund_approval(state: dict[str, Any]) -> dict[str, Any]:
+    if state.get("user_role") not in {"customer", "service", "requester"}:
+        return {
+            "approval_ready": False,
+            "approval_status": "forbidden_role",
+            "pending_action": None,
+            "answer": "当前身份不能提交审批请求。",
+            "error": None,
+        }
     order_id = state.get("order_id")
     if not order_id:
         return {
@@ -292,7 +308,7 @@ def prepare_refund_approval(state: dict[str, Any]) -> dict[str, Any]:
         order = fetch_order(
             Path(state.get("database_path", str(settings.database_path))),
             str(order_id),
-            state["tenant_id"],
+            _identity_from_state(state),
         )
     except Exception as exc:
         logger.exception("Refund approval precheck failed")
@@ -407,6 +423,7 @@ def generate_policy_answer(state: dict[str, Any]) -> dict[str, Any]:
             "event": "rag_answer_constraints",
             "matched_constraint_ids": result.constraint_ids,
             "enforced_constraint_ids": result.enforced_constraint_ids,
+            "conflict_count": len(result.conflicts_detected),
         },
     )
     if not result.citation_check_passed:

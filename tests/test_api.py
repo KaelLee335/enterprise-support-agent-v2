@@ -50,6 +50,19 @@ def test_demo_token_sets_tenant_and_ignores_client_tenant_header(client):
     assert response.status_code == 404
 
 
+def test_client_cannot_forge_user_role_or_tenant_for_order_access(client):
+    response = client.get(
+        "/orders/1001?user_id=user-demo-a&role=admin&tenant_id=demo-a",
+        headers={
+            "Authorization": "Bearer demo-b-local-token",
+            "X-User-ID": "user-demo-a",
+            "X-Role": "admin",
+            "X-Tenant-ID": "demo-a",
+        },
+    )
+    assert response.status_code == 404
+
+
 def test_invalid_demo_token_is_rejected(client):
     response = client.get(
         "/orders/1001", headers={"Authorization": "Bearer unknown"}
@@ -201,7 +214,12 @@ def test_refund_approval_pauses_resumes_and_never_changes_order(client):
     )
     decision = client.post(
         f"/approvals/{thread_id}/decision",
-        json={"approved": True},
+        json={
+            "approved": True,
+            "task_id": "forged-task-id",
+            "order_id": "2006",
+            "approver_id": "user-demo-b-approver",
+        },
         headers={"Authorization": "Bearer demo-a-approver-local-token"},
     )
     status = client.get(
@@ -278,12 +296,68 @@ def test_approver_role_is_required_and_approver_is_a_distinct_demo_user(client):
         json={"question": "帮我给订单 1001 直接退款"},
         headers={"Authorization": "Bearer demo-a-approver-local-token"},
     ).json()
-    self_approval = client.post(
-        f"/approvals/{own_request['thread_id']}/decision",
-        json={"approved": True},
-        headers={"Authorization": "Bearer demo-a-approver-local-token"},
+    assert own_request["approval_status"] == "forbidden_role"
+
+
+def test_admin_is_tenant_scoped_and_cannot_read_all_orders(client):
+    headers = {"Authorization": "Bearer demo-a-admin-local-token"}
+    assert client.get("/orders/1001", headers=headers).status_code == 404
+    users = client.get("/admin/users", headers=headers)
+    assert users.status_code == 200
+    assert all(user["user_id"] != "user-demo-b" for user in users.json())
+    assert client.put(
+        "/admin/users/user-demo-b/role",
+        json={"role": "admin"}, headers=headers,
+    ).status_code == 404
+    change = client.put(
+        "/admin/users/user-demo-a-approver-alt/role",
+        json={"role": "customer", "customer_id": "customer-demo-b"},
+        headers=headers,
     )
-    assert self_approval.status_code == 403
+    assert change.status_code == 200
+    assert client.get(
+        "/approvals", headers={"Authorization": "Bearer demo-a-approver-alt-local-token"}
+    ).status_code == 403
+    assert client.get(
+        "/admin/users", headers={"Authorization": "Bearer demo-a-local-token"}
+    ).status_code == 403
+
+
+def test_admin_can_assign_pending_approval_only_to_same_tenant_approver(client):
+    from support_agent.db import connect
+
+    pending = client.post(
+        "/chat", json={"question": "帮我给订单 1001 申请退款"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
+    ).json()
+    with connect(main.settings.database_path) as connection:
+        task = connection.execute(
+            "SELECT task_id FROM approval_tasks WHERE thread_id = ?", (pending["thread_id"],)
+        ).fetchone()
+    assert task is not None
+    reassigned = client.put(
+        f"/admin/approval-tasks/{task['task_id']}/assignment",
+        json={"approver_id": "user-demo-a-approver-alt"},
+        headers={"Authorization": "Bearer demo-a-admin-local-token"},
+    )
+    assert reassigned.status_code == 200
+    old_assignee_tasks = client.get(
+        "/approvals", headers={"Authorization": "Bearer demo-a-approver-local-token"}
+    )
+    new_assignee_tasks = client.get(
+        "/approvals", headers={"Authorization": "Bearer demo-a-approver-alt-local-token"}
+    )
+    assert old_assignee_tasks.status_code == new_assignee_tasks.status_code == 200
+    assert old_assignee_tasks.json() == []
+    assert len(new_assignee_tasks.json()) == 1
+    assert client.get(
+        f"/approvals/{pending['thread_id']}",
+        headers={"Authorization": "Bearer demo-a-approver-local-token"},
+    ).status_code == 404
+    assert client.get(
+        f"/approvals/{pending['thread_id']}",
+        headers={"Authorization": "Bearer demo-a-admin-local-token"},
+    ).status_code == 404
 
 
 def test_unknown_order_logistics_never_calls_external_demo_service(client, monkeypatch):

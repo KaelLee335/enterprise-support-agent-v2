@@ -35,6 +35,13 @@ class MockShopOrder(BaseModel):
     is_demo: bool = True
 
 
+class MockShopOrderScope(BaseModel):
+    order_id: str
+    shop_id: str
+    customer_id: str
+    is_demo: bool = True
+
+
 class MockShopLogistics(BaseModel):
     order_id: str
     tracking_no: str | None = None
@@ -138,6 +145,12 @@ class MockShopAdapter:
             returnable=raw.returnable, amount_cents=raw.amount_cents, demo_only=True,
         )
 
+    def get_order_scope(self, order_id: str) -> MockShopOrderScope:
+        return self._validate(
+            MockShopOrderScope,
+            self._request("GET", f"/mock-shop/orders/{order_id}/scope"),
+        )
+
     def get_logistics(self, order_id: str) -> LogisticsInfo:
         raw = self._validate(MockShopLogistics, self._request("GET", f"/mock-shop/orders/{order_id}/logistics"))
         status = {"NOT_SHIPPED": "未发货", "IN_TRANSIT": "运输中", "DELIVERED": "已签收"}.get(raw.platform_status)
@@ -171,3 +184,7 @@ class MockShopAdapter:
         if status is None:
             raise IntegrationProtocolError("Unsupported MockShop aftersale status")
         return AftersaleApplication(aftersale_id=raw.aftersale_id, order_id=raw.order_id, status=status, message="MockShop 演示状态；不表示已退款。", demo_only=True)
+
+    def get_aftersale_scope(self, aftersale_id: str) -> str:
+        payload = self._request("GET", f"/mock-shop/aftersales/{aftersale_id}/scope")
+        return str(payload["order_id"])

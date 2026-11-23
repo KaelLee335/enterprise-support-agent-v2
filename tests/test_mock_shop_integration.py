@@ -163,6 +163,8 @@ def test_adapter_normalizes_timeout_and_invalid_json():
 
 def test_langchain_tools_bind_identity_and_guard_demo_write_confirmation(tmp_path):
     def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/mock-shop/orders/2003/scope":
+            return httpx.Response(200, json={"order_id": "2003", "shop_id": "shop-demo-a", "customer_id": "customer-demo-a", "is_demo": True})
         if request.url.path == "/mock-shop/orders/2003":
             return httpx.Response(200, json={"order_id": "2003", "shop_id": "shop-demo-a", "customer_id": "customer-demo-a", "product_name": "演示耳机", "quantity": 1, "platform_status": "TRADE_SUCCESS", "returnable": True, "amount_cents": 19900, "is_demo": True})
         if request.url.path == "/mock-shop/orders/2003/logistics":
@@ -173,6 +175,8 @@ def test_langchain_tools_bind_identity_and_guard_demo_write_confirmation(tmp_pat
             return httpx.Response(201, json={"aftersale_id": "AS-2003", "order_id": "2003", "platform_status": "WAIT_REVIEW", "reason": "虚构质量问题", "is_demo": True})
         if request.url.path == "/mock-shop/aftersales/AS-2003":
             return httpx.Response(200, json={"aftersale_id": "AS-2003", "order_id": "2003", "platform_status": "WAIT_REVIEW", "reason": "虚构质量问题", "is_demo": True})
+        if request.url.path == "/mock-shop/aftersales/AS-2003/scope":
+            return httpx.Response(200, json={"aftersale_id": "AS-2003", "order_id": "2003", "is_demo": True})
         return httpx.Response(404, json={"detail": "not found"})
 
     adapter = MockShopAdapter(transport=httpx.MockTransport(handler))
@@ -193,6 +197,12 @@ def test_langchain_tools_bind_identity_and_guard_demo_write_confirmation(tmp_pat
         result = tools.create_aftersale.invoke({"order_id": "2003", "reason": "虚构质量问题", "idempotency_key": "tool-key-2003", "confirmed": True})
         status = tools.get_aftersale_status.invoke({"aftersale_id": "AS-2003"})
         assert result["status"] == status["status"] == "pending_demo"
+        from support_agent.db import connect
+        with connect(database_path) as connection:
+            stored = connection.execute(
+                "SELECT user_id, actor_id, customer_id FROM aftersale_requests"
+            ).fetchone()
+        assert tuple(stored) == ("user-demo-a", "user-demo-a", "customer-demo-a")
     finally:
         tools.close()
 
