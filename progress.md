@@ -492,4 +492,5 @@
 - 用户批准 Phase 4 实施。新增 SQLite `user_version=1` 迁移：在事务内重建 Webhook event/state 主键并保留原行，补齐售后审计列；拒绝比当前更新的 schema version。
 - Webhook 去重/状态读写改为 tenant + store 精确范围，事件状态查询需带 store_id 并通过后端 tenant-store 映射；API 参考已更新。
 - 新增旧 schema 升级、升级幂等、迁移异常回滚、未来版本拒绝、跨店铺复用 event/order ID 和 API store 范围测试。
-- 全量 pytest **142 passed / 17.52s**。全部数据库变更仅在 pytest 临时库运行；未操作持久 D 盘/WSL 数据、未运行 Compose。用户要求继续交付，后续提交/推送并核对 CI；真实数据库迁移仍需单独授权。
+- 全量 pytest **142 passed / 17.52s**。全部数据库变更仅在 pytest 临时库运行；未操作持久 D 盘/WSL 数据、未运行 Compose；真实数据库迁移仍需单独授权。
+- 用户要求继续交付后，创建并推送提交 `d15d6f3`（`feat: scope webhook state by tenant and store`）。GitHub Actions run `45169866834` 成功。未运行 WSL/Compose，未迁移持久 SQLite。
