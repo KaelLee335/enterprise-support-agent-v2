@@ -6,10 +6,10 @@
 
 - [x] 用户复核通过后完成政策边界修复、必要证据标签收窄、检查器同义项优化与请求超时/进度机制。
 - [x] 全量 pytest **137 passed / 18.14s**；真实 OOS-v2 回归指标 Hit@4 100%、Macro Recall@4 100%、答案/拒答/引用规则筛查均 100%，Bad Case 0。
-- [x] 本地交付提交 `64432c8` 已创建，SQLite 备份未包含；未推送、未操作 WSL。
-- [ ] 等用户按既有 WSL 流程同步并回报容器验收结果。
+- [x] 本地交付提交经 amend 为 `48cd754` 并推送；用户报告 WSL 三容器 healthy，`verify_phase6` 和 `verify_v21` 全 PASS（EXIT=0）。
 - [x] 排查 GitHub Actions 红叉：确认是 pytest collection 导入 `scripts`/`tests` 失败，与 API Key 无关；补充 package markers，本机全量 pytest **137 passed / 18.46s**。
-- [ ] 提交并推送 CI 导入修复，确认 GitHub Actions 重跑通过。
+- [x] CI 导入修复提交 `793f259` 已推送；GitHub Actions run `45163773462` 成功。
+- [x] 只读检查 SQLite 备份和当前库：两者完整性均 `ok`；备份为迁移前结构且未纳入 Git。
 
 ### 本机实施与验收
 

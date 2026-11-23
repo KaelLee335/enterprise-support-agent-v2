@@ -4,8 +4,9 @@
 
 - 最新完成（2026-11-23）：全量 pytest **137 passed / 18.14s**；OOS-v2 真实回归 Hit@4/Recall@4/答案规则筛查/拒答筛查/引用匹配均 100%，筛查 Bad Case 0。规则检查不等于语义准确率，且 OOS-v2 已成为观察到的回归集；详见独立报告。
 - SiliconFlow Chat/Embedding 请求设置 30 秒超时和一次重试，OOS 逐案例显示进度，避免长时间无反馈。
-- 本地提交 `64432c8` 已完成，包含 54 个源码、测试、文档和评估文件；数据库备份被排除。未推送或部署，下一步由用户同步到 WSL 并回报验收。
-- GitHub Actions 对 `48cd754` 的失败发生在 pytest 收集阶段：缺少 `scripts`/`tests` 包标记导致导入失败，并非 API 过期。已新增两个 `__init__.py`，本机全量 pytest **137 passed / 18.46s**；修复尚未提交推送，远端 CI 需后续重跑。
+- Phase 3 交付提交 `48cd754` 已推送；用户报告 WSL 三容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）。
+- GitHub Actions 的 pytest 收集错误已在 `793f259` 修复：新增 `scripts/__init__.py`、`tests/__init__.py`。本机全量 pytest **137 passed / 18.46s**，远端 Actions run `45163773462` 成功。该修复只影响仓库测试导入，不改变容器应用代码。
+- SQLite 备份 `data/support_agent.db.bak-20261122` 与当前库均通过只读 integrity check；备份为 Phase 2 迁移前快照，未提交或推送。
 
 - Phase 2 权限模型已按用户报告完成 WSL 迁移和验收；详情见下方阶段记录。
 - Phase 3 已为 OOS runner 增加机器可读 Bad Case ledger，并完成 24 条合成探针的 Embedding 距离校准；距离分布重叠，不设统一拒答阈值。

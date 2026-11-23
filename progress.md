@@ -477,4 +477,6 @@
 
 - 根据 Actions run `45150776269` 的 job 日志，失败点是 pytest collection：`tests/test_rag_distance_calibration.py` 找不到 `scripts`，`tests/test_rag_oos.py` 找不到 `tests`。CI 没有触发 SiliconFlow 请求，因此与 API Key 是否过期无关。
 - 新增 `scripts/__init__.py` 与 `tests/__init__.py`，明确将目录声明为本项目包，避免与 runner 环境中的同名 `tests` 包冲突。
-- 本机全量 pytest **137 passed / 18.46s**。改动仍未提交/推送；GitHub Actions 的旧失败记录不会自行变化，推送修复后应观察新 run。
+- 本机全量 pytest **137 passed / 18.46s**。修复提交 `793f259` 已推送，GitHub Actions run `45163773462` 成功。
+- 用户随后报告 `48cd754` 的 WSL 三容器及 `verify_phase6`、`verify_v21` 验收全通过；包标记修复不影响应用运行，无需为它另行重建部署。
+- 只读核验数据库：备份与当前库的 `PRAGMA integrity_check` 均为 `ok`；备份缺少迁移新增的权限表及售后审计列，记录数少于当前库。未读取具体记录、未写入数据库。
