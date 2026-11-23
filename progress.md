@@ -511,3 +511,4 @@
 - GitHub Actions 增加 `bash -n scripts/*.sh`，用于尽早发现 shell 语法错误。
 - WSL 全更新流程实跑成功：schema version 1、SQLite integrity ok、两组键正确；三容器 healthy、health 200、RAG smoke、Phase 6 和 V2.1 全通过。
 - 本阶段未再次迁移数据库，也未写入业务数据；迁移前备份继续保留且不提交。
+- Phase 5 提交 `20e954e` 已推送，GitHub Actions run `45180300306` 全成功；CI 通过 pytest、shell syntax、Vue build、Compose 配置、Docker build 和无 Key smoke。

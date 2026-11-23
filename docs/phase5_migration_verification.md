@@ -41,4 +41,4 @@ Phase 4 已完成真实 SQLite 迁移和 WSL 部署。本阶段把“容器健�
 
 ## 状态
 
-本阶段实现与 WSL 验收完成，待 GitHub Actions 对交付提交通过后关闭。
+本阶段实现、WSL 验收与仓库 CI 均完成。提交 `20e954e` 的 GitHub Actions run `45180300306` 成功。

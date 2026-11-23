@@ -28,7 +28,7 @@
 - [x] 实际挂载库完整性 `ok`、`user_version=1`；两张复合主键含 platform/tenant/store，存量数据保留。
 - [x] 修复与阶段记录提交 `fe1aeb2` 已推送；GitHub Actions run `45172043824` 全部成功（pytest、Vue build、Compose config、Docker build、无 Key smoke）。
 - [x] Phase 5：部署流程增加 SQLite 只读后置检查（完整性、schema version、tenant/store 主键）；WSL 全流程复验通过，bash 语法检查通过。文档：`docs/phase5_migration_verification.md`。
-- [ ] 提交并推送 Phase 5 检查和文档，确认 GitHub Actions。
+- [x] Phase 5 检查和文档已在 `20e954e` 推送；GitHub Actions run `45180300306` 成功（pytest、shell syntax、Vue build、Compose config、Docker build、无 Key smoke）。
 
 ### 本机实施与验收
 

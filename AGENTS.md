@@ -12,7 +12,7 @@
 
 - Added a read-only check to the established WSL update workflow for SQLite integrity, `SCHEMA_VERSION`, and both platform/tenant/store composite primary keys. CI also runs `bash -n scripts/*.sh`.
 - The full WSL update workflow was rerun: schema check passed (`integrity_check=ok`, version 1, expected keys), three containers healthy, health 200, RAG smoke and Phase 6/V2.1 verifiers passed. No database migration or business data write occurred in this phase.
-- Commit/push and Actions confirmation remain; never stage local SQLite backups.
+- Phase 5 commit `20e954e` is pushed; GitHub Actions run `45180300306` succeeded. Never stage local SQLite backups.
 
 ## Phase 2 authorization model (closed; later resumed into Phase 3)
 
