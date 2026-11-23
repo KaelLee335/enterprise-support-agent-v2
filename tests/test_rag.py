@@ -188,6 +188,22 @@ def test_shipment_constraint_adds_missing_delivery_window_without_boilerplate():
     assert enforced == ["POL07_SHIPMENT_WINDOW"]
 
 
+def test_refund_workday_answer_directly_states_holiday_exclusion():
+    evidence = [RetrievedPolicy(
+        "POL-06", "退款进度", "工作日不含周末及法定节假日。", 0.1
+    )]
+    result = generate_answer_from_evidence(
+        "如果退款处理期间遇到法定节假日，节假日也算在到账的工作日里吗？",
+        evidence=evidence,
+        chat_model=FakeListChatModel(responses=[]),
+    )
+
+    assert "工作日不含周末及法定节假日" in result.answer
+    assert "无法从当前资料确认" not in result.answer
+    assert result.citations == ["POL-06"]
+    assert result.enforced_constraint_ids == ["POL06_WORKDAY_EXCLUDES_HOLIDAYS"]
+
+
 @pytest.mark.parametrize(
     ("question", "evidence", "expected_phrase", "expected_citations"),
     [

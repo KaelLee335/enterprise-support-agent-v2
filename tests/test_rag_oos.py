@@ -16,6 +16,20 @@ def test_oos_retrieval_scoring_macro_components():
     assert runner._check_fact("3至5", "发货后通常 3 至 5 个自然日送达")
 
 
+def test_oos_screen_catches_contradictory_over_abstention():
+    case = {
+        "case_id": "HOLDOUT-07",
+        "expected_behavior": "answer_business_day_definition",
+        "relevant_document_ids": ["POL-06"],
+    }
+    answer = "无法从当前资料确认节假日是否计入；但工作日不含法定节假日。"
+
+    failure_type, reason, _ = runner.classify_failure(case, ["POL-06"], answer)
+
+    assert failure_type == "GENERATION"
+    assert "先拒答" in reason
+
+
 def test_oos_run_uses_only_supplied_cases_and_returns_answer_evidence(tmp_path):
     store, _ = index_policy_documents(policy_chunks(), tmp_path / "oos-index", KeywordEmbeddings())
     dataset = {"dataset_id": "test-oos", "evaluation_note": "test independence note", "cases": [{
@@ -94,6 +108,39 @@ def test_bad_case_ledger_rejects_unknown_screening_category():
         )
 
 
+def test_answer_archive_keeps_passed_cases_and_supporting_evidence():
+    case = {
+        "case_id": "HOLDOUT-TEST", "category": "test",
+        "question": "退货运费谁承担？", "expected_answer": "按政策处理。",
+        "expected_behavior": "answer_with_policy", "relevant_document_ids": ["POL-05"],
+    }
+    dataset = {"dataset_id": "test-oos", "cases": [case]}
+    result = {
+        "case": case, "answer": "经确认后标准寄回运费由企业承担。[POL-05]",
+        "retrieved_document_ids": ["POL-05"],
+        "retrieved_documents": [{"source_id": "POL-05", "title": "运费", "distance": 0.1}],
+        "hit_at_4": True, "recall_at_4": 1.0,
+        "answer_rule_pass": True, "abstention_rule_pass": None,
+        "unsupported_citation_labels": [], "failure_type": "",
+        "failure_reason": "", "recommendation": "",
+    }
+    metadata = {
+        "evaluated_at": "2026-11-23T12:00:00+00:00",
+        "embedding_model": "mock-embedding", "chat_model": "mock-chat", "top_k": 4,
+    }
+
+    archive = runner.build_answer_records(dataset, [result], metadata)
+    record = archive["records"][0]
+
+    assert archive["dataset_id"] == "test-oos"
+    assert archive["top_k"] == 4
+    assert record["actual_answer"] == result["answer"]
+    assert record["retrieved_documents"] == result["retrieved_documents"]
+    assert record["screening_failure_type"] is None
+    holdout_path = runner.PROJECT_ROOT / "data/evaluation/oos/rag_oos_v2_holdout.json"
+    assert runner.answer_output_path(holdout_path).name == "rag_oos_v2_holdout_answers.json"
+
+
 def test_oos_dataset_has_unique_cases_and_required_fields():
     dataset = json.loads(runner.DATASET.read_text(encoding="utf-8"))
     original = json.loads((runner.PROJECT_ROOT / "data/evaluation/v1_eval_cases.json").read_text(encoding="utf-8"))
@@ -119,6 +166,7 @@ def test_oos_v2_holdout_is_separate_and_has_dataset_specific_outputs():
     report_path, bad_case_path = runner.output_paths(holdout_path)
     assert report_path.name == "rag_oos_v2_holdout_report.md"
     assert bad_case_path.name == "rag_oos_v2_holdout_bad_cases.json"
+    assert runner.answer_output_path(holdout_path).name == "rag_oos_v2_holdout_answers.json"
 
 
 def test_oos_report_independence_note_is_dataset_specific():

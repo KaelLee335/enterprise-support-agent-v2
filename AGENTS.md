@@ -14,6 +14,13 @@
 - The full WSL update workflow was rerun: schema check passed (`integrity_check=ok`, version 1, expected keys), three containers healthy, health 200, RAG smoke and Phase 6/V2.1 verifiers passed. No database migration or business data write occurred in this phase.
 - Phase 5 commit `20e954e` is pushed; GitHub Actions run `45180300306` succeeded. Never stage local SQLite backups.
 
+## Current task (2026-11-23): OOS answer auditability and HOLDOUT-07 correction
+
+- User confirmed the prior 12-case manual triage. A new full-answer archive exposed a missed semantic defect: HOLDOUT-07 previously said holiday inclusion was unknown, then stated holidays are excluded, despite POL-06 being explicit.
+- Added a narrow POL-06 workday-definition override and a screening regression that catches contradictory over-abstention. Added `rag_oos_v2_holdout_answers.json` output for every case, including passes, with retrieved evidence and metrics; this keeps manual review possible when the Bad Case ledger is empty.
+- Targeted tests: 35 passed; full pytest: 145 passed. Fresh same-dataset/same-provider OOS-v2 run: Hit@4, Macro Recall@4, answer checks, abstention checks and citation-source matching all 100%, screening Bad Cases 0. These remain rule screens, not semantic accuracy.
+- Deployed via the established WSL update workflow. Three containers healthy; schema check, RAG smoke, Phase 6, and V2.1 verifiers pass. A live authenticated `/chat` check for the holiday question returned the direct POL-06 answer without contradictory abstention. Next: commit/push the code, archive, triage, and docs, then confirm CI. Preserve both local SQLite backups; never stage them.
+
 ## Phase 2 authorization model (closed; later resumed into Phase 3)
 
 - User approved the four-role schema/implementation proposal. Local authorization implementation is complete; details are in `docs/phase2_permission_model_and_migration_proposal.md`.

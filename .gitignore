@@ -3,6 +3,7 @@
 node_modules/
 .pytest-tmp/
 .pytest-tmp-v21/
+.pytest-tmp-v*/
 __pycache__/
 .pytest_cache/
 *.py[cod]

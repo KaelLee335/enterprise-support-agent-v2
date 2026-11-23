@@ -267,6 +267,24 @@ def match_answer_constraints(
             ),
         ))
 
+    asks_workday_definition = bool(
+        re.search(r"工作日", query)
+        and re.search(r"法定节假日|节假日|周末|休息日", query)
+    )
+    if "POL-06" in source_ids and asks_workday_definition:
+        matched.append(AnswerConstraint(
+            constraint_id="POL06_WORKDAY_EXCLUDES_HOLIDAYS",
+            instruction=(
+                "POL-06 明确规定工作日不含周末及法定节假日。直接回答该定义，"
+                "不得先说资料无法确认，也不得对证据已明确的定义拒答。"
+            ),
+            override=(
+                "POL-06 规定，工作日不含周末及法定节假日。退款分为两个阶段："
+                "收货并检验通过后 1 至 3 个工作日内发起；发起后通常 1 至 5 个工作日到账。"
+                "不保证具体到账日。[POL-06]"
+            ),
+        ))
+
     if "POL-07" in source_ids and bool(re.search(r"发货|发出|没发|未发|付款后", query)):
         if bool(re.search(r"昨天.*(?:付款|支付|下单)|(?:付款|支付|下单).*昨天", query)) and bool(
             re.search(r"超时|逾期", query)

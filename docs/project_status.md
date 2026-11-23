@@ -1,4 +1,4 @@
-# 当前状态（2026-11-22）：V2.1 电商集成、RAG 样本外评估与权限模型
+# 当前状态（2026-11-23）：V2.1 电商集成、RAG 样本外评估与权限模型
 
 ## 当前推进阶段（2026-11-23）：Phase 4 SQLite 事件身份与迁移（已完成）
 
@@ -7,7 +7,7 @@
 - 最终部署验收：三容器 healthy，`verify_phase6.sh` 与 `verify_v21.sh` 全 PASS。运行库完整性 `ok`、`user_version=1`；webhook event 和 platform order state 的主键包含 platform/tenant/store。首次发现旧 verifier 缺少 `store_id`，修正并重跑后通过。
 - 验收脚本与阶段记录已在 `fe1aeb2` 提交并推送；GitHub Actions run `45172043824` 全成功（pytest、Vue build、Compose 配置、Docker build、无 Key smoke）。无需再次迁移数据库。
 - Phase 5 已完成：WSL 更新脚本新增 SQLite 只读后置核验（完整性、代码 schema version、tenant/store 复合主键），CI 检查 shell 语法。当前三容器全流程复跑通过，未执行新迁移或写数据库。提交 `20e954e` 的 GitHub Actions run `45180300306` 全成功。详见 [`Phase 5 迁移后置核验`](phase5_migration_verification.md)。
-- 最新完成（2026-11-23）：全量 pytest **137 passed / 18.14s**；OOS-v2 真实回归 Hit@4/Recall@4/答案规则筛查/拒答筛查/引用匹配均 100%，筛查 Bad Case 0。规则检查不等于语义准确率，且 OOS-v2 已成为观察到的回归集；详见独立报告。
+- 最新 OOS-v2 实跑（2026-11-23 13:50 UTC）：15 条全量回答/证据已归档；Hit@4、Macro Recall@4、答案要点、拒答要点和引用来源规则筛查均 100%，机器筛查 Bad Case 0。用户确认旧分诊后，逐案回看发现 HOLDOUT-07 旧答复有矛盾拒答，已加 POL-06 窄规则和筛查回归。WSL 实际部署后健康检查、schema/RAG smoke、Phase 6/V2.1 全通过；认证 `/chat` 实测回答与 POL-06 一致。筛查 100% 不是语义准确率；完整答复见 `data/evaluation/oos/rag_oos_v2_holdout_answers.json`。
 - SiliconFlow Chat/Embedding 请求设置 30 秒超时和一次重试，OOS 逐案例显示进度，避免长时间无反馈。
 - Phase 3 交付提交 `48cd754` 已推送；用户报告 WSL 三容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）。
 - GitHub Actions 的 pytest 收集错误已在 `793f259` 修复：新增 `scripts/__init__.py`、`tests/__init__.py`。本机全量 pytest **137 passed / 18.46s**，远端 Actions run `45163773462` 成功。该修复只影响仓库测试导入，不改变容器应用代码。
@@ -22,7 +22,7 @@
 - 新增定制商品+质量问题+运费的专门检索查询扩展，Top-K 保持 4。用户报告更早的显式冲突版本 WSL smoke 与双 verifier 全 PASS，但明确要求本轮最终部署状态等提交后再同步；查询扩展还未部署。
 - OOS-v2 15 题已由用户于 2026-11-23 审核通过并授权真实运行，位于 `data/evaluation/oos/rag_oos_v2_holdout.json`。其中 HOLDOUT-04 针对已知边界，因此不是完全盲测；整套现已成为已观察数据。
 - 用户已授权真实运行：Hit@4 100%、Macro Recall@4 93.3%、答案规则初筛 20%、拒答/范围词面初筛 0/6、引用标签匹配 100%；12 个候选 Bad Case（10 GENERATION、2 RETRIEVAL）待人工逐例判定。这些词面筛查率不是语义准确率；详见独立报告和 ledger。
-- Codex 初步逐例分诊见 `data/evaluation/oos/rag_oos_v2_manual_triage.md`；明确问题、词面误报与证据标注争议已分开记录，最终根因仍待用户复核。
+- 用户已确认 `data/evaluation/oos/rag_oos_v2_manual_triage.md` 中逐案分诊并授权继续。经归档的逐案检查新增发现 HOLDOUT-07 漏检，已修复并重跑 OOS-v2；部署等待现有 WSL 验收流程。
 - 历史中间状态（已被 2026-11-23 后续结果取代）：当时一次真实 OOS 重跑未完成，报告保留为旧快照。当前结果见本页顶部的最新状态和独立报告。
 - 已补 SiliconFlow 请求超时与逐案例进度显示（30 秒、最多 1 次重试）；后续真实 OOS-v2 报告已刷新，见顶部状态。
 

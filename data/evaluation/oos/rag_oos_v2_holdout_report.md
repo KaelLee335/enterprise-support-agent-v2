@@ -1,10 +1,11 @@
 # RAG 样本外测试报告
 
 - 数据集：`rag_oos_v2_holdout`（与45条开发集分开）
-- 运行时间：2026-11-23T09:27:25.299537+00:00
+- 运行时间：2026-11-23T13:50:16.052349+00:00
 - 案例：15；分类：{'combined_conditions': 3, 'ambiguous_clarification': 1, 'scope_boundary': 2, 'no_answer': 3, 'colloquial_synonym': 3, 'out_of_scope': 2, 'privacy_boundary': 1}
 - 独立性说明：用户于2026-11-23审核通过的新建独立评估集，与45条开发集及OOS-v1分开。HOLDOUT-04针对此前已观察到的凭证格式无依据追问，因此整套结果不能称为完全盲测；HOLDOUT-08/10的必要证据标签经人工分诊收窄。运行后所有案例均成为已观察数据。
 - Embedding：BAAI/bge-large-zh-v1.5；LLM：Qwen/Qwen2.5-7B-Instruct；Top-K：4
+- 逐案例答复与检索证据：`rag_oos_v2_holdout_answers.json`
 - 语义正确性由规则要点初筛并需人工审核；无 LLM judge。
 
 ## 指标

@@ -16,7 +16,7 @@
 
 **技术栈：** Python 3.12 · FastAPI · SQLite · LangChain · LangGraph · Chroma · SiliconFlow/Qwen · Vue 3 · Vite · Docker
 
-**当前验证摘要：**本机全量 pytest **130 项通过（17.01 秒）**（含权限、MockShop、Bad Case ledger、RAG 边界/查询扩展和距离校准测试）；V2.1 Vue production build 通过记录为此前验收。2026-11-22 OOS-v1 回归复测：15 条规则初筛全部通过、Bad Case 0 条；OOS-05 已用于查询扩展开发，因此不作为盲测成绩。真实回答仍需人工审核；一次人工复核发现模型额外追问“照片或视频”格式，而政策没有指定该格式。距离校准显示有答案/无答案分布重叠，不支持统一阈值。用户报告早前的冲突 smoke、Phase 6/V2.1 verifier 通过；新查询扩展尚未部署，按用户要求等提交后再同步。
+**当前验证摘要（2026-11-23）：**本机全量 pytest **145 passed**；WSL 实际部署后三容器 healthy，SQLite schema 检查及 Phase 6/V2.1 verifier 通过，认证 `/chat` 对节假日问题返回与 POL-06 一致的直接答复。OOS-v2 15-case 回归中，Hit@4、Macro Recall@4、答案要点筛查、拒答要点筛查和引用来源匹配均为 100%，规则筛查 Bad Case 为 0；这些筛查结果不等于语义准确率，OOS-v2 是已观察回归集而非盲测。逐案例答复与证据留存在 [`OOS-v2 答复档案`](data/evaluation/oos/rag_oos_v2_holdout_answers.json)。人工回看发现并修正 HOLDOUT-07 对已明确退款工作日规则的矛盾拒答。GitHub Actions 负责锁定依赖、全量测试、Vue 构建、Compose 配置和容器 smoke。更多边界和逐例记录见 [`OOS-v2 报告`](data/evaluation/oos/rag_oos_v2_holdout_report.md) 与 [`分诊复核`](data/evaluation/oos/rag_oos_v2_manual_triage.md)。
 
 ## 项目架构
 
@@ -164,9 +164,9 @@ docker compose ps
 
 首次 Docker 部署前，在项目虚拟环境中先运行一次 `python scripts/index_policies.py`，生成本机 `data/vector_store/`；该向量库被 Git 和 Docker 构建上下文排除，避免依赖未跟踪的本机文件。Compose 会从 `.env` 读取模型凭据和数据路径；订单库、审批 checkpoint 和 Chroma 向量库都保存在挂载的数据目录。等待容器状态为 `healthy` 后再打开 API 文档。
 
-从 WSL `/opt/project2` 运行 `bash scripts/verify_phase6.sh` 可检查原有 Agent 主链。新增 `bash scripts/verify_v21.sh` 覆盖两店铺隔离、售后资格与幂等申请、Webhook 签名、重复事件和状态同步。更新脚本会依次运行这两份验收；失败时返回非零状态。
+从 WSL `/opt/project2` 运行 `bash scripts/verify_phase6.sh` 可检查原有 Agent 主链。新增 `bash scripts/verify_v21.sh` 覆盖两店铺隔离、售后资格与幂等申请、Webhook 签名、重复事件和状态同步。`scripts/update_wsl_and_verify.sh` 会先等待服务健康，再只读核验 SQLite 完整性、schema version 和店铺范围复合主键，最后运行 RAG smoke 与两份业务验收；失败时返回非零状态。
 
-用户报告较早的权限与电商集成版本已在 WSL 验收：三容器 healthy，`verify_phase6.sh` 与 `verify_v21.sh` 全 PASS（EXIT=0），并在 2026-11-18 存量 NULL 审计字段记录上验证重复申请返回原申请。2026-11-22 的 RAG 冲突处理版本也通过用户报告的容器 smoke 与两份 verifier；其后的复合查询扩展仍未部署，按用户要求等待本机提交后再同步。后端代码变更使用既有 WSL 同步流程，不要从 Windows checkout 执行 Compose `up`。
+2026-11-23 实际 WSL 验收：三容器 healthy，SQLite `integrity_check=ok`、`user_version=1`，Webhook event 和平台订单状态主键包含平台/租户/店铺维度；Phase 6 与 V2.1 verifier 全 PASS。后端变更继续使用既有 WSL 同步流程，不要从 Windows checkout 执行 Compose `up`。
 
 Dockerfile 将依赖安装与本地源码安装分层，修改源码时可复用依赖缓存；pip 使用 TUNA 镜像并放宽下载超时。
 

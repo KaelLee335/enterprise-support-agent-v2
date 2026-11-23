@@ -30,6 +30,15 @@
 - [x] Phase 5：部署流程增加 SQLite 只读后置检查（完整性、schema version、tenant/store 主键）；WSL 全流程复验通过，bash 语法检查通过。文档：`docs/phase5_migration_verification.md`。
 - [x] Phase 5 检查和文档已在 `20e954e` 推送；GitHub Actions run `45180300306` 成功（pytest、shell syntax、Vue build、Compose config、Docker build、无 Key smoke）。
 
+### Phase 6：OOS 完整答复审计与矛盾回归
+
+- [x] 用户确认 12 个历史候选案例分诊后，检查最新 OOS-v2 全量实际回答；新增完整答复/证据 JSON 存档，覆盖规则通过案例。
+- [x] 存档复核发现 HOLDOUT-07 旧答复错误拒答且自相矛盾：同一答复既称无法确认节假日定义，又称节假日不计入工作日；POL-06 实际已有明确规定。
+- [x] 增加 POL-06 工作日定义窄规则和分类回归器反向断言测试；定向测试 **35 passed**，全量 pytest **145 passed**。
+- [x] 同一 OOS-v2 数据集/模型真实重跑：Hit@4、Macro Recall@4、答案/拒答/引用来源筛查均 100%，筛查 Bad Case 0；HOLDOUT-07 现答复与政策一致。指标只表示规则筛查，不是语义准确率。
+- [x] WSL 更新流程已部署；schema/RAG smoke、Phase 6、V2.1 全通过，三容器 healthy。实时认证 `/chat` 对节假日问题直接返回 POL-06 规则，没有矛盾拒答。
+- [ ] 提交并推送 Phase 6 代码、完整答复档案和复核文档，确认 CI。
+
 ### 本机实施与验收
 
 - [x] 保留 Phase 2 实机验收结论；按用户新指示继续后续阶段，不再在每个普通阶段完成后停下来等待。
@@ -47,11 +56,11 @@
 - [x] 当前本机查询扩展回归 OOS-v1：Hit@4 15/15、Macro Recall@4 100%；答案规则初筛、拒答边界、引用标签匹配均 15/15。OOS-05 已参与调优，结果仅作回归，不是盲测。
 - [x] 用户审核通过 OOS-v2 的 15 个问题、预期行为和证据编号；扩展独立 runner 的 `--dataset` 参数，报告与 Bad Case ledger 按数据集分开输出。HOLDOUT-04 专门测试已观察到的凭证格式边界，因此不宣称整套是完全盲测。
 - [x] 用户另行授权向 SiliconFlow/Qwen 发送 OOS-v2 问题、检索证据及答复；真实运行完成，报告和 ledger 分别写入 `rag_oos_v2_holdout_report.md` 与 `rag_oos_v2_holdout_bad_cases.json`。
-- [ ] 等用户之后复核 Codex 对 12 个候选 Bad Case 的初步分诊，再确认真实失败、检查器误报及证据标注范围；复核前不据词面筛查指标调整 Prompt/约束层。
+- [x] 用户于 2026-11-23 确认逐案分诊并授权继续；确认真实回答问题、检查器误报和证据标签争议分开处理。记录见 `data/evaluation/oos/rag_oos_v2_manual_triage.md`。
 - [x] Codex 已完成逐案初步分诊，标注 3 个明确生成问题候选、2 个无依据细节候选、4 个检查器误报、2 个证据标注争议和 1 个回答不完整候选；详见 `rag_oos_v2_manual_triage.md`。根因 ledger 保持待用户复核。
 - [x] 用户复核通过后，修复拆修保修、凭证格式、发票金额、缺货、未寄回退款计时和付款次日发货推测；扩充等价短语检查。全量 pytest **137 passed / 18.09s**。
-- [ ] 更新后的真实 OOS-v2 回归未能完成；报告顶部标明仍是更早的成功快照，不能视为当前代码/修订标签的最新指标。重跑需要排查 SiliconFlow 请求挂起。
-- [ ] 本轮代码尚未提交或部署。按用户说明保持 WSL 部署状态不变；提交后由用户同步，再报告新版本实机验收。
+- [x] 更新后的真实 OOS-v2 回归完成：Hit@4、Macro Recall@4、答案要点/拒答要点/引用来源规则筛查均 100%，最新规则筛查 Bad Case 0；不得解释成语义准确率。
+- [x] 定向回答和 checker 修复已在 Phase 3 交付中；后续 Phase 4 WSL 部署已同步当前源码。V2.1 与 Phase 6 verifier 通过。
 
 
 ## 2026-11-22：Phase 2 业务权限模型

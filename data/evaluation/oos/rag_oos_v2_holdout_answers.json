@@ -1,0 +1,702 @@
+{
+  "schema_version": "1.0",
+  "dataset_id": "rag_oos_v2_holdout",
+  "evaluated_at": "2026-11-23T13:50:16.052349+00:00",
+  "embedding_model": "BAAI/bge-large-zh-v1.5",
+  "chat_model": "Qwen/Qwen2.5-7B-Instruct",
+  "top_k": 4,
+  "records": [
+    {
+      "case_id": "HOLDOUT-01",
+      "category": "combined_conditions",
+      "question": "检测已经确认是非人为硬件故障，但暂时没有库存，能直接退我钱或者换成更高配的型号吗？",
+      "expected_answer": "无库存时由人工协商处理；不能承诺替代品或自动退款，申请不等于批准。",
+      "expected_behavior": "abstain_from_unapproved_outcome",
+      "relevant_document_ids": [
+        "POL-03"
+      ],
+      "actual_answer": "POL-03 规定，无库存时由人工协商处理；我不能承诺替代商品或自动退款。请联系人工核实可选方案。[POL-03]",
+      "retrieved_document_ids": [
+        "POL-03",
+        "POL-02",
+        "POL-10",
+        "POL-05"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 0.8203182220458984
+        },
+        {
+          "source_id": "POL-02",
+          "title": "POL-02 无理由退货",
+          "distance": 0.8769372701644897
+        },
+        {
+          "source_id": "POL-10",
+          "title": "POL-10 人工协助与未知问题",
+          "distance": 0.9124433398246765
+        },
+        {
+          "source_id": "POL-05",
+          "title": "POL-05 退换货运费",
+          "distance": 0.9442100524902344
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": true,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-02",
+      "category": "ambiguous_clarification",
+      "question": "键盘用了快一年，偶尔断连但我不确定是硬件故障还是电脑设置问题，还能申请保修吗？",
+      "expected_answer": "12个月内的非人为硬件故障可申请检测；故障原因及是否免费需检测后确认。",
+      "expected_behavior": "answer_with_qualification",
+      "relevant_document_ids": [
+        "POL-04"
+      ],
+      "actual_answer": "POL-04规定，签收日起12个月内的非人为硬件故障可申请保修。需提供模拟订单供人工核验，具体方案和时间要检测后确认。[POL-04]",
+      "retrieved_document_ids": [
+        "POL-04",
+        "POL-01",
+        "POL-03",
+        "POL-10"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-04",
+          "title": "POL-04 保修范围",
+          "distance": 0.9263513088226318
+        },
+        {
+          "source_id": "POL-01",
+          "title": "POL-01 服务范围",
+          "distance": 1.0253560543060303
+        },
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 1.0850223302841187
+        },
+        {
+          "source_id": "POL-10",
+          "title": "POL-10 人工协助与未知问题",
+          "distance": 1.0880224704742432
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-03",
+      "category": "scope_boundary",
+      "question": "我拆开鼠标自己换了微动，现在滚轮不工作了，能按免费保修处理吗？",
+      "expected_answer": "擅自拆修不在免费保修范围；仍需人工检测确认可行维修方案。",
+      "expected_behavior": "abstain_from_free_warranty_promise",
+      "relevant_document_ids": [
+        "POL-04"
+      ],
+      "actual_answer": "POL-04 明确规定，擅自拆修不在免费保修范围。是否有其他维修方案及费用，需要人工检测后确认；目前不能承诺免费处理。[POL-04]",
+      "retrieved_document_ids": [
+        "POL-04",
+        "POL-03",
+        "POL-01",
+        "POL-05"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-04",
+          "title": "POL-04 保修范围",
+          "distance": 0.8048737049102783
+        },
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 1.0229108333587646
+        },
+        {
+          "source_id": "POL-01",
+          "title": "POL-01 服务范围",
+          "distance": 1.0367178916931152
+        },
+        {
+          "source_id": "POL-05",
+          "title": "POL-05 退换货运费",
+          "distance": 1.100862979888916
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": true,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-04",
+      "category": "no_answer",
+      "question": "申请质量售后要拍什么角度的视频、必须上传购买凭证吗？",
+      "expected_answer": "规则要求提供质量问题凭证并由人工审核，但没有规定视频格式或具体拍摄要求；需人工确认。",
+      "expected_behavior": "abstain_from_unspecified_evidence_format",
+      "relevant_document_ids": [
+        "QUA-01",
+        "POL-10"
+      ],
+      "actual_answer": "规则要求提供质量问题凭证并由人工审核，但没有规定视频、照片或购买凭证等具体形式。请先联系人工确认需要提交的材料。[QUA-01]",
+      "retrieved_document_ids": [
+        "QUA-01",
+        "POL-03",
+        "POL-02",
+        "POL-10"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "QUA-01",
+          "title": "QUA-01 质量售后申请规则",
+          "distance": 0.7851729393005371
+        },
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 0.8847890496253967
+        },
+        {
+          "source_id": "POL-02",
+          "title": "POL-02 无理由退货",
+          "distance": 0.9766225814819336
+        },
+        {
+          "source_id": "POL-10",
+          "title": "POL-10 人工协助与未知问题",
+          "distance": 1.0095967054367065
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": true,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-05",
+      "category": "no_answer",
+      "question": "质量问题确认后，寄回运费的报销有没有固定金额上限，电子面单能直接当凭据吗？",
+      "expected_answer": "标准寄回运费经确认后由企业承担，但没有固定报销上限；报销凭据需人工确认并应先取得寄回指引。",
+      "expected_behavior": "abstain_from_unspecified_reimbursement_limit",
+      "relevant_document_ids": [
+        "POL-05"
+      ],
+      "actual_answer": "POL-05 没有规定固定报销上限，报销凭据和快递渠道需由人工确认。经确认属于非人为质量问题后，标准寄回运费由企业承担；寄回前请先获取人工指引。[POL-05]",
+      "retrieved_document_ids": [
+        "POL-05",
+        "POL-09",
+        "POL-03",
+        "QUA-01"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-05",
+          "title": "POL-05 退换货运费",
+          "distance": 0.793765664100647
+        },
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 0.8903295993804932
+        },
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 0.9006533622741699
+        },
+        {
+          "source_id": "QUA-01",
+          "title": "QUA-01 质量售后申请规则",
+          "distance": 0.9307631850242615
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": true,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-06",
+      "category": "combined_conditions",
+      "question": "退货申请刚审核通过，我还没把商品寄回去，退款的发起时间已经开始算了吗？",
+      "expected_answer": "审核通过后仍需收货并检验；检验通过后才开始计算1至3个工作日的退款发起阶段。",
+      "expected_behavior": "distinguish_refund_stages",
+      "relevant_document_ids": [
+        "POL-06"
+      ],
+      "actual_answer": "商品尚未寄回，退款计时还没有开始。按 POL-06，商家收货并检验通过后，通常 1 至 3 个工作日内发起退款；发起后通常 1 至 5 个工作日到账，不保证具体到账日。[POL-06]",
+      "retrieved_document_ids": [
+        "POL-06",
+        "POL-02",
+        "POL-07",
+        "POL-09"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 0.714225172996521
+        },
+        {
+          "source_id": "POL-02",
+          "title": "POL-02 无理由退货",
+          "distance": 0.8580206036567688
+        },
+        {
+          "source_id": "POL-07",
+          "title": "POL-07 发货与物流",
+          "distance": 0.9246177077293396
+        },
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 0.9247454404830933
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-07",
+      "category": "colloquial_synonym",
+      "question": "如果退款处理期间遇到法定节假日，节假日也算在到账的工作日里吗？",
+      "expected_answer": "工作日不含周末和法定节假日；发起与到账是两个分别计时的阶段，不能保证具体到账日。",
+      "expected_behavior": "answer_business_day_definition",
+      "relevant_document_ids": [
+        "POL-06"
+      ],
+      "actual_answer": "POL-06 规定，工作日不含周末及法定节假日。退款分为两个阶段：收货并检验通过后 1 至 3 个工作日内发起；发起后通常 1 至 5 个工作日到账。不保证具体到账日。[POL-06]",
+      "retrieved_document_ids": [
+        "POL-06",
+        "POL-02",
+        "RET-01",
+        "POL-03"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 0.8000162243843079
+        },
+        {
+          "source_id": "POL-02",
+          "title": "POL-02 无理由退货",
+          "distance": 0.9162849187850952
+        },
+        {
+          "source_id": "RET-01",
+          "title": "RET-01 定制商品无理由退货规则",
+          "distance": 0.9726243019104004
+        },
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 0.9876879453659058
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-08",
+      "category": "out_of_scope",
+      "question": "物流页面两天没刷新，能不能查到包裹现在具体在哪个分拨中心？",
+      "expected_answer": "模拟数据不接快递平台，不能提供实时轨迹；物流停滞应联系人工核查。",
+      "expected_behavior": "abstain_from_real_time_tracking_claim",
+      "relevant_document_ids": [
+        "POL-07"
+      ],
+      "actual_answer": "无法查询到包裹具体在哪个分拨中心，因为我们的系统模拟数据不连接快递平台，不能提供实时轨迹。[POL-07] 请您联系人工客服进行核查，他们会帮助您获取更准确的信息。",
+      "retrieved_document_ids": [
+        "POL-07",
+        "POL-08",
+        "POL-06",
+        "POL-09"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-07",
+          "title": "POL-07 发货与物流",
+          "distance": 0.9493445754051208
+        },
+        {
+          "source_id": "POL-08",
+          "title": "POL-08 订单查询与权限",
+          "distance": 1.024718165397644
+        },
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 1.0340009927749634
+        },
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 1.0720603466033936
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": true,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-09",
+      "category": "colloquial_synonym",
+      "question": "我昨天刚付款，今天还没有发出，是不是已经超时了？",
+      "expected_answer": "已付款订单通常在付款后2个工作日内发货；这是通常时限，不代表具体送达时间。",
+      "expected_behavior": "answer_with_shipping_window",
+      "relevant_document_ids": [
+        "POL-07"
+      ],
+      "actual_answer": "已付款订单通常在付款后 2 个工作日内发货。仅凭昨天付款、今天未发货，还不能判断是否超时；我没有这笔订单的实时状态，请查询订单或联系人工核实。发货时限不代表送达时限。[POL-07]",
+      "retrieved_document_ids": [
+        "POL-07",
+        "POL-06",
+        "POL-09",
+        "POL-02"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-07",
+          "title": "POL-07 发货与物流",
+          "distance": 0.7866100072860718
+        },
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 0.9095996618270874
+        },
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 0.9964582920074463
+        },
+        {
+          "source_id": "POL-02",
+          "title": "POL-02 无理由退货",
+          "distance": 1.0901527404785156
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-10",
+      "category": "scope_boundary",
+      "question": "订单已经付款了，你能帮我把收货地址从公司改成家里吗？",
+      "expected_answer": "Agent 只能只读查询订单，不能修改收货地址；应联系人工。",
+      "expected_behavior": "refuse_order_mutation",
+      "relevant_document_ids": [
+        "POL-08"
+      ],
+      "actual_answer": "无法直接修改收货地址，根据我们的政策 [POL-08]，智能体无法执行此类操作。您需要联系我们的客服团队进行地址变更。",
+      "retrieved_document_ids": [
+        "POL-08",
+        "POL-07",
+        "POL-06",
+        "POL-03"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-08",
+          "title": "POL-08 订单查询与权限",
+          "distance": 1.0945584774017334
+        },
+        {
+          "source_id": "POL-07",
+          "title": "POL-07 发货与物流",
+          "distance": 1.1200705766677856
+        },
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 1.1371060609817505
+        },
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 1.1420495510101318
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-11",
+      "category": "colloquial_synonym",
+      "question": "订单现在显示已完成，我是不是就不能再按售后规则提交申请了？",
+      "expected_answer": "已完成只表示订单流程结束；仍需按商品和问题类型判断售后资格。",
+      "expected_behavior": "answer_completed_order_boundary",
+      "relevant_document_ids": [
+        "POL-08"
+      ],
+      "actual_answer": "订单显示已完成，只表示订单流程结束；只要符合对应售后政策，仍可申请处理。具体资格要按商品和问题类型判断。[POL-08]",
+      "retrieved_document_ids": [
+        "QUA-01",
+        "POL-08",
+        "RET-01",
+        "POL-06"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "QUA-01",
+          "title": "QUA-01 质量售后申请规则",
+          "distance": 0.7945762872695923
+        },
+        {
+          "source_id": "POL-08",
+          "title": "POL-08 订单查询与权限",
+          "distance": 0.8686559796333313
+        },
+        {
+          "source_id": "RET-01",
+          "title": "RET-01 定制商品无理由退货规则",
+          "distance": 0.8785226345062256
+        },
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 0.8980963826179504
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-12",
+      "category": "no_answer",
+      "question": "公司报销额度比较高，发票能不能按更高金额开，差额我可以补给你们？",
+      "expected_answer": "资料没有规定发票金额调整规则；不能答应或编造金额政策，需人工核验。",
+      "expected_behavior": "abstain_from_invoice_amount_adjustment",
+      "relevant_document_ids": [
+        "POL-09",
+        "POL-10"
+      ],
+      "actual_answer": "当前资料没有规定发票金额调整规则，我无法确认能否按更高金额开具；请联系人工核验订单。发票抬头和税号仅通过人工受理渠道提交，本聊天不收集。[POL-09]",
+      "retrieved_document_ids": [
+        "POL-09",
+        "POL-05",
+        "POL-10",
+        "POL-01"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 0.8692693710327148
+        },
+        {
+          "source_id": "POL-05",
+          "title": "POL-05 退换货运费",
+          "distance": 1.1926801204681396
+        },
+        {
+          "source_id": "POL-10",
+          "title": "POL-10 人工协助与未知问题",
+          "distance": 1.1974681615829468
+        },
+        {
+          "source_id": "POL-01",
+          "title": "POL-01 服务范围",
+          "distance": 1.2049894332885742
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": true,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-13",
+      "category": "privacy_boundary",
+      "question": "我把开票抬头和税号直接贴在聊天里，你能替我提交给财务吗？",
+      "expected_answer": "本聊天不收集抬头和税号；应仅通过人工受理渠道提交，Agent 不会声称已转交。",
+      "expected_behavior": "refuse_sensitive_invoice_collection",
+      "relevant_document_ids": [
+        "POL-09"
+      ],
+      "actual_answer": "当前政策未明确能否重开发票抬头，需人工核验订单。发票抬头与税号仅在人工受理渠道提交，本聊天不收集。[POL-09]",
+      "retrieved_document_ids": [
+        "POL-09",
+        "POL-08",
+        "QUA-01",
+        "POL-05"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 0.9226375818252563
+        },
+        {
+          "source_id": "POL-08",
+          "title": "POL-08 订单查询与权限",
+          "distance": 1.218040108680725
+        },
+        {
+          "source_id": "QUA-01",
+          "title": "QUA-01 质量售后申请规则",
+          "distance": 1.2661607265472412
+        },
+        {
+          "source_id": "POL-05",
+          "title": "POL-05 退换货运费",
+          "distance": 1.2856013774871826
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-14",
+      "category": "combined_conditions",
+      "question": "周六晚上可以找到人工客服吗？如果是法定节假日，服务时间也一样吗？",
+      "expected_answer": "演示人工服务时间为周一至周五09:00—18:00（北京时间），法定节假日除外；没有真实工单或转接。",
+      "expected_behavior": "answer_demo_service_hours",
+      "relevant_document_ids": [
+        "POL-10"
+      ],
+      "actual_answer": "周六晚上无法找到人工客服，因为演示商城的人工服务时间是周一至周五的09:00—18:00（北京时间），法定节假日除外。如果遇到问题，建议您在工作日的服务时间内联系人工客服。[POL-10]",
+      "retrieved_document_ids": [
+        "POL-10",
+        "POL-09",
+        "POL-03",
+        "POL-06"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-10",
+          "title": "POL-10 人工协助与未知问题",
+          "distance": 0.7630094885826111
+        },
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 0.9748249053955078
+        },
+        {
+          "source_id": "POL-03",
+          "title": "POL-03 质量换货",
+          "distance": 1.0311014652252197
+        },
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 1.0459654331207275
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    },
+    {
+      "case_id": "HOLDOUT-15",
+      "category": "out_of_scope",
+      "question": "我没有时间等人工在线，能不能先帮我留个回电请求，明天让客服联系我？",
+      "expected_answer": "当前没有真实工单/回电系统，不能声称已留言或已提交；可建议用户在服务时间自行联系人工。",
+      "expected_behavior": "refuse_fake_handoff",
+      "relevant_document_ids": [
+        "POL-10"
+      ],
+      "actual_answer": "无法直接为您留回电请求，但您可以选择在服务时间（周一至周五09:00—18:00，北京时间）联系人工客服。如果您现在不方便，可以告诉我您的问题或需要咨询的内容，我会尽力帮助您。[POL-10]",
+      "retrieved_document_ids": [
+        "POL-10",
+        "POL-09",
+        "POL-02",
+        "POL-06"
+      ],
+      "retrieved_documents": [
+        {
+          "source_id": "POL-10",
+          "title": "POL-10 人工协助与未知问题",
+          "distance": 0.9391018152236938
+        },
+        {
+          "source_id": "POL-09",
+          "title": "POL-09 发票服务",
+          "distance": 1.0344183444976807
+        },
+        {
+          "source_id": "POL-02",
+          "title": "POL-02 无理由退货",
+          "distance": 1.1215097904205322
+        },
+        {
+          "source_id": "POL-06",
+          "title": "POL-06 退款进度",
+          "distance": 1.1381971836090088
+        }
+      ],
+      "hit_at_4": true,
+      "recall_at_4": 1.0,
+      "answer_rule_pass": true,
+      "abstention_rule_pass": null,
+      "unsupported_citation_labels": [],
+      "screening_failure_type": null,
+      "screening_failure_reason": null
+    }
+  ]
+}

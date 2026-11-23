@@ -68,6 +68,14 @@ def classify_failure(case: dict[str, Any], retrieved: list[str], answer: str) ->
         phrase in answer for phrase in ("请提供", "请告知", "麻烦补充", "签收日期", "哪天签收", "是否属于质量问题", "商品故障")
     ):
         return "ABSTENTION", "信息不足时未提出必要澄清问题", "确认业务是否要求先澄清，再调整路由/澄清规则并由人工复核。"
+    if case["expected_behavior"] == "answer_business_day_definition" and any(
+        phrase in answer for phrase in ("无法从当前资料确认", "无法确认法定节假日", "不确定法定节假日")
+    ):
+        return (
+            "GENERATION",
+            "对政策已明确的工作日定义先拒答，后续又给出相反的肯定结论",
+            "优先直接引用 POL-06 的工作日定义，并测试拒答与肯定结论不自相矛盾。",
+        )
     missing = [fact for fact in case.get("answer_checks", []) if not _check_fact(fact, answer)]
     if missing:
         labels = ["/".join(item) if isinstance(item, list) else item for item in missing]
@@ -113,7 +121,13 @@ def _unsupported_citation_labels(answer: str, retrieved: list[str]) -> list[str]
     return list(dict.fromkeys(label for label in labels if label not in set(retrieved)))
 
 
-def render_report(dataset: dict, results: list[dict], metadata: dict) -> str:
+def render_report(
+    dataset: dict,
+    results: list[dict],
+    metadata: dict,
+    *,
+    answer_artifact: str | None = None,
+) -> str:
     labeled = [r for r in results if r["hit_at_4"] is not None]
     no_answer = [r for r in results if r["case"]["expected_behavior"].startswith(("abstain", "scope_"))]
     answer_checked = [r for r in results if r["answer_rule_pass"] is not None]
@@ -129,6 +143,7 @@ def render_report(dataset: dict, results: list[dict], metadata: dict) -> str:
         f"- 运行时间：{metadata['evaluated_at']}", f"- 案例：{len(results)}；分类：{dict(Counter(c['category'] for c in dataset['cases']))}",
         f"- 独立性说明：{dataset.get('evaluation_note', '该数据集用于独立评估；结果不可与原45条开发集混算。')}",
         f"- Embedding：{metadata['embedding_model']}；LLM：{metadata['chat_model']}；Top-K：{metadata['top_k']}",
+        f"- 逐案例答复与检索证据：`{answer_artifact}`" if answer_artifact else "- 逐案例答复与检索证据：由执行器生成独立 JSON 附件。",
         "- 语义正确性由规则要点初筛并需人工审核；无 LLM judge。", "",
         "## 指标", "",
         f"- Hit@4：{hit:.1%}（{len(labeled)}条有相关文档标注案例；只要命中一个来源即算命中）" if hit is not None else "- Hit@4：N/A",
@@ -218,6 +233,39 @@ def build_bad_case_records(dataset: dict, results: list[dict], metadata: dict) -
     }
 
 
+def build_answer_records(dataset: dict, results: list[dict], metadata: dict) -> dict:
+    """Keep every generated answer and its evidence, including rule-screened passes."""
+    return {
+        "schema_version": "1.0",
+        "dataset_id": dataset["dataset_id"],
+        "evaluated_at": metadata["evaluated_at"],
+        "embedding_model": metadata["embedding_model"],
+        "chat_model": metadata["chat_model"],
+        "top_k": metadata["top_k"],
+        "records": [
+            {
+                "case_id": item["case"]["case_id"],
+                "category": item["case"]["category"],
+                "question": item["case"]["question"],
+                "expected_answer": item["case"]["expected_answer"],
+                "expected_behavior": item["case"]["expected_behavior"],
+                "relevant_document_ids": item["case"]["relevant_document_ids"],
+                "actual_answer": item["answer"],
+                "retrieved_document_ids": item["retrieved_document_ids"],
+                "retrieved_documents": item["retrieved_documents"],
+                "hit_at_4": item["hit_at_4"],
+                "recall_at_4": item["recall_at_4"],
+                "answer_rule_pass": item["answer_rule_pass"],
+                "abstention_rule_pass": item["abstention_rule_pass"],
+                "unsupported_citation_labels": item["unsupported_citation_labels"],
+                "screening_failure_type": item["failure_type"] or None,
+                "screening_failure_reason": item["failure_reason"] or None,
+            }
+            for item in results
+        ],
+    }
+
+
 def run(dataset: dict, *, store, chat_model, top_k: int = 4, progress=None) -> tuple[list[dict], dict]:
     results = []
     for case in dataset["cases"]:
@@ -263,6 +311,10 @@ def output_paths(dataset_path: Path) -> tuple[Path, Path]:
     )
 
 
+def answer_output_path(dataset_path: Path) -> Path:
+    return dataset_path.with_name(f"{dataset_path.stem}_answers.json")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Run an isolated RAG OOS evaluation dataset.")
     parser.add_argument(
@@ -272,6 +324,7 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     dataset_path = args.dataset.resolve()
     report_path, bad_case_path = output_paths(dataset_path)
+    answer_path = answer_output_path(dataset_path)
     settings = get_settings()
     dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     store = open_configured_policy_store(settings=settings)
@@ -284,13 +337,22 @@ def main(argv: list[str] | None = None) -> None:
         progress=lambda case_id: print(f"Evaluating {case_id}...", flush=True),
     )
     metadata = {**run_meta, "embedding_model": settings.siliconflow_embedding_model, "chat_model": settings.siliconflow_chat_model}
-    report_path.write_text(render_report(dataset, results, metadata), encoding="utf-8")
+    report_path.write_text(
+        render_report(dataset, results, metadata, answer_artifact=answer_path.name),
+        encoding="utf-8",
+    )
     ledger = build_bad_case_records(dataset, results, metadata)
     bad_case_path.write_text(
         json.dumps(ledger, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    answer_records = build_answer_records(dataset, results, metadata)
+    answer_path.write_text(
+        json.dumps(answer_records, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     print(f"OOS report: {report_path}")
     print(f"Bad Case ledger: {bad_case_path}")
+    print(f"Per-case answers and evidence: {answer_path}")
     print(f"Cases: {len(results)}; report written for manual review.")
 
 

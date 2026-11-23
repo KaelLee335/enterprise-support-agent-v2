@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "dataset_id": "rag_oos_v2_holdout",
-  "evaluated_at": "2026-11-23T09:27:25.299537+00:00",
+  "evaluated_at": "2026-11-23T13:50:16.052349+00:00",
   "classification_note": "screening labels are hypotheses; only human-reviewed root_cause_review is an adjudicated cause",
   "allowed_root_cause_categories": [
     "ABSTENTION",
