@@ -512,3 +512,10 @@
 - WSL 全更新流程实跑成功：schema version 1、SQLite integrity ok、两组键正确；三容器 healthy、health 200、RAG smoke、Phase 6 和 V2.1 全通过。
 - 本阶段未再次迁移数据库，也未写入业务数据；迁移前备份继续保留且不提交。
 - Phase 5 提交 `20e954e` 已推送，GitHub Actions run `45180300306` 全成功；CI 通过 pytest、shell syntax、Vue build、Compose 配置、Docker build 和无 Key smoke。
+
+## 2026-11-23 — OOS-v2 答复审计与 HOLDOUT-07 修复交付
+
+- 用户确认此前 12 个候选 Bad Case 分诊后，补齐所有 OOS-v2 案例的实际回答与证据存档；完整审阅发现 HOLDOUT-07 旧答复先称节假日定义未知，后又称节假日不计入工作日，违反 POL-06 的明确规则。
+- 增加 POL-06 工作日定义确定性回答和矛盾过度拒答筛查；补充单测，全量 pytest **145 passed / 18.11s**。同一 OOS-v2 数据集/模型重跑：Hit@4、Macro Recall@4、答案/拒答/引用筛查均 100%，规则初筛 Bad Case 0；这些不是语义准确率。
+- 通过现有脚本同步到 WSL 并完整验证：schema 检查、RAG smoke、Phase 6、V2.1 全通过，三容器 healthy；实时认证 `/chat` 对节假日问题返回直接正确的 POL-06 答案。
+- 提交 `e5e7cf2` 已推送；GitHub Actions run `45189567933` 成功。当前等待用户验收 Phase 6。

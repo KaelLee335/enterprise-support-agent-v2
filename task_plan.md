@@ -37,7 +37,8 @@
 - [x] 增加 POL-06 工作日定义窄规则和分类回归器反向断言测试；定向测试 **35 passed**，全量 pytest **145 passed**。
 - [x] 同一 OOS-v2 数据集/模型真实重跑：Hit@4、Macro Recall@4、答案/拒答/引用来源筛查均 100%，筛查 Bad Case 0；HOLDOUT-07 现答复与政策一致。指标只表示规则筛查，不是语义准确率。
 - [x] WSL 更新流程已部署；schema/RAG smoke、Phase 6、V2.1 全通过，三容器 healthy。实时认证 `/chat` 对节假日问题直接返回 POL-06 规则，没有矛盾拒答。
-- [ ] 提交并推送 Phase 6 代码、完整答复档案和复核文档，确认 CI。
+- [x] Phase 6 代码、完整答复档案和复核文档已在 `e5e7cf2` 推送；GitHub Actions run `45189567933` 成功。
+- [ ] 用户验收 Phase 6：复核 HOLDOUT-07 修复与逐案例答复档案，然后决定是否继续下一阶段。
 
 ### 本机实施与验收
 
