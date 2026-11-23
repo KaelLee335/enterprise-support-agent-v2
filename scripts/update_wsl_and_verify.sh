@@ -78,6 +78,43 @@ if [[ "$ready" != "1" ]]; then
   exit 1
 fi
 
+echo "Verifying the persistent SQLite schema..."
+docker compose exec -T support-agent /app/.venv/bin/python - <<'PY'
+import sqlite3
+
+from support_agent.config import get_settings
+from support_agent.db import SCHEMA_VERSION
+
+database_path = get_settings().database_path.resolve()
+uri = f"{database_path.as_uri()}?mode=ro"
+with sqlite3.connect(uri, uri=True) as connection:
+    integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
+    version = connection.execute("PRAGMA user_version").fetchone()[0]
+    expected = {
+        "webhook_events": ("platform", "tenant_id", "store_id", "event_id"),
+        "platform_order_states": ("platform", "tenant_id", "store_id", "order_id"),
+    }
+    actual = {}
+    for table in expected:
+        rows = connection.execute(f"PRAGMA table_info({table})").fetchall()
+        actual[table] = tuple(
+            row[1]
+            for row in sorted(rows, key=lambda row: row[5])
+            if row[5]
+        )
+
+assert integrity == "ok", f"SQLite integrity check failed: {integrity}"
+assert version == SCHEMA_VERSION, (
+    f"SQLite schema version is {version}; expected {SCHEMA_VERSION}"
+)
+for table, primary_key in expected.items():
+    assert actual[table] == primary_key, (
+        f"{table} primary key is {actual[table]}; expected {primary_key}"
+    )
+print(f"PASS SQLite integrity and schema version {version}")
+print("PASS webhook and order-state tenant/store primary keys")
+PY
+
 docker compose exec -T support-agent /app/.venv/bin/python - <<'PY'
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from support_agent.rag.answer import generate_answer_from_evidence

@@ -67,6 +67,8 @@ jobs:
         run: uv sync --locked --extra dev
       - name: Run test suite
         run: uv run --locked pytest -q
+      - name: Check shell script syntax
+        run: bash -n scripts/*.sh
       - name: Build Vue demo
         working-directory: frontend
         run: npm ci && npm run build

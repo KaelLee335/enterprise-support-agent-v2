@@ -6,7 +6,13 @@
 - Ran the established WSL sync/deploy workflow against `/opt/project2` (not Windows Compose). All three containers are healthy. `verify_phase6.sh` and `verify_v21.sh` passed in the final run.
 - The persistent `/app/data/support_agent.db` now passes integrity check and has `user_version=1`; event and order-state primary keys include platform, tenant, and store. No business data was cleared.
 - The first verifier run exposed only a stale verifier request missing required `store_id`; fixed `scripts/verify_v21.sh`, synced it, and reran the full workflow successfully. Correct cross-tenant event lookup returns 404 and owner lookup succeeds.
-- Verifier correction and handoff docs were committed as `fe1aeb2`, pushed to `origin/main`; GitHub Actions run `45172043824` succeeded, including tests, frontend build, Compose config, Docker build, and no-key smoke. Never stage SQLite backups. Phase 4 migration/deployment is complete; wait for the next user acceptance decision before unrelated phases.
+- Verifier correction and handoff docs were committed as `fe1aeb2`, pushed to `origin/main`; GitHub Actions run `45172043824` succeeded, including tests, frontend build, Compose config, Docker build, and no-key smoke. Never stage SQLite backups.
+
+## Current task (2026-11-23): Phase 5 migration postcondition verification
+
+- Added a read-only check to the established WSL update workflow for SQLite integrity, `SCHEMA_VERSION`, and both platform/tenant/store composite primary keys. CI also runs `bash -n scripts/*.sh`.
+- The full WSL update workflow was rerun: schema check passed (`integrity_check=ok`, version 1, expected keys), three containers healthy, health 200, RAG smoke and Phase 6/V2.1 verifiers passed. No database migration or business data write occurred in this phase.
+- Commit/push and Actions confirmation remain; never stage local SQLite backups.
 
 ## Phase 2 authorization model (closed; later resumed into Phase 3)
 

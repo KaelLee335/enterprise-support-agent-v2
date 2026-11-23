@@ -394,3 +394,8 @@ GitHub Actions `b797bda` 运行成功：Python 3.12 全量 pytest 55 passed in 3
 - The first live verifier failure (`expected 404, got 422`) was caused by the verifier not supplying the newly required `store_id`, not by the API or migrated data. Supplying the caller's mapped store produces the intended isolation check: another tenant/store receives 404; the owning tenant/store receives the event.
 - Online backup before migration is safer than copying the active SQLite file because it uses SQLite's backup API and accounts for WAL state. The retained pre-migration snapshot has `integrity_check=ok`, schema version 0; deployed DB has `integrity_check=ok`, version 1.
 - Phase 4 runtime acceptance is complete. Keep the backup out of Git and do not downgrade the DB without a reviewed rollback plan.
+
+## Phase 5: migration postcondition check (2026-11-23)
+
+- Container health alone is insufficient evidence that the persistent SQLite schema matches the application version. The WSL update script now opens the configured DB read-only and checks integrity, schema version, and ordered composite primary-key columns before continuing to RAG/API acceptance.
+- Full WSL update flow passed against the deployed database, and `bash -n` validated the update script. This verification is read-only; no migration was repeated and no business rows were modified.

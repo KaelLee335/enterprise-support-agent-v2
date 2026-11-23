@@ -504,3 +504,10 @@
 - 运行库只读复核：`integrity_check=ok`、`user_version=1`；`webhook_events` 和 `platform_order_states` 主键都含平台、租户、店铺维度。未清除业务数据。
 - 当前剩余交付事项：提交并推送 verifier 修复和同步状态文档，确认 GitHub Actions；SQLite 备份必须排除在 Git 外。
 - 交付提交 `fe1aeb2` 已推送；Actions run `45172043824` 完整成功（pytest、Vue build、Compose config、Docker build、无 Key smoke）。工作树只保留本机 SQLite 备份为未跟踪文件，确保未进入 Git。
+
+## 2026-11-23 — Phase 5 SQLite 迁移后置核验
+
+- 为 `scripts/update_wsl_and_verify.sh` 增加部署后 SQLite 只读检查：`integrity_check`、应用 `SCHEMA_VERSION`、`webhook_events` 与 `platform_order_states` 的完整身份复合主键。检查失败会终止后续验收。
+- GitHub Actions 增加 `bash -n scripts/*.sh`，用于尽早发现 shell 语法错误。
+- WSL 全更新流程实跑成功：schema version 1、SQLite integrity ok、两组键正确；三容器 healthy、health 200、RAG smoke、Phase 6 和 V2.1 全通过。
+- 本阶段未再次迁移数据库，也未写入业务数据；迁移前备份继续保留且不提交。
