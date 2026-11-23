@@ -5,7 +5,7 @@
 ### 验收状态
 
 - [x] 用户于 2026-11-23 接受 Phase 3；阶段关闭。
-- [x] 用户批准 Phase 4 临时库实现；本地代码和测试已完成，等待用户验收。持久数据迁移仍未执行，详见 `docs/phase4_sqlite_identity_migration_plan.md`。
+- [x] 用户批准 Phase 4 临时库实现和持久库迁移；本地实现、WSL 部署与真实库迁移均已完成，详见 `docs/phase4_sqlite_identity_migration_plan.md`。
 
 ### 2026-11-23 后续回归完成
 
@@ -16,14 +16,17 @@
 - [x] CI 导入修复提交 `793f259` 已推送；GitHub Actions run `45163773462` 成功。
 - [x] 只读检查 SQLite 备份和当前库：两者完整性均 `ok`；备份为迁移前结构且未纳入 Git。
 
-### Phase 4：Webhook 店铺身份键与 SQLite schema version（本地实现待验收）
+### Phase 4：Webhook 店铺身份键与 SQLite schema version（已部署并验收）
 
 - [x] 新库/旧库使用 `PRAGMA user_version=1`；旧库表 rebuild 在事务中保留记录，失败会回滚，未来版本会在建表前拒绝启动。
 - [x] Webhook event 与 platform order state 的键/查询均包含平台、租户、店铺及本地事件/订单 ID；事件查询 API 校验 tenant-store 映射。
 - [x] 临时数据库测试覆盖迁移、重复初始化、回滚、未知新版本、跨店铺重复编号和幂等冲突。
 - [x] 全量 pytest **142 passed / 17.52s**。
 - [x] 提交 `d15d6f3` 已推送，GitHub Actions run `45169866834` 成功。
-- [ ] 等待用户决定是否进行 WSL 部署验证及持久库迁移；当前未运行 WSL/Compose、未迁移持久数据库。
+- [x] 用户明确授权后，使用 SQLite 在线备份 API 创建 `data/support_agent.db.bak-20261123-200521-pre-phase4`；备份完整性 `ok`、版本 0，迁移前保留且未纳入 Git。
+- [x] 通过既有脚本同步并部署到 WSL `/opt/project2`；三容器 healthy，`verify_phase6.sh` 与 `verify_v21.sh` 全部 PASS。首次运行发现 verifier 漏传 `store_id`，修正后同步并完整重跑通过。
+- [x] 实际挂载库完整性 `ok`、`user_version=1`；两张复合主键含 platform/tenant/store，存量数据保留。
+- [ ] 提交并推送 verifier 修复及本阶段记录，确认 GitHub Actions 成功。
 
 ### 本机实施与验收
 

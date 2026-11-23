@@ -494,3 +494,12 @@
 - 新增旧 schema 升级、升级幂等、迁移异常回滚、未来版本拒绝、跨店铺复用 event/order ID 和 API store 范围测试。
 - 全量 pytest **142 passed / 17.52s**。全部数据库变更仅在 pytest 临时库运行；未操作持久 D 盘/WSL 数据、未运行 Compose；真实数据库迁移仍需单独授权。
 - 用户要求继续交付后，创建并推送提交 `d15d6f3`（`feat: scope webhook state by tenant and store`）。GitHub Actions run `45169866834` 成功。未运行 WSL/Compose，未迁移持久 SQLite。
+
+## 2026-11-23 — Phase 4 持久库迁移与 WSL 验收
+
+- 用户明确授权后，先使用 SQLite 在线备份 API 创建 `data/support_agent.db.bak-20261123-200521-pre-phase4`。备份完整性 `ok`、`user_version=0`，保留在本地且未纳入 Git。
+- 通过既有更新脚本同步到 WSL `/opt/project2` 并重建服务。第一次验收中 `verify_phase6.sh` 通过，V2.1 verifier 因查询 URL 漏传新要求的 `store_id` 返回 422。
+- 修复 `scripts/verify_v21.sh`：跨租户查询显式指定 `shop-demo-b`，所属店铺查询显式指定 `shop-demo-a`，使检查对应真实 API 合约。
+- 同步修复并完整重跑更新/验收脚本：Phase 6 与 V2.1 全部 PASS；三个容器 healthy。
+- 运行库只读复核：`integrity_check=ok`、`user_version=1`；`webhook_events` 和 `platform_order_states` 主键都含平台、租户、店铺维度。未清除业务数据。
+- 当前剩余交付事项：提交并推送 verifier 修复和同步状态文档，确认 GitHub Actions；SQLite 备份必须排除在 Git 外。

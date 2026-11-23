@@ -112,9 +112,15 @@ status, synced = request("/ecommerce/orders/2003", token="demo-a-local-token")
 check("webhook state visible to owner", synced.get("status"), "shipped")
 status, _ = request("/webhooks/mock-shop", method="POST", body={**event, "event_id": f"invalid-{uuid.uuid4().hex}"}, signature=False)
 check("invalid webhook signature rejected", status, 401)
-status, _ = request(f"/webhooks/mock-shop/events/{event_id}", token="demo-b-local-token")
+status, _ = request(
+    f"/webhooks/mock-shop/events/{event_id}?store_id=shop-demo-b",
+    token="demo-b-local-token",
+)
 check("webhook event hidden across tenants", status, 404)
-status, event_record = request(f"/webhooks/mock-shop/events/{event_id}", token="demo-a-local-token")
+status, event_record = request(
+    f"/webhooks/mock-shop/events/{event_id}?store_id=shop-demo-a",
+    token="demo-a-local-token",
+)
 check("webhook event readable by owner", status, 200)
 check("webhook event identity", event_record.get("event_id"), event_id)
 

@@ -388,3 +388,9 @@ GitHub Actions `b797bda` 运行成功：Python 3.12 全量 pytest 55 passed in 3
 - 迁移提案新增 customers、tenant_users、service_customer_grants、order_customer_ownership、approval_tasks、approval_task_events。未运行 SQL；不回填历史所有权或 approver 分配。
 - `orders.customer_id='demo-a'` 对应关系不明确，V1 seed orders 为 NULL；不能映射成 MockShop customer ID。未映射资源默认拒绝。
 - 本轮没有代码/schema变动，没有重跑测试。引用上轮已记录基线 105 passed / 17.99s，不将其表述为新权限测试结果。
+
+## Phase 4 deployment finding (2026-11-23)
+
+- The first live verifier failure (`expected 404, got 422`) was caused by the verifier not supplying the newly required `store_id`, not by the API or migrated data. Supplying the caller's mapped store produces the intended isolation check: another tenant/store receives 404; the owning tenant/store receives the event.
+- Online backup before migration is safer than copying the active SQLite file because it uses SQLite's backup API and accounts for WAL state. The retained pre-migration snapshot has `integrity_check=ok`, schema version 0; deployed DB has `integrity_check=ok`, version 1.
+- Phase 4 runtime acceptance is complete. Keep the backup out of Git and do not downgrade the DB without a reviewed rollback plan.

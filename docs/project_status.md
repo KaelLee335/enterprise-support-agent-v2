@@ -1,9 +1,11 @@
 # 当前状态（2026-11-22）：V2.1 电商集成、RAG 样本外评估与权限模型
 
-## 当前推进阶段（2026-11-23）：Phase 4 SQLite 事件身份与迁移
+## 当前推进阶段（2026-11-23）：Phase 4 SQLite 事件身份与迁移（已完成）
 
-- 用户已于 2026-11-23 接受 Phase 3，阶段关闭。Phase 4 已获批并完成临时库实现，现等待用户验收；持久数据库迁移仍未执行。
-- Phase 4 提交 `d15d6f3` 已推送；全量 pytest **142 passed / 17.52s**，Actions run `45169866834` 成功。迁移只在临时测试库执行；持久数据库、WSL、Docker 与 Chroma 未改动，等待用户决定是否部署和迁移。
+- 用户已于 2026-11-23 接受 Phase 3，阶段关闭。Phase 4 实现、持久库迁移与 WSL 部署已在用户授权后完成。
+- Phase 4 实现提交 `d15d6f3` 已推送；全量 pytest **142 passed / 17.52s**，Actions run `45169866834` 成功。持久库迁移前通过 SQLite 在线备份 API 创建 `data/support_agent.db.bak-20261123-200521-pre-phase4`，完整性 `ok`、版本 0；备份保留本地且不提交。
+- 最终部署验收：三容器 healthy，`verify_phase6.sh` 与 `verify_v21.sh` 全 PASS。运行库完整性 `ok`、`user_version=1`；webhook event 和 platform order state 的主键包含 platform/tenant/store。首次发现旧 verifier 缺少 `store_id`，修正并重跑后通过。
+- 当前只待将验收脚本修复和状态文档提交/推送并确认 CI；无需再迁移数据库。
 - 最新完成（2026-11-23）：全量 pytest **137 passed / 18.14s**；OOS-v2 真实回归 Hit@4/Recall@4/答案规则筛查/拒答筛查/引用匹配均 100%，筛查 Bad Case 0。规则检查不等于语义准确率，且 OOS-v2 已成为观察到的回归集；详见独立报告。
 - SiliconFlow Chat/Embedding 请求设置 30 秒超时和一次重试，OOS 逐案例显示进度，避免长时间无反馈。
 - Phase 3 交付提交 `48cd754` 已推送；用户报告 WSL 三容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）。

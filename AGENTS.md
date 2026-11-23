@@ -1,5 +1,13 @@
 # Project Agent Instructions
 
+## Latest handoff (2026-11-23): Phase 4 persistent migration accepted
+
+- User explicitly authorized the live SQLite migration and WSL deployment. Before deployment, created `data/support_agent.db.bak-20261123-200521-pre-phase4` using SQLite's online backup API. The backup passed `PRAGMA integrity_check=ok` and remained at `user_version=0`; do not add it to Git or delete it.
+- Ran the established WSL sync/deploy workflow against `/opt/project2` (not Windows Compose). All three containers are healthy. `verify_phase6.sh` and `verify_v21.sh` passed in the final run.
+- The persistent `/app/data/support_agent.db` now passes integrity check and has `user_version=1`; event and order-state primary keys include platform, tenant, and store. No business data was cleared.
+- The first verifier run exposed only a stale verifier request missing required `store_id`; fixed `scripts/verify_v21.sh`, synced it, and reran the full workflow successfully. Correct cross-tenant event lookup returns 404 and owner lookup succeeds.
+- Next: commit/push the verifier correction and current status documentation, then confirm CI. Never stage SQLite backups. Phase 4 runtime migration is complete after that delivery bookkeeping; wait for the next user acceptance decision before unrelated phases.
+
 ## Phase 2 authorization model (closed; later resumed into Phase 3)
 
 - User approved the four-role schema/implementation proposal. Local authorization implementation is complete; details are in `docs/phase2_permission_model_and_migration_proposal.md`.
@@ -9,10 +17,10 @@
 - At Phase 2 close, the work was paused. The user later asked Codex to continue automatically until the next acceptance gate; the current Phase 3 instructions below supersede the pause. This session did not start Compose/WSL or touch persistent DB/Chroma. No commit or push was made.
 - Phase 2 is complete and paused. User reports a persistent SQLite backup (`support_agent.db.bak-20261122`), successful WSL migration, three healthy containers, and `verify_phase6` + `verify_v21` both PASS (EXIT=0). They specifically verified legacy 2026-11-18 after-sale rows with NULL `actor_id` return the original application on retry. This is user-reported real-data acceptance; this session did not operate WSL.
 
-## Current task (2026-11-23): Phase 4 SQLite event identity — local acceptance pending
+## Current task (2026-11-23): Phase 4 SQLite event identity — runtime acceptance complete
 
 - User accepted Phase 3 on 2026-11-23. Engineering implementation, OOS-v2 regression, WSL acceptance (user-reported for `48cd754`), CI import fix, and successful Actions run are complete. Phase 3 is closed.
-- Phase 4 implementation is complete locally and awaits user acceptance; see `docs/phase4_sqlite_identity_migration_plan.md`. Only temporary test databases were migrated. Persistent SQLite migration and deployment have not been authorized.
+- Phase 4 implementation, persistent migration, and WSL deployment are complete under explicit user authorization; see `docs/phase4_sqlite_identity_migration_plan.md`. The pre-migration online backup is validated and retained locally.
 
 - 2026-11-23 latest: full pytest **137 passed / 18.14s**. OOS-v2 real regression completed: Hit@4, Macro Recall@4, answer-rule screen, abstention screen, citation-source match all 100%; 0 screening Bad Cases. Treat as an observed regression set, not semantic accuracy or blind-holdout proof. Report/ledger refreshed. SiliconFlow clients now have a 30s request timeout and one retry; OOS logs per-case progress.
 - Local delivery commit completed as `64432c8` (54 files; source, tests, docs, and OOS reports). SQLite backup and test temp dirs were excluded. Not pushed or deployed; user can now sync to WSL and report verifier results.
