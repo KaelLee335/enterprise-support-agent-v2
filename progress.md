@@ -472,3 +472,9 @@
 - 用户开放本机文件权限后，创建本地提交 `64432c8`（`feat: enforce tenant permissions and harden RAG evaluation`），包含 54 个源码、测试、文档和 OOS 评估文件。
 - 检查确认 `.env` 与 `data/support_agent.db.bak-20261122` 未进入提交；数据库备份继续留在工作区。未推送 GitHub，未运行 WSL/Compose。
 - 已同步更新阶段计划、Agent 指引和项目状态。下一步等待用户按既有流程同步到 WSL 并回报容器验收结果。
+
+## 2026-11-23 — GitHub Actions 导入问题修复
+
+- 根据 Actions run `45150776269` 的 job 日志，失败点是 pytest collection：`tests/test_rag_distance_calibration.py` 找不到 `scripts`，`tests/test_rag_oos.py` 找不到 `tests`。CI 没有触发 SiliconFlow 请求，因此与 API Key 是否过期无关。
+- 新增 `scripts/__init__.py` 与 `tests/__init__.py`，明确将目录声明为本项目包，避免与 runner 环境中的同名 `tests` 包冲突。
+- 本机全量 pytest **137 passed / 18.46s**。改动仍未提交/推送；GitHub Actions 的旧失败记录不会自行变化，推送修复后应观察新 run。

@@ -8,6 +8,8 @@
 - [x] 全量 pytest **137 passed / 18.14s**；真实 OOS-v2 回归指标 Hit@4 100%、Macro Recall@4 100%、答案/拒答/引用规则筛查均 100%，Bad Case 0。
 - [x] 本地交付提交 `64432c8` 已创建，SQLite 备份未包含；未推送、未操作 WSL。
 - [ ] 等用户按既有 WSL 流程同步并回报容器验收结果。
+- [x] 排查 GitHub Actions 红叉：确认是 pytest collection 导入 `scripts`/`tests` 失败，与 API Key 无关；补充 package markers，本机全量 pytest **137 passed / 18.46s**。
+- [ ] 提交并推送 CI 导入修复，确认 GitHub Actions 重跑通过。
 
 ### 本机实施与验收
 
