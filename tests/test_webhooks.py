@@ -115,7 +115,7 @@ def test_webhook_event_id_is_idempotent_and_updates_order_status(webhook_client)
     duplicate = client.post("/webhooks/mock-shop", content=body, headers=signed_headers(body))
     order = client.get("/ecommerce/orders/2003", headers={"Authorization": "Bearer demo-a-local-token"})
     event = client.get(
-        f"/webhooks/mock-shop/events/{json.loads(body)['event_id']}",
+        f"/webhooks/mock-shop/events/{json.loads(body)['event_id']}?store_id=shop-demo-a",
         headers={"Authorization": "Bearer demo-a-local-token"},
     )
 
@@ -156,11 +156,11 @@ def test_webhook_derives_tenant_from_store_not_payload(webhook_client):
     response = client.post("/webhooks/mock-shop", content=body, headers=signed_headers(body))
     foreign_order = client.get("/ecommerce/orders/2006", headers={"Authorization": "Bearer demo-a-local-token"})
     event_as_foreign = client.get(
-        "/webhooks/mock-shop/events/event-demo-other-shop-0001",
+        "/webhooks/mock-shop/events/event-demo-other-shop-0001?store_id=shop-demo-b",
         headers={"Authorization": "Bearer demo-a-local-token"},
     )
     event_as_owner = client.get(
-        "/webhooks/mock-shop/events/event-demo-other-shop-0001",
+        "/webhooks/mock-shop/events/event-demo-other-shop-0001?store_id=shop-demo-b",
         headers={"Authorization": "Bearer demo-b-local-token"},
     )
 
@@ -170,3 +170,27 @@ def test_webhook_derives_tenant_from_store_not_payload(webhook_client):
     assert event_as_owner.status_code == 200
     assert event_as_owner.json()["event_id"] == "event-demo-other-shop-0001"
     assert event_as_owner.json()["demo_only"] is True
+
+
+def test_webhook_event_read_requires_tenant_store_scope(webhook_client):
+    client, _ = webhook_client
+    body = event_body(event_id="event-scoped-read-0001")
+    received = client.post("/webhooks/mock-shop", content=body, headers=signed_headers(body))
+    headers = {"Authorization": "Bearer demo-a-local-token"}
+
+    missing_store = client.get(
+        "/webhooks/mock-shop/events/event-scoped-read-0001", headers=headers
+    )
+    wrong_store = client.get(
+        "/webhooks/mock-shop/events/event-scoped-read-0001?store_id=shop-demo-b",
+        headers=headers,
+    )
+    correct_store = client.get(
+        "/webhooks/mock-shop/events/event-scoped-read-0001?store_id=shop-demo-a",
+        headers=headers,
+    )
+
+    assert received.status_code == 200
+    assert missing_store.status_code == 422
+    assert wrong_store.status_code == 404
+    assert correct_store.status_code == 200

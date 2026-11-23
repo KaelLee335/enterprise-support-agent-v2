@@ -13,7 +13,11 @@ from support_agent.db import (
     delete_agent_run,
     fetch_agent_run,
     fetch_order,
+    fetch_platform_order_state,
+    fetch_webhook_event,
     initialize_database,
+    process_mockshop_webhook,
+    WebhookEventConflict,
     update_agent_run,
 )
 
@@ -39,6 +43,8 @@ def test_initialization_imports_v1_and_fixed_order(tmp_path):
     assert fixed_order["is_customized"] == 1
     assert fixed_order["received_date"] == "2026-11-01"
     assert fixed_order["feedback_date"] == "2026-11-11"
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
 
 
 def test_order_query_is_scoped_to_tenant(tmp_path):
@@ -197,3 +203,160 @@ def test_concurrent_approval_decisions_only_consume_pending_once(tmp_path):
     with ThreadPoolExecutor(max_workers=2) as executor:
         results = list(executor.map(decide, (True, False)))
     assert sum(result is not None for result in results) == 1
+
+
+def test_database_upgrade_rebuilds_webhook_tables_and_preserves_rows(tmp_path):
+    db_path = tmp_path / "legacy-webhook.db"
+    seed_path = tmp_path / "orders.json"
+    seed_path.write_text('{"orders": []}', encoding="utf-8")
+    with sqlite3.connect(db_path) as connection:
+        connection.executescript("""
+            CREATE TABLE tenants (
+                tenant_id TEXT PRIMARY KEY,
+                display_name TEXT NOT NULL,
+                is_demo INTEGER NOT NULL DEFAULT 1
+            );
+            INSERT INTO tenants VALUES ('demo-a', 'Demo A', 1);
+            CREATE TABLE webhook_events (
+                platform TEXT NOT NULL, event_id TEXT NOT NULL, event_type TEXT NOT NULL,
+                tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id), store_id TEXT NOT NULL,
+                order_id TEXT NOT NULL, payload_sha256 TEXT NOT NULL,
+                status TEXT NOT NULL CHECK (status IN ('processed','rejected')),
+                received_at TEXT NOT NULL, PRIMARY KEY (platform, event_id)
+            );
+            CREATE INDEX idx_webhook_events_tenant ON webhook_events(tenant_id, received_at);
+            CREATE TABLE platform_order_states (
+                platform TEXT NOT NULL, order_id TEXT NOT NULL,
+                tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id), store_id TEXT NOT NULL,
+                customer_id TEXT NOT NULL, platform_status TEXT NOT NULL,
+                source_event_id TEXT NOT NULL, occurred_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                PRIMARY KEY (platform, order_id)
+            );
+            INSERT INTO webhook_events VALUES
+                ('mock-shop','legacy-event-001','order.shipped','demo-a','shop-a','legacy-order-001','hash','processed','2026-11-20T00:00:00Z');
+            INSERT INTO platform_order_states VALUES
+                ('mock-shop','legacy-order-001','demo-a','shop-a','customer-a','WAIT_BUYER_RECEIVE','legacy-event-001','2026-11-20T00:00:00Z','2026-11-20T00:00:01Z');
+        """)
+
+    initialize_database(db_path, seed_path)
+    initialize_database(db_path, seed_path)
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        event_pk = tuple(row[1] for row in sorted(
+            (row for row in connection.execute("PRAGMA table_info(webhook_events)") if row[5]),
+            key=lambda row: row[5],
+        ))
+        state_pk = tuple(row[1] for row in sorted(
+            (row for row in connection.execute("PRAGMA table_info(platform_order_states)") if row[5]),
+            key=lambda row: row[5],
+        ))
+        assert event_pk == ("platform", "tenant_id", "store_id", "event_id")
+        assert state_pk == ("platform", "tenant_id", "store_id", "order_id")
+        assert connection.execute("SELECT COUNT(*) FROM webhook_events").fetchone()[0] == 1
+        assert connection.execute("SELECT COUNT(*) FROM platform_order_states").fetchone()[0] == 1
+
+
+def test_database_migration_failure_rolls_back_table_rebuild(tmp_path):
+    db_path = tmp_path / "broken-legacy.db"
+    seed_path = tmp_path / "orders.json"
+    seed_path.write_text('{"orders": []}', encoding="utf-8")
+    with sqlite3.connect(db_path) as connection:
+        connection.executescript("""
+            CREATE TABLE tenants (
+                tenant_id TEXT PRIMARY KEY, display_name TEXT NOT NULL,
+                is_demo INTEGER NOT NULL DEFAULT 1
+            );
+            INSERT INTO tenants VALUES ('demo-a', 'Demo A', 1);
+            CREATE TABLE webhook_events (
+                platform TEXT NOT NULL, event_id TEXT NOT NULL, event_type TEXT NOT NULL,
+                tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id), store_id TEXT NOT NULL,
+                order_id TEXT NOT NULL, payload_sha256 TEXT NOT NULL,
+                status TEXT NOT NULL, received_at TEXT NOT NULL,
+                PRIMARY KEY (platform, event_id)
+            );
+            CREATE TABLE platform_order_states (
+                platform TEXT NOT NULL, order_id TEXT NOT NULL,
+                tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id), store_id TEXT NOT NULL,
+                customer_id TEXT NOT NULL, platform_status TEXT NOT NULL,
+                source_event_id TEXT NOT NULL, occurred_at TEXT NOT NULL, updated_at TEXT NOT NULL,
+                PRIMARY KEY (platform, order_id)
+            );
+            INSERT INTO webhook_events VALUES
+                ('mock-shop','orphan-event-001','order.shipped','missing-tenant','shop-a','order-a','hash','processed','2026-11-20T00:00:00Z');
+        """)
+
+    with pytest.raises(sqlite3.IntegrityError):
+        initialize_database(db_path, seed_path)
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 0
+        assert connection.execute("SELECT COUNT(*) FROM webhook_events").fetchone()[0] == 1
+        pk_columns = tuple(row[1] for row in sorted(
+            (row for row in connection.execute("PRAGMA table_info(webhook_events)") if row[5]),
+            key=lambda row: row[5],
+        ))
+        assert pk_columns == ("platform", "event_id")
+        assert connection.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='webhook_events_v1'"
+        ).fetchone()[0] == 0
+
+
+def test_database_rejects_newer_schema_without_initializing_tables(tmp_path):
+    db_path = tmp_path / "future.db"
+    seed_path = tmp_path / "orders.json"
+    seed_path.write_text('{"orders": []}', encoding="utf-8")
+    with sqlite3.connect(db_path) as connection:
+        connection.execute("PRAGMA user_version = 99")
+
+    with pytest.raises(RuntimeError, match="newer than supported"):
+        initialize_database(db_path, seed_path)
+
+    with sqlite3.connect(db_path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 99
+        assert connection.execute(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table'"
+        ).fetchone()[0] == 0
+
+
+def test_webhook_event_and_order_ids_are_store_scoped_and_idempotent(tmp_path):
+    seed_path = tmp_path / "orders.json"
+    seed_path.write_text('{"orders": []}', encoding="utf-8")
+    db_path = tmp_path / "store-scope.db"
+    initialize_database(db_path, seed_path)
+    common = {
+        "event_id": "event-shared-0001",
+        "event_type": "order.shipped",
+        "tenant_id": "demo-a",
+        "order_id": "order-shared-0001",
+        "customer_id": "customer-demo-a",
+        "occurred_at": "2026-11-20T00:00:00+00:00",
+    }
+    first, created_first = process_mockshop_webhook(
+        db_path, **common, store_id="shop-a-1", platform_status="WAIT_BUYER_RECEIVE",
+        payload_sha256="payload-a",
+    )
+    second, created_second = process_mockshop_webhook(
+        db_path, **common, store_id="shop-a-2", platform_status="TRADE_SUCCESS",
+        payload_sha256="payload-b",
+    )
+    duplicate, created_duplicate = process_mockshop_webhook(
+        db_path, **common, store_id="shop-a-1", platform_status="WAIT_BUYER_RECEIVE",
+        payload_sha256="payload-a",
+    )
+
+    assert created_first is True and created_second is True
+    assert created_duplicate is False
+    assert first["platform_status"] == duplicate["platform_status"]
+    assert first["store_id"] == "shop-a-1"
+    assert second["store_id"] == "shop-a-2"
+    assert fetch_platform_order_state(db_path, common["order_id"], "demo-a", "shop-a-1")["platform_status"] == "WAIT_BUYER_RECEIVE"
+    assert fetch_platform_order_state(db_path, common["order_id"], "demo-a", "shop-a-2")["platform_status"] == "TRADE_SUCCESS"
+    assert fetch_webhook_event(db_path, common["event_id"], "demo-a", "shop-a-1")["payload_sha256"] == "payload-a"
+    assert fetch_webhook_event(db_path, common["event_id"], "demo-a", "shop-a-2")["payload_sha256"] == "payload-b"
+    with pytest.raises(WebhookEventConflict):
+        process_mockshop_webhook(
+            db_path, **common, store_id="shop-a-1", platform_status="TRADE_SUCCESS",
+            payload_sha256="conflicting-payload",
+        )

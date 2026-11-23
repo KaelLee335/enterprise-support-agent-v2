@@ -60,9 +60,9 @@
 
 `POST /webhooks/mock-shop`
 
-平台模拟器按原始请求体计算 HMAC-SHA256，放入 `X-MockShop-Signature: sha256=<hex>`。验证签名后才进行 Pydantic schema 校验及事件入库。`event_id` 唯一：同一 ID 和相同 body 返回重复事件结果；相同 ID 携带不同 body 返回 409。过期事件会留存但不会覆盖较新的订单状态。租户由可信的 `shop_id` 映射派生，忽略 payload 中伪造的 tenant 字段。
+平台模拟器按原始请求体计算 HMAC-SHA256，放入 `X-MockShop-Signature: sha256=<hex>`。验证签名后才进行 Pydantic schema 校验及事件入库。事件身份按 `(platform, tenant_id, store_id, event_id)` 去重：同一店铺同一 ID 和相同 body 返回重复事件结果；相同店铺 ID 携带不同 body 返回 409。不同店铺可以复用事件 ID 和订单号，彼此状态不会覆盖。过期事件会留存但不会覆盖较新的订单状态。租户由可信的 `shop_id` 映射派生，忽略 payload 中伪造的 tenant 字段。
 
-事件状态可以经 `GET /webhooks/mock-shop/events/{event_id}` 查询，且受 tenant scope 限制。请求大小限制、错误响应和日志均避免暴露签名或密钥。
+事件状态可以经 `GET /webhooks/mock-shop/events/{event_id}?store_id=<store_id>` 查询。服务端会以认证身份的 tenant 和后端配置的 store 映射共同约束查询；缺少 store_id 会校验失败，越租户的 store 返回 404。请求大小限制、错误响应和日志均避免暴露签名或密钥。
 
 ## Mock 平台 API
 

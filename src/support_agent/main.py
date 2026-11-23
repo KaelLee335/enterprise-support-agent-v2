@@ -48,7 +48,12 @@ from support_agent.integrations.mock_shop import MockShopAdapter
 from support_agent.integrations.models import AftersaleEligibility, LogisticsInfo, PlatformOrder
 from support_agent.integrations.mock_shop import normalize_order_status
 from support_agent.integrations.webhooks import MockShopWebhookEvent, normalized_order_status
-from support_agent.integrations.permissions import apply_webhook_order_state, get_authorized_platform_order, tenant_for_store
+from support_agent.integrations.permissions import (
+    apply_webhook_order_state,
+    get_authorized_platform_order,
+    stores_for_tenant,
+    tenant_for_store,
+)
 from support_agent.schemas import (
     ApprovalDecision,
     ApprovalAssignmentRequest,
@@ -426,9 +431,14 @@ async def receive_mockshop_webhook(
 @app.get("/webhooks/mock-shop/events/{event_id}")
 def get_mockshop_webhook_event(
     event_id: str,
+    store_id: str,
     identity: DemoIdentity = Depends(require_demo_identity),
 ) -> dict:
-    event = fetch_webhook_event(settings.database_path, event_id, identity.tenant_id)
+    if store_id not in stores_for_tenant(identity.tenant_id):
+        raise HTTPException(status_code=404, detail="Webhook event not found")
+    event = fetch_webhook_event(
+        settings.database_path, event_id, identity.tenant_id, store_id
+    )
     if event is None:
         raise HTTPException(status_code=404, detail="Webhook event not found")
     return {

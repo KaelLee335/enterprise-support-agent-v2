@@ -447,7 +447,7 @@
 - 没有修改代码或业务数据，没有执行 migration、全量测试、Compose、Git commit/push。上一轮 105 passed / 17.99s 仅作为既有基线引用。
 - 当前状态：审计与方案完成，等待用户确认 migration proposal 和历史授权数据录入策略；获批后按先测试、后小范围实现推进。Phase 2 结束后暂停。
 
-# 2026-11-22 — Phase 3 OOS 回归改进与待验收状态
+# 历史过程记录：Phase 3 OOS 回归改进（当前状态见本页顶部更新）
 
 - 2026-11-23 最终更新：定向检查扩展后全量 pytest **137 passed / 18.14s**；真实 OOS-v2 最新运行于 09:27 UTC 完成。Hit@4 100%、Macro Recall@4 100%、答案规则初筛 100%、拒答边界初筛 100%、引用标签匹配 100%、Bad Case 0。指标为规则筛查，不代表语义准确率；OOS-v2 已是 observed regression set。报告与 ledger 已刷新。
 - 新增 SiliconFlow 客户端 30 秒请求超时、一次重试及逐案例进度日志。WSL 未操作，代码未提交/推送。
@@ -480,3 +480,16 @@
 - 本机全量 pytest **137 passed / 18.46s**。修复提交 `793f259` 已推送，GitHub Actions run `45163773462` 成功。
 - 用户随后报告 `48cd754` 的 WSL 三容器及 `verify_phase6`、`verify_v21` 验收全通过；包标记修复不影响应用运行，无需为它另行重建部署。
 - 只读核验数据库：备份与当前库的 `PRAGMA integrity_check` 均为 `ok`；备份缺少迁移新增的权限表及售后审计列，记录数少于当前库。未读取具体记录、未写入数据库。
+
+## 2026-11-23 — Phase 3 用户验收与 Phase 4 只读审计
+
+- 用户接受 Phase 3，阶段关闭。
+- 对 `webhook_events` / `platform_order_states` 主键、upsert、事件回查与 `PRAGMA user_version` 做代码和只读数据库审计。发现当前键未包含店铺维度，且 schema version 为 0；持久迁移需要 rebuild SQLite 表。
+- 完成 `docs/phase4_sqlite_identity_migration_plan.md`：建议身份复合键、临时库测试矩阵、备份/失败回滚与降级风险。随后用户批准仅在临时库实施/测试，结果记录在下一节；持久库迁移仍未授权或执行。
+
+## 2026-11-23 — Phase 4 临时库实现完成，等待验收
+
+- 用户批准 Phase 4 实施。新增 SQLite `user_version=1` 迁移：在事务内重建 Webhook event/state 主键并保留原行，补齐售后审计列；拒绝比当前更新的 schema version。
+- Webhook 去重/状态读写改为 tenant + store 精确范围，事件状态查询需带 store_id 并通过后端 tenant-store 映射；API 参考已更新。
+- 新增旧 schema 升级、升级幂等、迁移异常回滚、未来版本拒绝、跨店铺复用 event/order ID 和 API store 范围测试。
+- 全量 pytest **142 passed / 17.52s**。全部数据库变更仅在 pytest 临时库运行；未操作持久 D 盘/WSL 数据、未运行 Compose。用户要求继续交付，后续提交/推送并核对 CI；真实数据库迁移仍需单独授权。

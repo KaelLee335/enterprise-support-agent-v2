@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
+SCHEMA_VERSION = 1
 
 SCHEMA = """
 PRAGMA foreign_keys = ON;
@@ -176,7 +177,7 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     payload_sha256 TEXT NOT NULL,
     status TEXT NOT NULL CHECK (status IN ('processed', 'rejected')),
     received_at TEXT NOT NULL,
-    PRIMARY KEY (platform, event_id)
+    PRIMARY KEY (platform, tenant_id, store_id, event_id)
 );
 CREATE INDEX IF NOT EXISTS idx_webhook_events_tenant
     ON webhook_events(tenant_id, received_at);
@@ -191,7 +192,7 @@ CREATE TABLE IF NOT EXISTS platform_order_states (
     source_event_id TEXT NOT NULL,
     occurred_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    PRIMARY KEY (platform, order_id)
+    PRIMARY KEY (platform, tenant_id, store_id, order_id)
 );
 """
 
@@ -210,6 +211,120 @@ def connect(database_path: Path) -> sqlite3.Connection:
     connection.row_factory = sqlite3.Row
     connection.execute("PRAGMA foreign_keys = ON")
     return connection
+
+
+def _primary_key_columns(connection: sqlite3.Connection, table_name: str) -> tuple[str, ...]:
+    rows = connection.execute(f'PRAGMA table_info("{table_name}")').fetchall()
+    return tuple(row["name"] for row in sorted(rows, key=lambda row: row["pk"]) if row["pk"])
+
+
+def _ensure_aftersale_audit_columns(connection: sqlite3.Connection) -> None:
+    columns = {
+        row["name"] for row in connection.execute("PRAGMA table_info(aftersale_requests)")
+    }
+    for column in ("actor_id", "customer_id"):
+        if column not in columns:
+            connection.execute(f"ALTER TABLE aftersale_requests ADD COLUMN {column} TEXT")
+
+
+def _rebuild_webhook_events_for_store_scope(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """CREATE TABLE webhook_events_v1 (
+            platform TEXT NOT NULL,
+            event_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id),
+            store_id TEXT NOT NULL,
+            order_id TEXT NOT NULL,
+            payload_sha256 TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN ('processed', 'rejected')),
+            received_at TEXT NOT NULL,
+            PRIMARY KEY (platform, tenant_id, store_id, event_id)
+        )"""
+    )
+    connection.execute(
+        """INSERT INTO webhook_events_v1
+           (platform, event_id, event_type, tenant_id, store_id, order_id,
+            payload_sha256, status, received_at)
+           SELECT platform, event_id, event_type, tenant_id, store_id, order_id,
+                  payload_sha256, status, received_at
+           FROM webhook_events"""
+    )
+    connection.execute("DROP TABLE webhook_events")
+    connection.execute("ALTER TABLE webhook_events_v1 RENAME TO webhook_events")
+    connection.execute(
+        "CREATE INDEX idx_webhook_events_tenant ON webhook_events(tenant_id, received_at)"
+    )
+
+
+def _rebuild_platform_order_states_for_store_scope(connection: sqlite3.Connection) -> None:
+    connection.execute(
+        """CREATE TABLE platform_order_states_v1 (
+            platform TEXT NOT NULL,
+            order_id TEXT NOT NULL,
+            tenant_id TEXT NOT NULL REFERENCES tenants(tenant_id),
+            store_id TEXT NOT NULL,
+            customer_id TEXT NOT NULL,
+            platform_status TEXT NOT NULL,
+            source_event_id TEXT NOT NULL,
+            occurred_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            PRIMARY KEY (platform, tenant_id, store_id, order_id)
+        )"""
+    )
+    connection.execute(
+        """INSERT INTO platform_order_states_v1
+           (platform, order_id, tenant_id, store_id, customer_id, platform_status,
+            source_event_id, occurred_at, updated_at)
+           SELECT platform, order_id, tenant_id, store_id, customer_id, platform_status,
+                  source_event_id, occurred_at, updated_at
+           FROM platform_order_states"""
+    )
+    connection.execute("DROP TABLE platform_order_states")
+    connection.execute(
+        "ALTER TABLE platform_order_states_v1 RENAME TO platform_order_states"
+    )
+
+
+def _migrate_schema(connection: sqlite3.Connection) -> None:
+    """Upgrade the additive demo schema using an explicit SQLite user_version."""
+    version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+    if version > SCHEMA_VERSION:
+        raise RuntimeError(
+            f"Database schema version {version} is newer than supported {SCHEMA_VERSION}"
+        )
+    if version == SCHEMA_VERSION:
+        expected = {
+            "webhook_events": ("platform", "tenant_id", "store_id", "event_id"),
+            "platform_order_states": ("platform", "tenant_id", "store_id", "order_id"),
+        }
+        mismatched = [
+            name for name, columns in expected.items()
+            if _primary_key_columns(connection, name) != columns
+        ]
+        if mismatched:
+            raise RuntimeError(f"Database schema version mismatch: {', '.join(mismatched)}")
+        aftersale_columns = {
+            row["name"] for row in connection.execute("PRAGMA table_info(aftersale_requests)")
+        }
+        if not {"actor_id", "customer_id"}.issubset(aftersale_columns):
+            raise RuntimeError("Database schema version mismatch: aftersale_requests")
+        return
+
+    connection.execute("BEGIN IMMEDIATE")
+    try:
+        target_events = ("platform", "tenant_id", "store_id", "event_id")
+        target_states = ("platform", "tenant_id", "store_id", "order_id")
+        if _primary_key_columns(connection, "webhook_events") != target_events:
+            _rebuild_webhook_events_for_store_scope(connection)
+        if _primary_key_columns(connection, "platform_order_states") != target_states:
+            _rebuild_platform_order_states_for_store_scope(connection)
+        _ensure_aftersale_audit_columns(connection)
+        connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
 
 
 def _insert_order(connection: sqlite3.Connection, order: dict[str, Any]) -> None:
@@ -235,15 +350,14 @@ def initialize_database(database_path: Path, seed_path: Path) -> None:
     logger.info("Initializing SQLite database at %s", database_path)
     source = json.loads(seed_path.read_text(encoding="utf-8"))
     with closing(connect(database_path)) as connection:
+        version = int(connection.execute("PRAGMA user_version").fetchone()[0])
+        if version > SCHEMA_VERSION:
+            raise RuntimeError(
+                f"Database schema version {version} is newer than supported {SCHEMA_VERSION}"
+            )
+        connection.executescript(SCHEMA)
+        _migrate_schema(connection)
         with connection:
-            connection.executescript(SCHEMA)
-            aftersale_columns = {
-                row["name"] for row in connection.execute("PRAGMA table_info(aftersale_requests)")
-            }
-            if "actor_id" not in aftersale_columns:
-                connection.execute("ALTER TABLE aftersale_requests ADD COLUMN actor_id TEXT")
-            if "customer_id" not in aftersale_columns:
-                connection.execute("ALTER TABLE aftersale_requests ADD COLUMN customer_id TEXT")
             connection.executemany(
                 "INSERT OR IGNORE INTO tenants (tenant_id, display_name, is_demo) VALUES (?, ?, 1)",
                 [
@@ -885,15 +999,17 @@ def process_mockshop_webhook(
     with closing(connect(database_path)) as connection:
         with connection:
             existing = connection.execute(
-                "SELECT * FROM webhook_events WHERE platform = 'mock-shop' AND event_id = ?",
-                (event_id,),
+                """SELECT * FROM webhook_events
+                   WHERE platform = 'mock-shop' AND tenant_id = ? AND store_id = ? AND event_id = ?""",
+                (tenant_id, store_id, event_id),
             ).fetchone()
             if existing:
                 if existing["payload_sha256"] != payload_sha256:
                     raise WebhookEventConflict("Event id was already used for a different payload")
                 state = connection.execute(
-                    "SELECT * FROM platform_order_states WHERE platform = 'mock-shop' AND order_id = ?",
-                    (order_id,),
+                    """SELECT * FROM platform_order_states WHERE platform = 'mock-shop'
+                       AND tenant_id = ? AND store_id = ? AND order_id = ?""",
+                    (tenant_id, store_id, order_id),
                 ).fetchone()
                 return (dict(state) if state else dict(existing)), False
             connection.execute(
@@ -908,7 +1024,7 @@ def process_mockshop_webhook(
                    (platform, order_id, tenant_id, store_id, customer_id,
                     platform_status, source_event_id, occurred_at, updated_at)
                    VALUES ('mock-shop', ?, ?, ?, ?, ?, ?, ?, ?)
-                   ON CONFLICT(platform, order_id) DO UPDATE SET
+                   ON CONFLICT(platform, tenant_id, store_id, order_id) DO UPDATE SET
                      tenant_id=excluded.tenant_id, store_id=excluded.store_id,
                      customer_id=excluded.customer_id, platform_status=excluded.platform_status,
                      source_event_id=excluded.source_event_id, occurred_at=excluded.occurred_at,
@@ -918,30 +1034,32 @@ def process_mockshop_webhook(
                  event_id, occurred_at, now),
             )
             state = connection.execute(
-                "SELECT * FROM platform_order_states WHERE platform = 'mock-shop' AND order_id = ?",
-                (order_id,),
+                """SELECT * FROM platform_order_states WHERE platform = 'mock-shop'
+                   AND tenant_id = ? AND store_id = ? AND order_id = ?""",
+                (tenant_id, store_id, order_id),
             ).fetchone()
             return dict(state), True
 
 
 def fetch_platform_order_state(
-    database_path: Path, order_id: str, tenant_id: str
+    database_path: Path, order_id: str, tenant_id: str, store_id: str
 ) -> dict[str, Any] | None:
     with closing(connect(database_path)) as connection:
         row = connection.execute(
             """SELECT * FROM platform_order_states
-               WHERE platform = 'mock-shop' AND order_id = ? AND tenant_id = ?""",
-            (order_id, tenant_id),
+               WHERE platform = 'mock-shop' AND order_id = ? AND tenant_id = ? AND store_id = ?""",
+            (order_id, tenant_id, store_id),
         ).fetchone()
     return dict(row) if row else None
 
 
 def fetch_webhook_event(
-    database_path: Path, event_id: str, tenant_id: str
+    database_path: Path, event_id: str, tenant_id: str, store_id: str
 ) -> dict[str, Any] | None:
     with closing(connect(database_path)) as connection:
         row = connection.execute(
-            "SELECT * FROM webhook_events WHERE platform = 'mock-shop' AND event_id = ? AND tenant_id = ?",
-            (event_id, tenant_id),
+            """SELECT * FROM webhook_events
+               WHERE platform = 'mock-shop' AND event_id = ? AND tenant_id = ? AND store_id = ?""",
+            (event_id, tenant_id, store_id),
         ).fetchone()
     return dict(row) if row else None

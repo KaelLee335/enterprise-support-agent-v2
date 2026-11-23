@@ -27,6 +27,11 @@ def tenant_for_store(store_id: str) -> str | None:
     return _TENANT_BY_STORE.get(store_id)
 
 
+def stores_for_tenant(tenant_id: str) -> frozenset[str]:
+    """Return the configured demo stores belonging to a trusted tenant scope."""
+    return frozenset(_STORES_BY_TENANT.get(tenant_id, set()))
+
+
 def can_access_order(identity: DemoIdentity, order: PlatformOrder, database_path: Path) -> bool:
     """Authorize by tenant and a persisted customer grant; approvers get no store-wide scope."""
     if identity.tenant_id != order.tenant_id:
@@ -95,7 +100,9 @@ def apply_webhook_order_state(
     order: PlatformOrder, database_path: Path
 ) -> PlatformOrder:
     """Overlay the latest verified webhook state for this same scoped platform order."""
-    state = fetch_platform_order_state(database_path, order.order_id, order.tenant_id)
+    state = fetch_platform_order_state(
+        database_path, order.order_id, order.tenant_id, order.store_id
+    )
     if state is None:
         return order
     if state["store_id"] != order.store_id or state["customer_id"] != order.customer_id:
