@@ -6,7 +6,7 @@
 - Ran the established WSL sync/deploy workflow against `/opt/project2` (not Windows Compose). All three containers are healthy. `verify_phase6.sh` and `verify_v21.sh` passed in the final run.
 - The persistent `/app/data/support_agent.db` now passes integrity check and has `user_version=1`; event and order-state primary keys include platform, tenant, and store. No business data was cleared.
 - The first verifier run exposed only a stale verifier request missing required `store_id`; fixed `scripts/verify_v21.sh`, synced it, and reran the full workflow successfully. Correct cross-tenant event lookup returns 404 and owner lookup succeeds.
-- Next: commit/push the verifier correction and current status documentation, then confirm CI. Never stage SQLite backups. Phase 4 runtime migration is complete after that delivery bookkeeping; wait for the next user acceptance decision before unrelated phases.
+- Verifier correction and handoff docs were committed as `fe1aeb2`, pushed to `origin/main`; GitHub Actions run `45172043824` succeeded, including tests, frontend build, Compose config, Docker build, and no-key smoke. Never stage SQLite backups. Phase 4 migration/deployment is complete; wait for the next user acceptance decision before unrelated phases.
 
 ## Phase 2 authorization model (closed; later resumed into Phase 3)
 

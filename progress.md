@@ -503,3 +503,4 @@
 - 同步修复并完整重跑更新/验收脚本：Phase 6 与 V2.1 全部 PASS；三个容器 healthy。
 - 运行库只读复核：`integrity_check=ok`、`user_version=1`；`webhook_events` 和 `platform_order_states` 主键都含平台、租户、店铺维度。未清除业务数据。
 - 当前剩余交付事项：提交并推送 verifier 修复和同步状态文档，确认 GitHub Actions；SQLite 备份必须排除在 Git 外。
+- 交付提交 `fe1aeb2` 已推送；Actions run `45172043824` 完整成功（pytest、Vue build、Compose config、Docker build、无 Key smoke）。工作树只保留本机 SQLite 备份为未跟踪文件，确保未进入 Git。

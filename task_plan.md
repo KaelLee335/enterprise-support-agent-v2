@@ -26,7 +26,7 @@
 - [x] 用户明确授权后，使用 SQLite 在线备份 API 创建 `data/support_agent.db.bak-20261123-200521-pre-phase4`；备份完整性 `ok`、版本 0，迁移前保留且未纳入 Git。
 - [x] 通过既有脚本同步并部署到 WSL `/opt/project2`；三容器 healthy，`verify_phase6.sh` 与 `verify_v21.sh` 全部 PASS。首次运行发现 verifier 漏传 `store_id`，修正后同步并完整重跑通过。
 - [x] 实际挂载库完整性 `ok`、`user_version=1`；两张复合主键含 platform/tenant/store，存量数据保留。
-- [ ] 提交并推送 verifier 修复及本阶段记录，确认 GitHub Actions 成功。
+- [x] 修复与阶段记录提交 `fe1aeb2` 已推送；GitHub Actions run `45172043824` 全部成功（pytest、Vue build、Compose config、Docker build、无 Key smoke）。
 
 ### 本机实施与验收
 
