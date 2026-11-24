@@ -525,3 +525,10 @@
 - 用户确认 Phase 6 验收通过，继续进入交付收尾。
 - 同步 `ARCHITECTURE.md`、`docs/project_status.md`、`task_plan.md` 和 `AGENTS.md`：将旧的 130 passed / 未部署 / 等待验收状态更新为最新证据（145 passed / 18.11s、HOLDOUT-07 已部署并验收）。明确 OOS 100% 为规则筛查而非语义准确率；在状态页中把尚需保留的旧数字和旧部署记录标记为历史快照。
 - 两份 SQLite 备份仍是本机未跟踪文件；没有提交或删除。
+
+## 2026-11-24 — RAG 证据支撑边界只读审查
+
+- 复核 Retriever、answer generation、约束层、显式冲突检测、OOS 样本及现有边界测试。确认 `citation_check_passed` 只验证 source ID 来自本次检索；已有离线特征测试显示无关证据或证据内指令可以产生带合法引用的无依据回答。
+- 冲突 detector 仅覆盖移除单个中文否定词后完全相同、且命中主题锚点的句子；不代表一般语义蕴含或矛盾识别。
+- 新增 `docs/rag_grounding_assessment_plan.md`：提出约 15 条人工证据归属案例、独立 claim 级审计器/报告，再依据可复现 Bad Case 单独决定窄范围行为加固。
+- 本次只读审查并更新计划状态；没有改答案逻辑、政策、评估数据、Chroma/SQLite，也没有发起模型请求。新数据集的外部模型运行仍需后续单独授权。

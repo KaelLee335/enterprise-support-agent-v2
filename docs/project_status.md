@@ -1,6 +1,6 @@
 # 当前状态（2026-11-24）：V2.1 电商集成、RAG 样本外评估与权限模型
 
-## 当前推进阶段（2026-11-24）：Phase 6 已验收；交付文档一致性收尾
+## 当前推进阶段（2026-11-24）：Phase 6 已验收；RAG 证据支撑边界提案待审核
 
 - 用户已于 2026-11-23 接受 Phase 3，阶段关闭。Phase 4 实现、持久库迁移与 WSL 部署已在用户授权后完成。
 - Phase 4 实现提交 `d15d6f3` 已推送；全量 pytest **142 passed / 17.52s**，Actions run `45169866834` 成功。持久库迁移前通过 SQLite 在线备份 API 创建 `data/support_agent.db.bak-20261123-200521-pre-phase4`，完整性 `ok`、版本 0；备份保留本地且不提交。
@@ -10,6 +10,7 @@
 - 最新 OOS-v2 实跑（2026-11-23 13:50 UTC）：15 条全量回答/证据已归档；Hit@4、Macro Recall@4、答案要点、拒答要点和引用来源规则筛查均 100%，机器筛查 Bad Case 0。用户确认旧分诊后，逐案回看发现 HOLDOUT-07 旧答复有矛盾拒答，已加 POL-06 窄规则和筛查回归。WSL 实际部署后健康检查、schema/RAG smoke、Phase 6/V2.1 全通过；认证 `/chat` 实测回答与 POL-06 一致。筛查 100% 不是语义准确率；完整答复见 `data/evaluation/oos/rag_oos_v2_holdout_answers.json`。
 - 本机全量 pytest **145 passed / 18.11s**；提交 `e5e7cf2` 已推送，Actions run `45189567933` 全成功。用户已于 2026-11-24 验收 Phase 6。
 - Phase 6 验收结论：HOLDOUT-07 对 POL-06 工作日规则的矛盾拒答已修复；逐案例回答与证据保存在 `data/evaluation/oos/rag_oos_v2_holdout_answers.json`。WSL 三容器 healthy，schema/RAG smoke、Phase 6 和 V2.1 verifier 均通过。100% 指标属于明确规则筛查，不是语义准确率或 blind holdout 成绩。
+- 下一阶段先评估“引用来源存在”与“事实确由证据支持”的差异。当前只完成只读审查和提案，没有改答复逻辑或调用新一轮外部模型；范围与验收边界见 [`RAG 证据支撑边界评估计划`](rag_grounding_assessment_plan.md)。
 - SiliconFlow Chat/Embedding 请求设置 30 秒超时和一次重试，OOS 逐案例显示进度，避免长时间无反馈。
 - Phase 3 交付提交 `48cd754` 已推送；用户报告 WSL 三容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）。
 - GitHub Actions 的 pytest 收集错误已在 `793f259` 修复：新增 `scripts/__init__.py`、`tests/__init__.py`。本机全量 pytest **137 passed / 18.46s**，远端 Actions run `45163773462` 成功。该修复只影响仓库测试导入，不改变容器应用代码。

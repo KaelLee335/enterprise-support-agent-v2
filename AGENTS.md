@@ -5,6 +5,7 @@
 - User accepted Phase 6 on 2026-11-24. HOLDOUT-07 POL-06 correction, full answer/evidence archive, WSL deployment, schema/RAG smoke, Phase 6 and V2.1 verifier results are recorded in `docs/project_status.md` and `progress.md`.
 - Current local suite evidence remains 145 passed / 18.11s from 2026-11-23; OOS-v2 100% figures are rule screens, not semantic accuracy or blind-holdout scores.
 - Documentation consistency pass is complete. Keep the two local SQLite backups untracked and never stage/delete them.
+- Next proposed stage: review `docs/rag_grounding_assessment_plan.md`. Current evidence shows citation-source membership is not claim support; do not change answer behavior or send new evaluation data externally until the user reviews the scope/dataset boundary and separately authorizes the real run.
 
 ## Historical handoff (2026-11-23): Phase 4 persistent migration accepted
 
