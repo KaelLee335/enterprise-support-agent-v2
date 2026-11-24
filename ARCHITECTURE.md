@@ -1,6 +1,6 @@
 # Enterprise Support Agent V2.1 电商集成架构
 
-更新：2026-11-22。本文描述当前 V2.1 Demo 架构和经证实的运行边界；用户报告的 WSL 验收与本机测试分别标注。
+更新：2026-11-24。本文描述当前 V2.1 Demo 架构和经证实的运行边界；本机测试、WSL 实机验收与规则筛查分别标注。
 
 ## 当前架构
 
@@ -19,7 +19,7 @@ flowchart LR
 
 对应源码：`src/support_agent/main.py`、`auth.py`、`db.py`、`agent/{graph,state,nodes}.py`、`rag/`、`logistics.py` 与 `integrations/`。`POST /chat` 提供确定性路由；Customer 订单查询按 tenant/customer owner 过滤，Service 按 grant 过滤；Approver 仅访问分配任务；Admin 管理操作限制在本租户。退款批准只保存 `approved_demo`，不执行退款。政策链由 LangChain/Chroma 提供证据，但引用编号校验不证明事实受证据蕴含；本地 Demo token 是固定身份选择器。
 
-当前本机全量 pytest：**130 passed / 17.01s**。35/35 路由与 8/8 订单参数是既有的标注评估记录，不是本次重跑。Vue production build 是此前验收结果。用户报告早前冲突处理版本在 WSL 的冲突 smoke、Phase 6、V2.1 verifier 全通过；当前复合查询扩展尚未部署，用户要求等提交后再同步。
+当前本机全量 pytest：**145 passed / 18.11s**（2026-11-23）。35/35 路由与 8/8 订单参数是既有的标注评估记录，不是本次重跑。Vue production build 是此前验收结果。用户已验收 Phase 6；HOLDOUT-07 的 POL-06 窄规则已部署，三容器健康，schema/RAG smoke、Phase 6 与 V2.1 verifier 通过。OOS-v2 的 100% 是规则筛查结果，不是语义准确率或盲测成绩。
 
 ## V2.1 电商集成架构（已实现）
 
@@ -61,7 +61,7 @@ Adapter 是平台边界：Agent 和售后服务只使用统一 DTO/方法，不�
 
 - **权限 Phase 2：完成。** Customer owner、Service grants、Approver assigned task/self-approval guard、Admin tenant scope，用户报告 WSL 验收通过。
 - **评估 Phase 3：完成。** OOS-v1 的 OOS-05 引导了定制商品/质量/运费查询扩展；距离校准不支持单一阈值；直接冲突保护只覆盖句面极性反转。用户确认 OOS-v2 分诊；当前已观察回归报告的检索、答案要点、拒答要点、引用来源规则筛查均通过，但不代表语义准确率或盲测成绩。用户已授权同一配置模型评估，HOLDOUT-04 是已知风险案例。
-- **OOS 审计后续：本机完成，WSL 验收待做。** 已新增逐案例答案和证据归档。人工检查发现 HOLDOUT-07 旧回答对 POL-06 明确规定的法定节假日计数先拒答后肯定，已添加窄范围直接答案与筛查回归；完整 OOS-v2 回归筛查通过。修复部署后再更新阶段状态。
+- **OOS 答复审计：完成并已验收。** 已新增逐案例答案和证据归档。HOLDOUT-07 旧回答对 POL-06 明确规定的法定节假日计数先拒答后肯定，已添加窄范围直接答案与筛查回归；完整 OOS-v2 回归筛查通过并已部署。规则筛查不能代替人工语义审阅。
 - **迁移 Phase 5：完成。** WSL 更新脚本会在现有业务验收前，以只读方式核对 SQLite 完整性、代码 schema version 与复合身份键；CI 同时检查 shell 语法。
 - **保护范围：**冲突规则不覆盖语义改写式矛盾、隐含冲突或一般证据蕴含。证据内指令风险仍未通过真实模型做安全验证，不应宣传为已防护。
 

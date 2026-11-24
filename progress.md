@@ -518,4 +518,10 @@
 - 用户确认此前 12 个候选 Bad Case 分诊后，补齐所有 OOS-v2 案例的实际回答与证据存档；完整审阅发现 HOLDOUT-07 旧答复先称节假日定义未知，后又称节假日不计入工作日，违反 POL-06 的明确规则。
 - 增加 POL-06 工作日定义确定性回答和矛盾过度拒答筛查；补充单测，全量 pytest **145 passed / 18.11s**。同一 OOS-v2 数据集/模型重跑：Hit@4、Macro Recall@4、答案/拒答/引用筛查均 100%，规则初筛 Bad Case 0；这些不是语义准确率。
 - 通过现有脚本同步到 WSL 并完整验证：schema 检查、RAG smoke、Phase 6、V2.1 全通过，三容器 healthy；实时认证 `/chat` 对节假日问题返回直接正确的 POL-06 答案。
-- 提交 `e5e7cf2` 已推送；GitHub Actions run `45189567933` 成功。当前等待用户验收 Phase 6。
+- 提交 `e5e7cf2` 已推送；GitHub Actions run `45189567933` 成功。
+
+## 2026-11-24 — Phase 6 验收与文档一致性收尾
+
+- 用户确认 Phase 6 验收通过，继续进入交付收尾。
+- 同步 `ARCHITECTURE.md`、`docs/project_status.md`、`task_plan.md` 和 `AGENTS.md`：将旧的 130 passed / 未部署 / 等待验收状态更新为最新证据（145 passed / 18.11s、HOLDOUT-07 已部署并验收）。明确 OOS 100% 为规则筛查而非语义准确率；在状态页中把尚需保留的旧数字和旧部署记录标记为历史快照。
+- 两份 SQLite 备份仍是本机未跟踪文件；没有提交或删除。

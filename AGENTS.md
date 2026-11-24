@@ -1,6 +1,12 @@
 # Project Agent Instructions
 
-## Latest handoff (2026-11-23): Phase 4 persistent migration accepted
+## Latest handoff (2026-11-24): Phase 6 accepted; documentation aligned
+
+- User accepted Phase 6 on 2026-11-24. HOLDOUT-07 POL-06 correction, full answer/evidence archive, WSL deployment, schema/RAG smoke, Phase 6 and V2.1 verifier results are recorded in `docs/project_status.md` and `progress.md`.
+- Current local suite evidence remains 145 passed / 18.11s from 2026-11-23; OOS-v2 100% figures are rule screens, not semantic accuracy or blind-holdout scores.
+- Documentation consistency pass is complete. Keep the two local SQLite backups untracked and never stage/delete them.
+
+## Historical handoff (2026-11-23): Phase 4 persistent migration accepted
 
 - User explicitly authorized the live SQLite migration and WSL deployment. Before deployment, created `data/support_agent.db.bak-20261123-200521-pre-phase4` using SQLite's online backup API. The backup passed `PRAGMA integrity_check=ok` and remained at `user_version=0`; do not add it to Git or delete it.
 - Ran the established WSL sync/deploy workflow against `/opt/project2` (not Windows Compose). All three containers are healthy. `verify_phase6.sh` and `verify_v21.sh` passed in the final run.
@@ -19,7 +25,7 @@
 - User confirmed the prior 12-case manual triage. A new full-answer archive exposed a missed semantic defect: HOLDOUT-07 previously said holiday inclusion was unknown, then stated holidays are excluded, despite POL-06 being explicit.
 - Added a narrow POL-06 workday-definition override and a screening regression that catches contradictory over-abstention. Added `rag_oos_v2_holdout_answers.json` output for every case, including passes, with retrieved evidence and metrics; this keeps manual review possible when the Bad Case ledger is empty.
 - Targeted tests: 35 passed; full pytest: 145 passed. Fresh same-dataset/same-provider OOS-v2 run: Hit@4, Macro Recall@4, answer checks, abstention checks and citation-source matching all 100%, screening Bad Cases 0. These remain rule screens, not semantic accuracy.
-- Deployed via the established WSL update workflow. Three containers healthy; schema check, RAG smoke, Phase 6, and V2.1 verifiers pass. A live authenticated `/chat` check for the holiday question returned the direct POL-06 answer without contradictory abstention. Commit `e5e7cf2` is pushed; Actions run `45189567933` succeeded. Preserve both local SQLite backups; never stage them. Phase 6 is ready for user acceptance.
+- Deployed via the established WSL update workflow. Three containers healthy; schema check, RAG smoke, Phase 6, and V2.1 verifiers pass. A live authenticated `/chat` check for the holiday question returned the direct POL-06 answer without contradictory abstention. Commit `e5e7cf2` is pushed; Actions run `45189567933` succeeded. Preserve both local SQLite backups; never stage them. Phase 6 was accepted by the user on 2026-11-24.
 
 ## Phase 2 authorization model (closed; later resumed into Phase 3)
 

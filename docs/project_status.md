@@ -1,6 +1,6 @@
-# 当前状态（2026-11-23）：V2.1 电商集成、RAG 样本外评估与权限模型
+# 当前状态（2026-11-24）：V2.1 电商集成、RAG 样本外评估与权限模型
 
-## 当前推进阶段（2026-11-23）：OOS-v2 答复审计与 HOLDOUT-07 修复（待用户验收）
+## 当前推进阶段（2026-11-24）：Phase 6 已验收；交付文档一致性收尾
 
 - 用户已于 2026-11-23 接受 Phase 3，阶段关闭。Phase 4 实现、持久库迁移与 WSL 部署已在用户授权后完成。
 - Phase 4 实现提交 `d15d6f3` 已推送；全量 pytest **142 passed / 17.52s**，Actions run `45169866834` 成功。持久库迁移前通过 SQLite 在线备份 API 创建 `data/support_agent.db.bak-20261123-200521-pre-phase4`，完整性 `ok`、版本 0；备份保留本地且不提交。
@@ -8,7 +8,8 @@
 - 验收脚本与阶段记录已在 `fe1aeb2` 提交并推送；GitHub Actions run `45172043824` 全成功（pytest、Vue build、Compose 配置、Docker build、无 Key smoke）。无需再次迁移数据库。
 - Phase 5 已完成：WSL 更新脚本新增 SQLite 只读后置核验（完整性、代码 schema version、tenant/store 复合主键），CI 检查 shell 语法。当前三容器全流程复跑通过，未执行新迁移或写数据库。提交 `20e954e` 的 GitHub Actions run `45180300306` 全成功。详见 [`Phase 5 迁移后置核验`](phase5_migration_verification.md)。
 - 最新 OOS-v2 实跑（2026-11-23 13:50 UTC）：15 条全量回答/证据已归档；Hit@4、Macro Recall@4、答案要点、拒答要点和引用来源规则筛查均 100%，机器筛查 Bad Case 0。用户确认旧分诊后，逐案回看发现 HOLDOUT-07 旧答复有矛盾拒答，已加 POL-06 窄规则和筛查回归。WSL 实际部署后健康检查、schema/RAG smoke、Phase 6/V2.1 全通过；认证 `/chat` 实测回答与 POL-06 一致。筛查 100% 不是语义准确率；完整答复见 `data/evaluation/oos/rag_oos_v2_holdout_answers.json`。
-- 本机全量 pytest **145 passed**；提交 `e5e7cf2` 已推送，Actions run `45189567933` 全成功。Phase 6 现在等待用户验收。
+- 本机全量 pytest **145 passed / 18.11s**；提交 `e5e7cf2` 已推送，Actions run `45189567933` 全成功。用户已于 2026-11-24 验收 Phase 6。
+- Phase 6 验收结论：HOLDOUT-07 对 POL-06 工作日规则的矛盾拒答已修复；逐案例回答与证据保存在 `data/evaluation/oos/rag_oos_v2_holdout_answers.json`。WSL 三容器 healthy，schema/RAG smoke、Phase 6 和 V2.1 verifier 均通过。100% 指标属于明确规则筛查，不是语义准确率或 blind holdout 成绩。
 - SiliconFlow Chat/Embedding 请求设置 30 秒超时和一次重试，OOS 逐案例显示进度，避免长时间无反馈。
 - Phase 3 交付提交 `48cd754` 已推送；用户报告 WSL 三容器 healthy，`verify_phase6` 与 `verify_v21` 全 PASS（EXIT=0）。
 - GitHub Actions 的 pytest 收集错误已在 `793f259` 修复：新增 `scripts/__init__.py`、`tests/__init__.py`。本机全量 pytest **137 passed / 18.46s**，远端 Actions run `45163773462` 成功。该修复只影响仓库测试导入，不改变容器应用代码。
@@ -16,14 +17,14 @@
 
 - Phase 2 权限模型已按用户报告完成 WSL 迁移和验收；详情见下方阶段记录。
 - Phase 3 已为 OOS runner 增加机器可读 Bad Case ledger，并完成 24 条合成探针的 Embedding 距离校准；距离分布重叠，不设统一拒答阈值。
-- 本机全量 pytest **130 passed / 17.01s**。2026-11-22 使用既有虚构 OOS-v1 做了真实回归复测；OOS-05 已用于改进，因此结果不是 blind holdout。
+- 历史快照（2026-11-22）：本机全量 pytest **130 passed / 17.01s**。当日使用既有虚构 OOS-v1 做了真实回归复测；OOS-05 已用于改进，因此结果不是 blind holdout。后续最新全量测试结果见本页顶部。
 - 已新增 RAG 无关证据、冲突证据和证据内指令的离线特征测试；FakeListChatModel 证明直接相反句会在调用模型前安全澄清，并检查例外范围、多阶段规则和无关主题不误报。引用 ID 检查仍不能证明事实正确。
 - 真实 Embedding 校准：12/12 可回答目标进入 Top-4，但可回答距离与无答案最近距离大幅重叠，不建议应用全局距离阈值。报告：`data/evaluation/oos/embedding_distance_calibration_v1.md`。校准本身未写入 Chroma/SQLite；随后经用户批准加入了窄范围答复保护。
 - OOS-v1 回归复测 15 条：Hit@4、Macro Recall@4、答案规则初筛、拒答初筛、引用标签匹配均 100%，Bad Case 0。真实语义仍需人工复核；OOS-05 一次人工检查发现模型问了政策未规定的“照片或视频”格式。
-- 新增定制商品+质量问题+运费的专门检索查询扩展，Top-K 保持 4。用户报告更早的显式冲突版本 WSL smoke 与双 verifier 全 PASS，但明确要求本轮最终部署状态等提交后再同步；查询扩展还未部署。
+- 历史部署状态（2026-11-22）：新增定制商品+质量问题+运费的专门检索查询扩展，Top-K 保持 4；当时最终部署尚未完成。后续已随 Phase 4/5 部署并通过验收。
 - OOS-v2 15 题已由用户于 2026-11-23 审核通过并授权真实运行，位于 `data/evaluation/oos/rag_oos_v2_holdout.json`。其中 HOLDOUT-04 针对已知边界，因此不是完全盲测；整套现已成为已观察数据。
 - 用户已授权真实运行：Hit@4 100%、Macro Recall@4 93.3%、答案规则初筛 20%、拒答/范围词面初筛 0/6、引用标签匹配 100%；12 个候选 Bad Case（10 GENERATION、2 RETRIEVAL）待人工逐例判定。这些词面筛查率不是语义准确率；详见独立报告和 ledger。
-- 用户已确认 `data/evaluation/oos/rag_oos_v2_manual_triage.md` 中逐案分诊并授权继续。经归档的逐案检查新增发现 HOLDOUT-07 漏检，已修复并重跑 OOS-v2；部署等待现有 WSL 验收流程。
+- 用户已确认 `data/evaluation/oos/rag_oos_v2_manual_triage.md` 中逐案分诊并授权继续。经归档的逐案检查新增发现 HOLDOUT-07 漏检，已修复、重跑、部署并通过 Phase 6 验收；详情见顶部。
 - 历史中间状态（已被 2026-11-23 后续结果取代）：当时一次真实 OOS 重跑未完成，报告保留为旧快照。当前结果见本页顶部的最新状态和独立报告。
 - 已补 SiliconFlow 请求超时与逐案例进度显示（30 秒、最多 1 次重试）；后续真实 OOS-v2 报告已刷新，见顶部状态。
 
