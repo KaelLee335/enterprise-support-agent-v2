@@ -617,6 +617,105 @@ def fetch_order(database_path: Path, order_id: str, identity: Any) -> dict[str, 
     return dict(row) if row else None
 
 
+def list_orders_for_identity(
+    database_path: Path, identity: Any, *, search: str = "", status: str = "", limit: int = 100
+) -> list[dict[str, Any]]:
+    """List only orders the current trusted identity may read; scope is enforced in SQL."""
+    role = {"requester": "customer"}.get(identity.role, identity.role)
+    params: list[Any] = [identity.tenant_id]
+    scope_params: list[Any] = []
+    scope = ""
+    if role == "customer" and identity.customer_id:
+        scope = """AND EXISTS (
+            SELECT 1 FROM order_customer_ownership own
+            JOIN tenant_users tu ON tu.tenant_id=own.tenant_id AND tu.user_id=?
+              AND tu.role='customer' AND tu.customer_id=own.customer_id AND tu.is_active=1
+            WHERE own.tenant_id=o.tenant_id AND own.source='sqlite' AND own.store_id=''
+              AND own.order_id=o.order_id AND own.customer_id=? AND own.is_active=1)"""
+        scope_params.extend([identity.user_id, identity.customer_id])
+    elif role == "service":
+        scope = """AND EXISTS (
+            SELECT 1 FROM order_customer_ownership own
+            JOIN service_customer_grants g ON g.tenant_id=own.tenant_id
+              AND g.customer_id=own.customer_id AND g.service_user_id=? AND g.is_active=1
+            JOIN tenant_users tu ON tu.tenant_id=g.tenant_id AND tu.user_id=g.service_user_id
+              AND tu.role='service' AND tu.is_active=1
+            WHERE own.tenant_id=o.tenant_id AND own.source='sqlite' AND own.store_id=''
+              AND own.order_id=o.order_id AND own.is_active=1)"""
+        scope_params.append(identity.user_id)
+    elif role == "approver":
+        scope = """AND EXISTS (
+            SELECT 1 FROM approval_tasks t JOIN tenant_users u ON u.tenant_id=t.tenant_id
+              AND u.user_id=t.approver_id AND u.role='approver' AND u.is_active=1
+            WHERE t.tenant_id=o.tenant_id AND t.order_id=o.order_id AND t.approver_id=?)"""
+        scope_params.append(identity.user_id)
+    else:
+        return []
+    where = ["o.tenant_id=?", "o.is_demo=1", "1=1", "1=1"]
+    if search.strip():
+        where[2] = "(o.order_id LIKE ? OR o.product LIKE ? OR COALESCE(o.issue_description,'') LIKE ?)"
+        term = f"%{search.strip()[:100]}%"
+        params.extend([term, term, term])
+    if status.strip():
+        where[3] = "o.status=?"
+        params.append(status.strip()[:40])
+    params.extend(scope_params)
+    params.append(max(1, min(limit, 200)))
+    with closing(connect(database_path)) as connection:
+        rows = connection.execute(
+            f"SELECT o.* FROM orders o WHERE {' AND '.join(where)} {scope} "
+            "ORDER BY o.created_date DESC, o.order_id LIMIT ?", params
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def dashboard_for_identity(database_path: Path, identity: Any) -> dict[str, Any]:
+    """Return real, identity-scoped counters; unavailable telemetry stays null."""
+    with closing(connect(database_path)) as connection:
+        counts = connection.execute(
+            """SELECT COUNT(*) AS total,
+                      SUM(CASE WHEN status='completed' THEN 1 ELSE 0 END) AS completed,
+                      SUM(CASE WHEN status='failed' THEN 1 ELSE 0 END) AS failed,
+                      SUM(CASE WHEN status IN ('running','pending') THEN 1 ELSE 0 END) AS active
+               FROM agent_runs WHERE tenant_id=? AND user_id=?""",
+            (identity.tenant_id, identity.user_id),
+        ).fetchone()
+        rows = connection.execute(
+            """SELECT run_id, trace_id, intent, status, error_type, started_at, finished_at
+               FROM agent_runs WHERE tenant_id=? AND user_id=?
+               ORDER BY started_at DESC LIMIT 8""",
+            (identity.tenant_id, identity.user_id),
+        ).fetchall()
+        pending = 0
+        if identity.role == "approver":
+            pending = connection.execute(
+                """SELECT COUNT(*) FROM approval_tasks WHERE tenant_id=? AND approver_id=?
+                   AND status='pending'""", (identity.tenant_id, identity.user_id)
+            ).fetchone()[0]
+    return {
+        "runs": {k: int(counts[k] or 0) for k in ("total", "completed", "failed", "active")},
+        "pending_approvals": int(pending),
+        "average_duration_ms": None,
+        "token_usage": None,
+        "recent_runs": [dict(row) for row in rows],
+        "scope": "current_user_and_tenant",
+    }
+
+
+def list_approval_history(database_path: Path, identity: Any) -> list[dict[str, Any]]:
+    if identity.role != "approver":
+        return []
+    with closing(connect(database_path)) as connection:
+        rows = connection.execute(
+            """SELECT task_id, order_id, requester_id, actor_id, approver_id,
+                      thread_id, status, decision, decision_at, created_at, updated_at
+               FROM approval_tasks WHERE tenant_id=? AND approver_id=?
+               ORDER BY created_at DESC LIMIT 100""",
+            (identity.tenant_id, identity.user_id),
+        ).fetchall()
+    return [dict(row) for row in rows]
+
+
 def create_approval_task(
     database_path: Path, *, task_id: str, tenant_id: str, order_id: str,
     customer_id: str, requester_id: str, actor_id: str, approver_id: str,
@@ -867,6 +966,18 @@ def fetch_agent_run(
             (run_id, identity.tenant_id, identity.user_id),
         ).fetchone()
     return dict(row) if row else None
+
+
+def list_agent_runs(database_path: Path, identity: Any, *, limit: int = 50) -> list[dict[str, Any]]:
+    with closing(connect(database_path)) as connection:
+        rows = connection.execute(
+            """SELECT run_id, trace_id, user_id, tenant_id, intent, status, error_type,
+                      started_at, finished_at, is_demo
+               FROM agent_runs WHERE tenant_id=? AND user_id=?
+               ORDER BY started_at DESC LIMIT ?""",
+            (identity.tenant_id, identity.user_id, max(1, min(limit, 200))),
+        ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def delete_agent_run(database_path: Path, run_id: str, tenant_id: str) -> bool:

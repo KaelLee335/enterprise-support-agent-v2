@@ -153,6 +153,87 @@ def test_chat_writes_minimal_tenant_scoped_agent_run(client):
     assert foreign.status_code == 404
 
 
+def test_workbench_dashboard_and_run_list_are_identity_scoped(client):
+    requester = {"Authorization": "Bearer demo-a-local-token"}
+    other = {"Authorization": "Bearer demo-b-local-token"}
+    run = client.post("/chat", json={"question": "查订单1001"}, headers=requester).json()
+
+    summary = client.get("/dashboard", headers=requester)
+    own_runs = client.get("/agent-runs", headers=requester)
+    other_summary = client.get("/dashboard", headers=other)
+    assert summary.status_code == 200
+    assert summary.json()["runs"]["total"] == 1
+    assert summary.json()["average_duration_ms"] is None
+    assert summary.json()["token_usage"] is None
+    assert [item["run_id"] for item in own_runs.json()] == [run["run_id"]]
+    assert other_summary.json()["runs"]["total"] == 0
+
+
+def test_order_list_is_owner_scoped_and_searchable(client):
+    own = client.get("/orders?q=1001", headers={"Authorization": "Bearer demo-a-local-token"})
+    other = client.get("/orders?q=1001", headers={"Authorization": "Bearer demo-b-local-token"})
+    approver = client.get("/orders", headers={"Authorization": "Bearer demo-a-approver-local-token"})
+    assert own.status_code == 200 and [o["order_id"] for o in own.json()] == ["1001"]
+    assert other.status_code == 200 and other.json() == []
+    assert approver.status_code == 200 and approver.json() == []
+
+
+def test_service_order_list_requires_persisted_customer_grant(client):
+    admin = {"Authorization": "Bearer demo-a-admin-local-token"}
+    service = {"Authorization": "Bearer demo-a-service-local-token"}
+    revoke = client.put(
+        "/admin/services/user-demo-a-service/customers/customer-demo-a?allowed=false",
+        headers=admin,
+    )
+    before = client.get("/orders?q=1001", headers=service)
+    grant = client.put(
+        "/admin/services/user-demo-a-service/customers/customer-demo-a",
+        headers=admin,
+    )
+    after = client.get("/orders?q=1001", headers=service)
+    assert revoke.status_code == 200
+    assert before.status_code == 200 and before.json() == []
+    assert grant.status_code == 200
+    assert [item["order_id"] for item in after.json()] == ["1001"]
+
+
+def test_evaluation_artifact_api_rejects_path_traversal(client):
+    headers = {"Authorization": "Bearer demo-a-local-token"}
+    assert client.get("/evaluation/artifacts/v1_eval_cases.json", headers=headers).status_code == 200
+    assert client.get("/evaluation/artifacts/..%2F..%2F.env", headers=headers).status_code == 404
+
+
+def test_chat_returns_real_node_event_timeline_and_keeps_ids_distinct(client):
+    response = client.post(
+        "/chat", json={"question": "查订单1001"},
+        headers={"Authorization": "Bearer demo-a-local-token"},
+    )
+    body = response.json()
+    assert response.status_code == 200
+    assert body["events"]
+    assert body["events"][0]["node"] == "route_request"
+    assert body["thread_id"] != body["trace_id"]
+    assert all("question" not in event for event in body["events"])
+
+
+def test_knowledge_and_evaluation_pages_are_backed_by_existing_assets(client):
+    headers = {"Authorization": "Bearer demo-a-local-token"}
+    policies = client.get("/knowledge/policies", headers=headers)
+    catalog = client.get("/evaluation/catalog", headers=headers)
+    assert policies.status_code == 200 and any(d["document_id"] == "POL-06" for d in policies.json())
+    assert catalog.status_code == 200
+    assert any(item["artifact"] == "v1_eval_cases.json" and item["records"] == 45 for item in catalog.json()["artifacts"])
+    assert catalog.json()["execution_enabled"] is False
+
+
+def test_langfuse_off_status_and_feedback_fail_closed_without_external_call(client):
+    headers = {"Authorization": "Bearer demo-a-local-token"}
+    run = client.post("/chat", json={"question": "查订单1001"}, headers=headers).json()
+    assert client.get("/langfuse/status", headers=headers).json()["enabled"] is False
+    response = client.post("/feedback", json={"run_id": run["run_id"], "label": "helpful"}, headers=headers)
+    assert response.status_code == 503
+
+
 @pytest.mark.parametrize(
     ("question", "expected_phrase"),
     [

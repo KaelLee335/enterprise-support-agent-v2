@@ -52,6 +52,10 @@ class Settings:
     rag_chunk_size: int = 400
     rag_chunk_overlap: int = 0
     rag_top_k: int = 4
+    langfuse_enabled: bool = False
+    langfuse_secret_key: str | None = None
+    langfuse_public_key: str | None = None
+    langfuse_base_url: str | None = None
 
 
 def get_settings() -> Settings:
@@ -126,4 +130,8 @@ def get_settings() -> Settings:
         rag_chunk_size=chunk_size,
         rag_chunk_overlap=chunk_overlap,
         rag_top_k=top_k,
+        langfuse_enabled=os.getenv("LANGFUSE_ENABLED", "false").strip().lower() in {"1", "true", "yes", "on"},
+        langfuse_secret_key=os.getenv("LANGFUSE_SECRET_KEY") or None,
+        langfuse_public_key=os.getenv("LANGFUSE_PUBLIC_KEY") or None,
+        langfuse_base_url=os.getenv("LANGFUSE_BASE_URL") or None,
     )

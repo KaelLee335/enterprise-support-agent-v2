@@ -1,13 +1,14 @@
 # Enterprise Support Agent V2｜企业售后智能客服 Agent
 
-一个面向售后场景的 Python 全栈 Agent 演示项目，展示如何将自然语言请求接入可追踪、可评估、具备权限边界的业务流程。项目从 Dify 工作流迁移到代码实现，覆盖 FastAPI、SQLite、LangChain、LangGraph、RAG、自动化测试、Docker 与 Vue 演示界面。
+一个面向电商售后场景的 Python 全栈 Agent 工程演示：把订单查询、政策问答、物流查询与人工审批组织成可观察、可评估、带租户边界的工作流。项目将 Dify 原型迁移为代码实现，覆盖 FastAPI、SQLite、LangChain、LangGraph、Chroma RAG、Langfuse、pytest、Docker Compose 和 Vue 3。
 
 ## 项目亮点
 
 - **端到端请求链路**：虚构请求人/审批人身份与租户校验 → FastAPI → LangGraph 确定性路由 → SQLite 只读订单、政策 RAG、本地模拟物流 HTTP API 或演示审批 → 结构化答复与运行记录。
 - **可核验的政策问答**：政策来源引用、证据展示、无证据安全降级，以及针对退款时限、质量问题、物流和隐私边界的约束规则。
 - **可靠性与安全边界**：Customer/Service/Approver/Admin 的租户内权限、审批任务分配与自批拒绝、checkpoint 完整性预检、锁文件与 CI。RAG 引用白名单不等于语义 grounding；离线边界测试记录了无关/冲突/注入证据的剩余风险。
-- **可运行的演示界面**：Vue 3 + Vite 展示对话、平台订单/物流、售后资格和明确确认后的 MockShop 演示申请。
+- **可运行的演示工作台**：Vue 3 + Vite 提供 Dashboard、智能客服、订单、审批、知识库、评估和可观测性页面；订单与物流接本地 MockShop/模拟物流服务。
+- **可追踪的模型链路**：Langfuse Python SDK / LangChain CallbackHandler 记录请求、LangGraph 节点和模型 Generation；启用需在后端 `.env` 配置，输入输出经脱敏处理。
 - **学习材料与验收证据**：五章代码导读、故障案例库、需求追踪矩阵和运行验证记录。
 
 ## 项目定位
@@ -16,7 +17,23 @@
 
 **技术栈：** Python 3.12 · FastAPI · SQLite · LangChain · LangGraph · Chroma · SiliconFlow/Qwen · Vue 3 · Vite · Docker
 
-**当前验证摘要（2026-11-23）：**本机全量 pytest **145 passed**；WSL 实际部署后三容器 healthy，SQLite schema 检查及 Phase 6/V2.1 verifier 通过，认证 `/chat` 对节假日问题返回与 POL-06 一致的直接答复。OOS-v2 15-case 回归中，Hit@4、Macro Recall@4、答案要点筛查、拒答要点筛查和引用来源匹配均为 100%，规则筛查 Bad Case 为 0；这些筛查结果不等于语义准确率，OOS-v2 是已观察回归集而非盲测。逐案例答复与证据留存在 [`OOS-v2 答复档案`](data/evaluation/oos/rag_oos_v2_holdout_answers.json)。人工回看发现并修正 HOLDOUT-07 对已明确退款工作日规则的矛盾拒答。GitHub Actions 负责锁定依赖、全量测试、Vue 构建、Compose 配置和容器 smoke。更多边界和逐例记录见 [`OOS-v2 报告`](data/evaluation/oos/rag_oos_v2_holdout_report.md) 与 [`分诊复核`](data/evaluation/oos/rag_oos_v2_manual_triage.md)。
+## 给访客与面试官
+
+建议按这条主链路了解项目：**Vue 工作台 → FastAPI 身份与租户校验 → LangGraph 路由 → SQLite 订单 / Chroma 政策 RAG / 模拟物流 / LangGraph 审批中断 → 可追踪答复与运行记录**。
+
+| 演示点 | 可以观察什么 |
+|---|---|
+| 智能客服 | 订单查询、政策 RAG 回答与政策证据、真实 LangGraph 节点事件 |
+| 人工审批 | 请求人提交后暂停；分配的审批人恢复处理；两个角色的页面与对话隔离 |
+| 电商与物流 | 虚构店铺订单、售后资格、MockShop Adapter、模拟物流 HTTP API 与 Webhook 幂等 |
+| 工作台与评估 | 按当前演示身份显示的订单/运行记录，以及独立的开发集、已观察 OOS 回归材料 |
+| 可观测性 | 本地运行记录；配置 Langfuse 后可查看请求 Span、Graph 节点和模型 Generation |
+
+**快速演示：**按下方“本地运行”启动后端和 Vue 页面，从“查询订单1001”或“退款多久能到账？”开始；要展示审批，按“帮我申请订单1001退款”并切换至审批人。此仓库使用虚构数据，演示审批不会退款。安装和完整步骤见 [`演示指南`](docs/demo_runbook.md)、[`工作台与 Langfuse 说明`](docs/enterprise_workbench_guide.md)；实现取舍与面试导读见 [`工程审计`](docs/enterprise_workbench_audit.md)、[`面试讲解`](docs/interview_kit.md)。
+
+**当前证据：**本机全量 pytest **157 passed**、Vue 生产构建通过；Langfuse Cloud v4.86.0 上已验收一次合成政策请求，包含 request root、Graph node 和 `ChatOpenAI` Generation。WSL 当前版本尚未部署；历史部署验收对应旧版本，不能视为本次工作台的部署验收。
+
+**历史运行验收（2026-11-23 部署版本）：**本机全量 pytest **145 passed**；WSL 实际部署后三容器 healthy，SQLite schema 检查及 Phase 6/V2.1 verifier 通过，认证 `/chat` 对节假日问题返回与 POL-06 一致的直接答复。OOS-v2 15-case 回归中，Hit@4、Macro Recall@4、答案要点筛查、拒答要点筛查和引用来源匹配均为 100%，规则筛查 Bad Case 为 0；这些筛查结果不等于语义准确率，OOS-v2 是已观察回归集而非盲测。逐案例答复与证据留存在 [`OOS-v2 答复档案`](data/evaluation/oos/rag_oos_v2_holdout_answers.json)。人工回看发现并修正 HOLDOUT-07 对已明确退款工作日规则的矛盾拒答。GitHub Actions 负责锁定依赖、全量测试、Vue 构建、Compose 配置和容器 smoke。更多边界和逐例记录见 [`OOS-v2 报告`](data/evaluation/oos/rag_oos_v2_holdout_report.md) 与 [`分诊复核`](data/evaluation/oos/rag_oos_v2_manual_triage.md)。
 
 ## 项目架构
 
@@ -89,7 +106,7 @@ npm install --legacy-peer-deps
 npm run dev
 ```
 
-打开 <http://127.0.0.1:5173>。Vite 将 `/api` 请求转发到本地 FastAPI。页面包含聊天、订单/政策证据、店铺身份切换、资格检查和确认后的演示申请。详细说明见 [`docs/vue_frontend.md`](docs/vue_frontend.md)。
+打开 <http://127.0.0.1:5173>。Vite 将 `/api` 请求转发到本地 FastAPI。工作台含 Dashboard、智能客服、订单、审批、RAG 知识库、评估中心和可观测性页面。详细说明见 [`docs/vue_frontend.md`](docs/vue_frontend.md) 与 [`企业工作台 / Langfuse 指南`](docs/enterprise_workbench_guide.md)。
 
 ## 演示方式
 
@@ -186,6 +203,16 @@ docker compose down
 ## 迁移说明
 
 V1 资产来源、字段差异和 RET-01/QUA-01 对照见 [`docs/migration.md`](docs/migration.md)。新规则作为 V2 明确规则单独维护，不修改 V1 原始规则。
+
+## 企业工作台与 Langfuse
+
+Vue 工作台现含 Dashboard、智能客服、订单、人工审批、RAG 知识库、评估中心和本地可观测性。仪表盘、订单与审批列表来自经过身份/租户范围校验的 FastAPI 和 SQLite 查询；聊天时间线由真实 LangGraph 节点包装器生成。节点事件随请求响应返回，当前不支持 token 流式输出。
+
+Langfuse 使用官方 Python SDK v5 / LangChain CallbackHandler，默认关闭。启用时在后端 `.env` 设置 `LANGFUSE_ENABLED=true`、`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 和 `LANGFUSE_BASE_URL`，密钥不放进前端。2026-11-25 用户确认配置并授权后，合成政策问题已在 Langfuse Cloud 真实生成 Trace，包含请求根 Span、LangGraph 节点 Span 和 `ChatOpenAI` GENERATION；输入/输出按导出脱敏规则移除。该验收证明连接与追踪结构，不代表 WSL 部署验收，也不授权发送真实客户数据。
+
+评估页面仅展示仓库中真实保存的开发集、报告和已观察的 OOS 回归文件，数据集不会合并；当前没有在线评估历史表、Bad Case 工作流或版本对比存储。平均耗时与 Token 用量也未写入 SQLite，因此界面显示未采集。功能边界、API 和隐私处理见 [`docs/enterprise_workbench_guide.md`](docs/enterprise_workbench_guide.md)。
+
+本次本机新增功能验证：后端全量测试 **157 passed / 25.94s**，Vue 生产构建、Python compileall 与 Compose 静态配置均通过。随后完成一次真实 Langfuse 合成 Trace 验收；尚未部署到 WSL。
 
 ## 当前边界
 

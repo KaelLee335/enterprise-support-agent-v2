@@ -7,8 +7,29 @@ from contextvars import ContextVar
 from datetime import datetime, timezone
 from typing import Any
 from langgraph.errors import GraphInterrupt
+from support_agent.langfuse_observability import graph_node_observation
 
 trace_id_var: ContextVar[str | None] = ContextVar("trace_id", default=None)
+agent_events_var: ContextVar[list[dict[str, Any]] | None] = ContextVar("agent_events", default=None)
+
+
+def begin_agent_event_capture() -> ContextVar[list[dict[str, Any]] | None]:
+    return agent_events_var.set([])
+
+
+def finish_agent_event_capture(token: Any) -> list[dict[str, Any]]:
+    events = agent_events_var.get() or []
+    agent_events_var.reset(token)
+    return list(events)
+
+
+def _record_agent_event(event: dict[str, Any]) -> None:
+    events = agent_events_var.get()
+    if events is not None:
+        if event.get("status") != "running" and events and events[-1].get("node") == event.get("node") and events[-1].get("status") == "running":
+            events[-1] = {**events[-1], **event}
+        else:
+            events.append(event)
 
 _SECRET_PATTERNS = (
     re.compile(r"(?i)(api[_ -]?key|token|password|secret)(\s*[:=]\s*)[^\s,;]+"),
@@ -84,8 +105,25 @@ def traced_node(name: str, node_fn):
             "order_id": state.get("order_id"),
         }
         logger.info("Agent node started", extra={"event": "node_start", **common})
+        _record_agent_event({"node": name, "status": "running"})
         try:
-            result = node_fn(state)
+            with graph_node_observation(name, intent=state.get("intent")) as observation:
+                result = node_fn(state)
+                if observation is not None:
+                    try:
+                        observation.update(output={
+                            "status": "failed" if result.get("error") else "completed",
+                            "evidence_ids": [item.get("source_id") for item in result.get("evidence", []) if isinstance(item, dict)],
+                            "retrieved_sources": [
+                                {"source_id": item.get("source_id"), "distance": item.get("distance")}
+                                for item in result.get("evidence", []) if isinstance(item, dict)
+                            ],
+                            "order_found": result.get("order") is not None if "order" in result else None,
+                            "order_status": (result.get("order") or {}).get("status") if isinstance(result.get("order"), dict) else None,
+                            "citations_valid": result.get("citations_valid"),
+                        })
+                    except Exception:
+                        logger.warning("Langfuse node metadata update failed; continuing", exc_info=True)
         except GraphInterrupt:
             logger.info(
                 "Agent node paused for human input",
@@ -95,6 +133,7 @@ def traced_node(name: str, node_fn):
                     "duration_ms": round((time.perf_counter() - started) * 1000, 2),
                 },
             )
+            _record_agent_event({"node": name, "status": "paused", "duration_ms": round((time.perf_counter() - started) * 1000, 2)})
             raise
         except Exception as exc:
             logger.exception(
@@ -105,6 +144,7 @@ def traced_node(name: str, node_fn):
                     "duration_ms": round((time.perf_counter() - started) * 1000, 2),
                 },
             )
+            _record_agent_event({"node": name, "status": "failed", "error_type": type(exc).__name__, "duration_ms": round((time.perf_counter() - started) * 1000, 2)})
             raise
 
         summary: dict[str, Any] = {}
@@ -132,6 +172,12 @@ def traced_node(name: str, node_fn):
                 "duration_ms": round((time.perf_counter() - started) * 1000, 2),
             },
         )
+        _record_agent_event({
+            "node": name,
+            "status": "completed" if not result.get("error") else "failed",
+            "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+            "evidence_ids": [item.get("source_id") for item in result.get("evidence", []) if isinstance(item, dict)],
+        })
         return result
 
     return run

@@ -32,6 +32,7 @@ class ChatResponse(BaseModel):
     trace_id: str
     approval_status: str | None = None
     pending_action: dict[str, Any] | None = None
+    events: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class ApprovalDecision(BaseModel):
@@ -53,6 +54,16 @@ class ApprovalResponse(BaseModel):
     answer: str
     pending_action: dict[str, Any] | None = None
     error: str | None = None
+    events: list[dict[str, Any]] = Field(default_factory=list)
+    question: str | None = None
+    order: dict[str, Any] | None = None
+    evidence: list[EvidenceResponse] = Field(default_factory=list)
+    citations: list[str] = Field(default_factory=list)
+
+
+class AgentFeedback(BaseModel):
+    run_id: str = Field(min_length=1, max_length=64)
+    label: Literal["helpful", "unhelpful", "incorrect", "unsupported"]
 
 
 class OrderResponse(BaseModel):

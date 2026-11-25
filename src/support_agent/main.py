@@ -4,6 +4,8 @@ import hmac
 import os
 import time
 import sqlite3
+import json
+from contextlib import nullcontext
 from uuid import uuid4
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -22,6 +24,10 @@ from support_agent.db import (
     fetch_aftersale_request,
     fetch_agent_run,
     fetch_order,
+    list_orders_for_identity,
+    dashboard_for_identity,
+    list_agent_runs,
+    list_approval_history,
     fetch_tenant_user,
     list_tenant_users,
     find_customer_user,
@@ -67,7 +73,12 @@ from support_agent.schemas import (
     ChatResponse,
     OrderResponse,
 )
-from support_agent.observability import configure_logging, redact_user_input, trace_id_var
+from support_agent.observability import (
+    begin_agent_event_capture, finish_agent_event_capture, configure_logging,
+    redact_user_input, trace_id_var,
+)
+from support_agent.langfuse_observability import langfuse_status, safe_score, request_observation
+from support_agent.schemas import AgentFeedback
 
 settings = get_settings()
 configure_logging(settings.log_level)
@@ -167,6 +178,128 @@ async def trace_requests(request: Request, call_next):
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/dashboard")
+def get_dashboard(identity: DemoIdentity = Depends(require_demo_identity)) -> dict:
+    return dashboard_for_identity(settings.database_path, identity)
+
+
+@app.get("/orders")
+def list_my_orders(
+    q: str = "", status: str = "", limit: int = 100,
+    identity: DemoIdentity = Depends(require_demo_identity),
+) -> list[dict]:
+    return list_orders_for_identity(
+        settings.database_path, identity, search=q, status=status, limit=limit
+    )
+
+
+@app.get("/agent-runs")
+def list_my_agent_runs(
+    limit: int = 50, identity: DemoIdentity = Depends(require_demo_identity),
+) -> list[dict]:
+    return list_agent_runs(settings.database_path, identity, limit=limit)
+
+
+@app.get("/langfuse/status")
+def get_langfuse_status(identity: DemoIdentity = Depends(require_demo_identity)) -> dict:
+    return langfuse_status(settings)
+
+
+@app.get("/knowledge/policies")
+def list_policy_documents(identity: DemoIdentity = Depends(require_demo_identity)) -> list[dict]:
+    policy_dir = Path(__file__).resolve().parents[2] / "data" / "policies"
+    documents = []
+    for path in sorted(policy_dir.glob("*.md")) if policy_dir.is_dir() else []:
+        content = path.read_text(encoding="utf-8")
+        documents.append({
+            "document_id": path.stem,
+            "title": next((line.lstrip("# ").strip() for line in content.splitlines() if line.startswith("#")), path.stem),
+            "content": content,
+            "source": "data/policies",
+            "mode": "read_only",
+        })
+    return documents
+
+
+@app.post("/knowledge/search")
+def search_policy_knowledge(
+    body: ChatRequest, identity: DemoIdentity = Depends(require_demo_identity),
+) -> dict:
+    from support_agent.rag.retrieval import open_configured_policy_store, retrieve_policies
+
+    store = open_configured_policy_store(settings=settings)
+    try:
+        results = retrieve_policies(body.question, store=store, top_k=settings.rag_top_k)
+    finally:
+        store = None
+    return {
+        "query": redact_user_input(body.question),
+        "top_k": settings.rag_top_k,
+        "results": [item.__dict__ for item in results],
+    }
+
+
+@app.get("/evaluation/catalog")
+def get_evaluation_catalog(identity: DemoIdentity = Depends(require_demo_identity)) -> dict:
+    root = Path(__file__).resolve().parents[2] / "data" / "evaluation"
+    entries = []
+    for path in sorted(root.rglob("*")) if root.is_dir() else []:
+        if not path.is_file() or path.suffix.lower() not in {".json", ".md"}:
+            continue
+        relative = path.relative_to(root).as_posix()
+        item = {"artifact": relative, "kind": "report" if path.suffix == ".md" or "report" in path.name else "dataset_or_result", "bytes": path.stat().st_size}
+        if path.suffix.lower() == ".json":
+            try:
+                import json
+                value = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(value, list):
+                    item["records"] = len(value)
+                elif isinstance(value, dict):
+                    for key in ("dataset_id", "source_dataset", "evaluated_at", "top_k", "total_cases", "scored_cases", "embedding_model", "chat_model"):
+                        if key in value:
+                            item[key] = value[key]
+                    cases = value.get("cases") or value.get("results") or value.get("items")
+                    if isinstance(cases, list):
+                        item["records"] = len(cases)
+                    summary = value.get("summary")
+                    if isinstance(summary, dict):
+                        item["metrics"] = {
+                            key: summary[key] for key in ("scored_cases", "hit_at_k", "mean_recall_at_k", "all_expected_found_rate")
+                            if key in summary
+                        }
+            except (OSError, ValueError):
+                item["readable"] = False
+        elif path.suffix.lower() == ".md" and "report" in path.name:
+            import re
+            lines = path.read_text(encoding="utf-8").splitlines()
+            item["reported_metrics"] = [line.lstrip("- ") for line in lines if re.search(r"Hit@\d|Recall@\d|准确率|通过率", line, re.IGNORECASE)][:10]
+        entries.append(item)
+    return {"artifacts": entries, "execution_enabled": False, "history_source": "saved_project_artifacts", "note": "开发集、观察到的 OOS 回归集和报告保持分开；当前不提供在线执行或历史运行库。"}
+
+
+@app.get("/evaluation/artifacts/{artifact_path:path}")
+def get_evaluation_artifact(
+    artifact_path: str, identity: DemoIdentity = Depends(require_demo_identity),
+) -> dict:
+    root = (Path(__file__).resolve().parents[2] / "data" / "evaluation").resolve()
+    target = (root / artifact_path).resolve()
+    if not target.is_relative_to(root) or not target.is_file() or target.suffix.lower() not in {".json", ".md"}:
+        raise HTTPException(status_code=404, detail="Evaluation artifact not found")
+    if target.suffix.lower() == ".md":
+        return {"artifact": target.relative_to(root).as_posix(), "content": target.read_text(encoding="utf-8")}
+    try:
+        return {"artifact": target.relative_to(root).as_posix(), "content": json.loads(target.read_text(encoding="utf-8"))}
+    except (OSError, ValueError) as exc:
+        raise HTTPException(status_code=422, detail="Evaluation artifact cannot be read") from exc
+
+
+@app.get("/approvals/history")
+def get_my_approval_history(identity: DemoIdentity = Depends(require_demo_identity)) -> list[dict]:
+    if identity.role != "approver":
+        raise HTTPException(status_code=403, detail="Approver role required")
+    return list_approval_history(settings.database_path, identity)
 
 
 def _new_mock_shop_adapter() -> MockShopAdapter:
@@ -471,19 +604,33 @@ def chat(
         },
     )
     config = {"configurable": {"thread_id": thread_id}}
+    event_token = begin_agent_event_capture()
+    user_scope = hashlib.sha256(
+        f"{identity.tenant_id}:{identity.user_id}".encode("utf-8")
+    ).hexdigest()[:24]
     try:
-        state = request.app.state.support_graph.invoke({
-            "question": chat_request.question,
-            "tenant_id": identity.tenant_id,
-            "user_id": identity.user_id,
-            "user_role": identity.role,
-            "customer_id": identity.customer_id,
-            "database_path": str(settings.database_path),
-            "thread_id": thread_id,
-            "run_id": run_id,
-            "trace_id": trace_id,
-        }, config=config)
+        with request_observation(
+            settings, trace_id=trace_id, thread_id=thread_id,
+            run_id=run_id, user_scope=user_scope,
+        ) as (observation, callbacks):
+            if callbacks:
+                config["callbacks"] = callbacks
+                config["metadata"] = {"langfuse_user_id": user_scope, "langfuse_session_id": thread_id}
+            state = request.app.state.support_graph.invoke({
+                "question": chat_request.question,
+                "tenant_id": identity.tenant_id,
+                "user_id": identity.user_id,
+                "user_role": identity.role,
+                "customer_id": identity.customer_id,
+                "database_path": str(settings.database_path),
+                "thread_id": thread_id,
+                "run_id": run_id,
+                "trace_id": trace_id,
+            }, config=config)
+            if observation is not None:
+                observation.update(output={"intent": state.get("intent"), "status": state.get("approval_status", "completed")})
     except Exception as exc:
+        finish_agent_event_capture(event_token)
         update_agent_run(
             settings.database_path,
             run_id,
@@ -493,6 +640,7 @@ def chat(
         )
         logger.exception("Agent run failed")
         raise
+    events = finish_agent_event_capture(event_token)
     approval_status = state.get("approval_status")
     if approval_status == "pending":
         order_id = str((state.get("pending_action") or {}).get("order_id") or "")
@@ -551,6 +699,7 @@ def chat(
         trace_id=trace_id,
         approval_status=state.get("approval_status"),
         pending_action=state.get("pending_action"),
+        events=events,
     )
 
 
@@ -583,6 +732,10 @@ def get_approval(
         answer=values.get("answer", ""),
         pending_action=values.get("pending_action"),
         error=values.get("error"),
+        question=values.get("question"),
+        order=values.get("order"),
+        evidence=values.get("evidence", []),
+        citations=values.get("citations", []),
     )
 
 
@@ -739,3 +892,17 @@ def get_agent_run_endpoint(
     if run is None:
         raise HTTPException(status_code=404, detail="Agent run not found")
     return AgentRunResponse(**run)
+
+
+@app.post("/feedback")
+def submit_run_feedback(
+    body: AgentFeedback, identity: DemoIdentity = Depends(require_demo_identity),
+) -> dict[str, bool]:
+    run = fetch_agent_run(settings.database_path, body.run_id, identity)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Agent run not found")
+    if not langfuse_status(settings)["enabled"]:
+        raise HTTPException(status_code=503, detail="Langfuse feedback is not enabled")
+    if not safe_score(settings, trace_id=run["trace_id"], label=body.label):
+        raise HTTPException(status_code=503, detail="Feedback could not be delivered")
+    return {"recorded": True}
